@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(memory-bank/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Memory bank updated: $CLAUDE_TOOL_INPUT_FILE_PATH\" >> memory-bank/.update-log"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(docs/user-stories.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] User stories updated\" >> memory-bank/.update-log"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(docs/requirements.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Requirements updated\" >> memory-bank/.update-log"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
