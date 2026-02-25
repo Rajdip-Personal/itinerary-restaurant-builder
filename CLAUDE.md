@@ -55,6 +55,48 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **Aha!** | Product roadmap items, feature requests |
 | **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
 
+### Verifying MCP Server Configuration
+
+When the user asks about their Claude Code setup or MCP server configuration, use these commands to check:
+
+**1. List MCP servers at user scope:**
+```bash
+python3 -c "
+import json
+with open('$HOME/.claude.json') as f:
+    d = json.load(f)
+# User-scope MCP servers
+user_mcps = d.get('mcpServers', {})
+print('=== User-Scope MCP Servers ===')
+for name, config in user_mcps.items():
+    print(f'  {name}: {config.get(\"type\", \"stdio\")}')
+if not user_mcps:
+    print('  (none configured)')
+"
+```
+
+**2. Check environment variables for MCP authentication:**
+```bash
+echo "JIRA_API_TOKEN: $([ -n \"\$JIRA_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
+echo "CONFLUENCE_API_TOKEN: $([ -n \"\$CONFLUENCE_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
+echo "GITHUB_PAT: $([ -n \"\$GITHUB_PAT\" ] && echo 'SET' || echo 'NOT SET')"
+echo "AHA_API_TOKEN: $([ -n \"\$AHA_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
+echo "SERVICENOW_USERNAME: $([ -n \"\$SERVICENOW_USERNAME\" ] && echo 'SET' || echo 'NOT SET')"
+echo "SERVICENOW_PASSWORD: $([ -n \"\$SERVICENOW_PASSWORD\" ] && echo 'SET' || echo 'NOT SET')"
+```
+
+**3. Check local MCP server installations:**
+```bash
+ls -la ~/.claude-mcp/ 2>/dev/null || echo "No local MCP servers in ~/.claude-mcp/"
+```
+
+**Key locations:**
+- `~/.claude.json` — Main Claude Code config (contains `mcpServers` at user scope)
+- `~/.claude-mcp/` — Local MCP server installations (cloned repos)
+- `~/Library/Application Support/Claude/claude_desktop_config.json` — Claude Desktop app config (NOT Claude Code CLI)
+
+**Important:** Do NOT confuse Claude Desktop config with Claude Code CLI config. They are separate.
+
 ## Slash Commands
 
 These commands trigger agent pipelines:
