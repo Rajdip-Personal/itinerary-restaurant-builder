@@ -68,22 +68,6 @@ Claude MUST proactively save to memory bank (without being asked) after:
 
 If unsure whether something is "critical enough" to save — save it. Err on the side of over-documenting.
 
-## Framework Changes Protocol
-
-When a git worktree is set up for framework development (check `activeContext.md` for current setup):
-
-**Framework files** (agents, commands, skills, scripts, templates, CLAUDE.md) must be changed in **BOTH** locations:
-
-1. **Framework branch** (e.g., `framework-improvements`) — the canonical source for the change
-2. **Current working branch** (e.g., `robert-test-run`) — so the user benefits immediately during their session
-
-**Process:**
-1. Make the edit in the framework worktree first
-2. Immediately apply the same edit to the current working directory
-3. Do NOT wait for the user to ask — apply to both automatically
-
-This ensures framework improvements are both preserved (in the framework branch) and usable (in the current session).
-
 ## MCP Server Integrations
 
 The following MCP servers are configured. Use the exact server name prefix when calling tools.
@@ -93,9 +77,9 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **Jira** | Create/update stories, epics, sprints; query existing work |
 | **Confluence** | Read/write design docs, runbooks, team pages |
 | **GitHub** | Repository operations, PRs, code search |
-| **ServiceNow** | Query incidents, change requests, service requests (read-only) |
 | **Slack** | Read threads, search channels, browse messages (read-only) |
 | **Aha!** | Product roadmap items, feature requests |
+| **ServiceNow** | Query incidents, change requests, service requests (read-only) |
 | **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
 
 ### Verifying MCP Server Configuration
@@ -216,11 +200,85 @@ When a user asks about their setup or wants to start using the workshop tooling:
    - ALL required MCP servers are configured
    - ALL required environment variables are set
 
-   Then display "Ready to Start" and show the available workflow commands
+   Then:
+   1. Display "Ready to Start"
+   2. List available projects by scanning `projects/` directory for subdirectories containing `prd.md`
+   3. **Explicitly ask:** "Which project is your team working on?" and list the projects as numbered options
+   4. Do NOT offer to create a new project or use templates
+
+**After User Selects Project — PRD Reading Step (MANDATORY):**
+
+7. **Present the PRD for team reading:**
+   - Read the selected project's `prd.md` file
+   - Display a **clearly labeled summary** (brief table with Vision, Problem, Deliverables, Open Questions count)
+   - **HIGHLY ENCOURAGE** the team to read the full PRD on GitHub with a browser
+   - Provide the GitHub URL using the **main branch**: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/main/projects/{project-name}/prd.md`
+   - Say: "When everyone has read the PRD, type **ready** to continue."
+   - **STOP and WAIT** for the user to type "ready"
+   - Do NOT proceed, offer suggestions, or show workflow commands until the user types "ready"
+   - This is a deliberate human-in-the-loop pause to ensure the team understands the project before refinement begins
+
+8. **After user types "ready":**
+   - **Automatically begin `/refine-prd`** — do NOT show a list of all commands
+   - Skip the project selection step in `/refine-prd` since the project is already known
+   - Start directly with Step 2 (Load Context) and Step 3 (Assess PRD Completeness)
+   - The guided workflow will lead the user through each step sequentially
+
+## Pipeline Navigation
+
+The workshop follows a sequential pipeline. At each step, users can:
+- **Continue forward** to the next step (recommended)
+- **Go back** to re-run any previous step that passed its readiness check
+
+### Navigation Prompt Format
+
+At the completion of each command (after readiness check passes), show:
+
+```
+┌─────────────────────────────────────────────────┐
+│ ✓ /refine-prd complete                          │
+├─────────────────────────────────────────────────┤
+│ Options:                                        │
+│  [1] Continue to /review-prd (recommended)      │
+│  [2] Re-run /refine-prd                         │
+└─────────────────────────────────────────────────┘
+```
+
+As users progress, more options appear:
+
+```
+┌─────────────────────────────────────────────────┐
+│ ✓ /extract-requirements complete                │
+├─────────────────────────────────────────────────┤
+│ Options:                                        │
+│  [1] Continue to /generate-stories (recommended)│
+│  ─── Previous steps (re-run to update) ───      │
+│  [2] /refine-prd           ✓                    │
+│  [3] /review-prd           ✓                    │
+│  [4] /prototype-ui         ✓                    │
+│  [5] /generate-plan        ✓                    │
+│  [6] /extract-requirements ✓                    │
+└─────────────────────────────────────────────────┘
+```
+
+### Re-running Previous Steps
+
+When a user chooses to go back:
+1. Re-run that command from the beginning
+2. Allow them to make updates/changes
+3. When that step's readiness check passes again, show the navigation prompt
+4. Progress continues forward from there (downstream outputs may need regeneration)
+
+### Pipeline State Tracking
+
+Track pipeline state in `memory-bank/progress.md`:
+- Which steps have passed readiness checks
+- When each step was last completed
+- Whether downstream steps need regeneration after upstream changes
 
 ## Slash Commands
 
-These commands trigger agent pipelines:
+These commands trigger agent pipelines. **Users don't need to memorize these** — the guided workflow presents them automatically via navigation prompts.
 
 | Command | Purpose |
 |---------|---------|
@@ -237,20 +295,28 @@ These commands trigger agent pipelines:
 
 ## Workflow
 
-The standard workflow for each workshop squad:
+The workshop is **guided** — users don't need to remember commands. After setup, the pipeline runs sequentially with navigation prompts at each step.
 
+**Pipeline Order:**
 ```
-1. /refine-prd           → Refine PRD with guided questions (memory bank auto-updated)
-2. /review-prd           → Walk through open questions, gather answers, update PRD
-3. /prototype-ui         → Generate interactive React prototype, preview in browser
-4. /generate-plan        → Generate phased execution plan
-5. /extract-requirements → Extract structured requirements from PRD
-6. /generate-stories     → Generate sprint-ready user stories
-7. /generate-design      → Create detailed technical design
-8. /validate-coverage    → Cross-check everything for gaps
+/refine-prd → /review-prd → /prototype-ui → /generate-plan → /extract-requirements → /generate-stories → /generate-design → /validate-coverage
 ```
 
-At each step, engineers review, provide feedback, and iterate before moving to the next stage.
+| Step | Command | Purpose |
+|------|---------|---------|
+| 1 | `/refine-prd` | Refine PRD with guided questions (auto-starts after "ready") |
+| 2 | `/review-prd` | Walk through open questions, gather answers |
+| 3 | `/prototype-ui` | Generate interactive React prototype, preview in browser |
+| 4 | `/generate-plan` | Generate phased execution plan |
+| 5 | `/extract-requirements` | Extract structured requirements from PRD |
+| 6 | `/generate-stories` | Generate sprint-ready user stories |
+| 7 | `/generate-design` | Create detailed technical design |
+| 8 | `/validate-coverage` | Cross-check everything for gaps |
+
+At each step:
+- Engineers review output and provide feedback
+- Readiness check determines if step is complete
+- Navigation prompt shows next step + option to revisit previous steps
 
 ## Key Directories
 
