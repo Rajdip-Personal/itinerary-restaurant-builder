@@ -84,7 +84,8 @@ All commands accept additional arguments for context. Example: `/generate-plan f
 │   systemPatterns · activeContext · progress                │
 ├──────────────────────────────────────────────────────────┤
 │                MCP Server Integrations                    │
-│        Jira · Confluence · GitHub · Slack · Aha!          │
+│  Jira · Confluence · GitHub · ServiceNow · Schema Repo    │
+│              Aha! · Slack (read-only)                     │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -133,16 +134,38 @@ A documentation and gap analysis project. Connect Kafka schemas, Splunk queries,
 
 ---
 
+## MCP Server Setup
+
+MCP (Model Context Protocol) servers provide Claude Code with access to external systems. Run the setup script to configure all servers:
+
+```bash
+./scripts/setup-mcp-servers.sh
+```
+
+**Required environment variables:**
+- `JIRA_PAT` — Jira Personal Access Token
+- `CONFLUENCE_PAT` — Confluence Personal Access Token
+- `GITHUB_PAT` — GitHub Personal Access Token (with SSO authorization)
+- `AHA_API_TOKEN` — Aha! API Token
+- `SERVICENOW_USERNAME` / `SERVICENOW_PASSWORD` — CI pipeline service account
+
+See [docs/mcp-server-setup.md](docs/mcp-server-setup.md) for detailed setup instructions and troubleshooting.
+
+---
+
 ## Pre-Workshop Checklist (Facilitators)
 
 ### Environment Setup
 - [ ] Repository cloned and accessible to all squads
 - [ ] Claude Code installed and authenticated for all participants
-- [ ] MCP servers configured and tested:
-  - [ ] GitHub MCP — can read/write repositories
+- [ ] MCP servers configured via `./scripts/setup-mcp-servers.sh`:
   - [ ] Jira MCP — can create/read stories and epics
   - [ ] Confluence MCP — can read/write pages
-  - [ ] Slack MCP — can send notifications (optional)
+  - [ ] GitHub MCP — can read/write repositories
+  - [ ] ServiceNow MCP — can query incidents/changes (read-only)
+  - [ ] Schema Repo MCP — can browse Kafka schemas
+  - [ ] Aha! MCP — can access roadmap
+  - [ ] Slack MCP — can read messages (read-only)
 
 ### Content Preparation
 - [ ] Review all three project PRDs — customize for your squads if needed

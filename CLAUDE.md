@@ -23,7 +23,8 @@ The system uses an **orchestrator pattern** with specialized agents collaboratin
 │         /memory-bank/ (persistent)               │
 ├─────────────────────────────────────────────────┤
 │           MCP Server Integrations                │
-│ jira · confluence · github · schema-repo · aha   │
+│ Jira · Confluence · GitHub · ServiceNow · Slack  │
+│         Aha! · Schema Repo                       │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -44,38 +45,15 @@ The memory bank lives in `/memory-bank/` and persists context across sessions. I
 
 The following MCP servers are configured. Use the exact server name prefix when calling tools.
 
-| MCP Server Name | System | Purpose |
-|-----------------|--------|---------|
-| `jira-mcp` | Jira | Create/update stories, epics, sprints; query existing work; manage comments and worklogs |
-| `confluence-mcp` | Confluence | Read/write design docs, runbooks, team pages; search content |
-| `github` | GitHub | Repository operations, PRs, code search, file contents, issues |
-| `nordstrom-schema-repo` | Nordstrom Schema Registry | Query Kafka event schemas (Avro/JSON); list domains and schemas; search by field name |
-| `aha-mcp` | Aha! | Product roadmap items, features, requirements, releases; query and create ideas |
-| `servicenow` | ServiceNow | Incidents, change requests, service requests; query tickets (requires VPN) |
-| `nordstrom-slack` | Slack | Read threads, search channels, browse messages, lookup users (read-only, requires VPN) |
-
-### MCP Tool Naming Convention
-
-MCP tools follow this pattern: `mcp__{server-name}__{tool-name}`
-
-Examples:
-- `mcp__jira-mcp__get_issue` — Get a Jira issue
-- `mcp__confluence-mcp__search` — Search Confluence
-- `mcp__github__get_file_contents` — Get file from GitHub repo
-- `mcp__nordstrom-schema-repo__search_schemas` — Search Kafka schemas by keyword
-- `mcp__nordstrom-schema-repo__get_schema` — Get full schema definition
-- `mcp__aha-mcp__*` — Aha! roadmap and feature operations
-
-### Nordstrom Schema Repo Tools
-
-Use these tools to discover Kafka event contracts:
-- `list_domains` — List all schema domains (e.g., supply-chain, inventory)
-- `list_schemas` — List schemas in a domain
-- `search_schemas` — Search schemas by keyword
-- `search_by_field` — Find schemas containing a specific field name
-- `get_schema` — Get full Avro/JSON schema definition
-- `get_index` — Get the schema index
-- `refresh` — Refresh the schema cache
+| Server | Purpose |
+|--------|---------|
+| **Jira** | Create/update stories, epics, sprints; query existing work |
+| **Confluence** | Read/write design docs, runbooks, team pages |
+| **GitHub** | Repository operations, PRs, code search |
+| **ServiceNow** | Query incidents, change requests, service requests (read-only) |
+| **Slack** | Read threads, search channels, browse messages (read-only) |
+| **Aha!** | Product roadmap items, feature requests |
+| **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
 
 ## Slash Commands
 
