@@ -97,6 +97,84 @@ ls -la ~/.claude-mcp/ 2>/dev/null || echo "No local MCP servers in ~/.claude-mcp
 
 **Important:** Do NOT confuse Claude Desktop config with Claude Code CLI config. They are separate.
 
+### Required MCP Servers
+
+The following MCP servers **must** be configured before proceeding with the workshop:
+
+| Server Key | Required |
+|------------|----------|
+| `jira` | Yes |
+| `confluence-mcp` | Yes |
+| `github` | Yes |
+| `nordstrom-schema-repo` | Yes |
+| `aha-mcp` | Yes |
+| `servicenow` | Yes |
+| `nordstrom-slack` | Yes |
+
+### Required Environment Variables
+
+The following environment variables **must** be set for MCP server authentication:
+
+| Variable | Purpose |
+|----------|---------|
+| `JIRA_API_TOKEN` | Jira API authentication |
+| `CONFLUENCE_API_TOKEN` | Confluence API authentication |
+| `GITHUB_PAT` | GitHub Personal Access Token |
+| `AHA_API_TOKEN` | Aha! API authentication |
+| `SERVICENOW_USERNAME` | ServiceNow username |
+| `SERVICENOW_PASSWORD` | ServiceNow password |
+
+**How to set environment variables:**
+
+Add these to your shell profile (`~/.zshrc` or `~/.bashrc`):
+```bash
+export JIRA_API_TOKEN="your-jira-token"
+export CONFLUENCE_API_TOKEN="your-confluence-token"
+export GITHUB_PAT="your-github-pat"
+export AHA_API_TOKEN="your-aha-token"
+export SERVICENOW_USERNAME="your-servicenow-username"
+export SERVICENOW_PASSWORD="your-servicenow-password"
+```
+
+Then reload your shell: `source ~/.zshrc` (or restart your terminal).
+
+### Setup Check Protocol
+
+When a user asks about their setup or wants to start using the workshop tooling:
+
+1. Run the MCP server check commands above
+2. Compare configured servers against the required list
+3. Check all required environment variables
+
+**Validation Step 1 — MCP Servers:**
+
+4. **If ANY required MCP servers are missing:**
+   - List which servers are missing in a table
+   - Instruct the user to run:
+     ```bash
+     scripts/setup-mcp-servers.sh
+     ```
+   - **STOP HERE** — Do NOT proceed until all MCP servers are configured
+   - After the user runs the setup script, they must restart Claude Code for changes to take effect
+   - Do NOT continue to environment variable check or "Ready to Start"
+
+**Validation Step 2 — Environment Variables:**
+
+5. **If ANY required environment variables are NOT SET:**
+   - List which variables are missing in a table
+   - Show the user how to set them (add to `~/.zshrc` or `~/.bashrc`)
+   - **STOP HERE** — Do NOT proceed until all environment variables are set
+   - After setting variables, user must run `source ~/.zshrc` or restart their terminal, then restart Claude Code
+   - Do NOT continue to "Ready to Start"
+
+**Ready to Start:**
+
+6. **Only if ALL of the following are true:**
+   - ALL required MCP servers are configured
+   - ALL required environment variables are set
+
+   Then display "Ready to Start" and show the available workflow commands
+
 ## Slash Commands
 
 These commands trigger agent pipelines:
