@@ -66,11 +66,22 @@ All commands accept additional arguments for context. Example: `/generate-plan f
 
 ## Agent Architecture
 
+The system uses a **two-phase architecture**:
+
+### Phase 1: Human-Driven (Main Claude)
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                     Orchestrator                          │
-│            Assesses state, delegates work,                │
-│           reviews outputs, routes pipeline                │
+│                    Main Claude                            │
+│  Setup · Project Selection · /refine-prd · /review-prd    │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Phase 2: Orchestrator-Driven (After PRD is ready)
+```
+┌──────────────────────────────────────────────────────────┐
+│                 Orchestrator Agent                        │
+│    Reads state · Spawns subagents · Reviews output        │
+│         Presents to human · Updates memory                │
 ├──────────┬───────────┬──────────┬──────────┬────────────┤
 │ Planning │Requirements│  Story   │   Code   │  Memory    │
 │  Agent   │   Agent   │Generator │ Scanner  │  Agent     │
@@ -89,7 +100,14 @@ All commands accept additional arguments for context. Example: `/generate-plan f
 └──────────────────────────────────────────────────────────┘
 ```
 
-Each agent is a specialized Claude Code subagent with:
+After `/refine-prd` and `/review-prd` complete, the **orchestrator agent** is spawned to coordinate the remaining pipeline. The orchestrator:
+- Reads state from memory-bank and docs/
+- Spawns specialized subagents (planning-agent, requirements-agent, etc.) using the Task tool
+- Reviews subagent output for quality
+- Presents to human for validation before proceeding
+- Updates memory-bank after each stage
+
+Each subagent is a Claude Code subprocess with:
 - A defined purpose and set of tools
 - A detailed system prompt with output format specifications
 - Access to the shared memory bank for context
@@ -263,7 +281,7 @@ agentic-ai-workshop/
 ├── .claude/
 │   ├── settings.json                  # Hooks configuration
 │   ├── agents/                        # Subagent definitions
-│   │   ├── orchestrator.md            # Pipeline coordinator
+│   │   ├── orchestrator.md            # Pipeline coordinator (spawns other agents)
 │   │   ├── planning-agent.md          # PRD → execution plan
 │   │   ├── requirements-agent.md      # PRD → structured requirements
 │   │   ├── story-generator.md         # Requirements → user stories
