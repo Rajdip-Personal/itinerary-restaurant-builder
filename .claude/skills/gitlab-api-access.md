@@ -7,6 +7,20 @@ description: Access Nordstrom's internal GitLab (git.jwn.app) via REST API for r
 
 You are a Claude Skill that accesses Nordstrom's internal GitLab instance at `git.jwn.app` using the REST API.
 
+## CRITICAL: Clone Location
+
+**ALWAYS clone GitLab repositories into `.claude/repos/` within this project — NEVER clone to parent directories or elsewhere.**
+
+```bash
+# Correct - clone into project's .claude/repos/
+mkdir -p .claude/repos
+git clone <url> .claude/repos/<repo-name>
+
+# WRONG - never do this
+git clone <url> /Users/brub/dev/supplychain/<repo-name>
+git clone <url> ../<repo-name>
+```
+
 ## What this skill does
 
 - Search for repositories by name or APP ID
@@ -63,36 +77,127 @@ chmod +x /tmp/gitlab_api.sh
 
 When invoked:
 
-1. **Verify GITLAB_TOKEN is set**
-   - Check: `[ -n "$GITLAB_TOKEN" ] && echo "Token set" || echo "Token NOT set"`
-   - If not set, inform user they need to set `GITLAB_TOKEN` environment variable
+### Step 0: Check for Local Clone FIRST (MANDATORY)
 
-2. **Parse the request**
-   - Extract project identifiers: APP IDs, TM codes, repository names, or full URLs
-   - Determine what information is needed (files, README, structure, commits, etc.)
+**ALWAYS check if the repository exists locally in `.claude/repos/` before making ANY API calls.**
 
-3. **Search for the project** (if numeric ID not known)
+1. **Extract repository identifiers from the request**
+   - Parse APP IDs (e.g., `APP08476`), TM codes (e.g., `TM01467`), or repo names
+   - Extract from URLs like `git.jwn.app/TM01467/APP08476-service-name`
+
+2. **Check for local clone in `.claude/repos/`**
    ```bash
-   cat << 'SCRIPT' > /tmp/gitlab_search.sh
-   #!/bin/bash
-   curl --request GET \
-     --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-     --url "https://git.jwn.app/api/v4/search?scope=projects&search=APP00344" \
-     --silent | python3 -m json.tool
-   SCRIPT
-   chmod +x /tmp/gitlab_search.sh
-   /tmp/gitlab_search.sh
+   # List all cloned repos in the project
+   ls -la .claude/repos/ 2>/dev/null || echo "No .claude/repos/ directory"
+
+   # Search for specific repo by APP ID or name
+   ls -d .claude/repos/*APP08476* 2>/dev/null || echo "Not found locally"
    ```
-   - Extract the numeric `id` from results — use this for all subsequent calls
 
-4. **Retrieve requested information**
-   - Use the API patterns documented below
-   - Always use numeric project IDs, not URL-encoded paths
+3. **If local clone exists → USE FILE SYSTEM OPERATIONS**
+   - **DO NOT make API calls** — use local files instead
+   - Use `Read` tool to read files directly from `.claude/repos/<repo-name>/`
+   - Use `Glob` tool to find files by pattern
+   - Use `Grep` tool to search code
+   - Use `git log`, `git branch`, `git status` for git operations
+   - This is faster, works offline, and doesn't consume API rate limits
 
-5. **Present results clearly**
-   - Summarize repository purpose and structure
-   - Show relevant file contents
-   - Highlight key information (tech stack, dependencies, etc.)
+   **Example: Instead of API calls, do this:**
+   ```bash
+   # List files (instead of /repository/tree)
+   ls -la .claude/repos/APP08476-service-name/
+
+   # Read file contents (instead of /repository/files/.../raw)
+   # Use the Read tool: Read .claude/repos/APP08476-service-name/README.md
+
+   # Search code (instead of /search?scope=blobs)
+   # Use the Grep tool on .claude/repos/APP08476-service-name/
+
+   # View commits
+   cd .claude/repos/APP08476-service-name && git log --oneline -20
+   ```
+
+4. **If NO local clone exists → determine next action:**
+
+   - **If user explicitly asks to CLONE** (e.g., "clone", "download", "pull down the repo") → Go directly to **Step 4: Clone**
+   - **Otherwise** → Use API to answer the request (Steps 1-3), fallback to clone if API repeatedly fails
+
+---
+
+### Step 1: Verify GITLAB_TOKEN is set
+
+- Check: `[ -n "$GITLAB_TOKEN" ] && echo "Token set" || echo "Token NOT set"`
+- If not set, inform user they need to set `GITLAB_TOKEN` environment variable
+
+### Step 2: Parse the request
+
+- Extract project identifiers: APP IDs, TM codes, repository names, or full URLs
+- Determine what information is needed (files, README, structure, commits, etc.)
+
+### Step 3: Search for the project via API (if numeric ID not known)
+
+```bash
+cat << 'SCRIPT' > /tmp/gitlab_search.sh
+#!/bin/bash
+curl --request GET \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --url "https://git.jwn.app/api/v4/search?scope=projects&search=APP00344" \
+  --silent | python3 -m json.tool
+SCRIPT
+chmod +x /tmp/gitlab_search.sh
+/tmp/gitlab_search.sh
+```
+
+- Extract the numeric `id` and `path_with_namespace` from results
+
+### Step 3b: Use API to fulfill the request (for non-clone requests)
+
+**If user is NOT asking to clone**, use the API patterns below to answer their request:
+- Use the API patterns in the "API Patterns" section to retrieve files, list directories, get commits, etc.
+- This avoids cloning large repos when user only needs to read a few files
+
+**If API repeatedly fails** (2-3 attempts with 401/403/404/timeout errors):
+- Inform the user that API access is having issues
+- Fall back to cloning the repository (proceed to Step 4)
+
+---
+
+### Step 4: Clone the repository into `.claude/repos/`
+
+**Use this step when:**
+- User explicitly asks to clone/download the repository, OR
+- API access repeatedly fails (2-3 attempts with 401/403/404/timeout errors)
+
+**Clone command:**
+
+```bash
+# Create the repos directory if it doesn't exist
+mkdir -p .claude/repos
+
+# Clone using HTTPS with token authentication
+# Extract repo name from path_with_namespace (e.g., TM01467/APP08476-service-name -> APP08476-service-name)
+REPO_PATH="TM01467/APP08476-service-name"  # from API response
+REPO_NAME=$(basename "$REPO_PATH")
+
+# Clone into .claude/repos/
+git clone "https://oauth2:${GITLAB_TOKEN}@git.jwn.app/${REPO_PATH}.git" ".claude/repos/${REPO_NAME}"
+```
+
+**Important**: After cloning, use the local clone for ALL subsequent operations in this session. Do not continue making API calls.
+
+### Step 5: Retrieve requested information from local clone
+
+- Now that the repo is cloned, use file system operations:
+  - `Read` tool to read files from `.claude/repos/<repo-name>/`
+  - `Glob` tool to find files by pattern
+  - `Grep` tool to search code
+  - `git log`, `git branch` for git operations
+
+### Step 6: Present results clearly
+
+- Summarize repository purpose and structure
+- Show relevant file contents
+- Highlight key information (tech stack, dependencies, etc.)
 
 ## API Patterns
 
