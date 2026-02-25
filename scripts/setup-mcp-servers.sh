@@ -1,11 +1,13 @@
 #!/bin/bash
 #
 # Setup MCP Servers for Claude Code
-# This script configures Jira, Confluence, GitHub, Nordstrom Schema Repo, and Aha! MCP servers at the user level.
+# This script configures Jira, Confluence, GitHub, ServiceNow, Nordstrom Schema Repo, Aha!, and Slack MCP servers at the user level.
 #
 # Prerequisites:
 #   - Claude Code CLI installed
-#   - Environment variables set: JIRA_PAT, CONFLUENCE_PAT, GITHUB_PAT, AHA_API_TOKEN
+#   - Python 3.12+ and uv package manager (for ServiceNow MCP)
+#   - Environment variables set: JIRA_PAT, CONFLUENCE_PAT, GITHUB_PAT, AHA_API_TOKEN,
+#     SERVICENOW_USERNAME, SERVICENOW_PASSWORD
 #
 
 set -e
@@ -71,6 +73,24 @@ if [ -z "$AHA_API_TOKEN" ]; then
     echo ""
 fi
 
+if [ -z "$SERVICENOW_USERNAME" ]; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: SERVICENOW_USERNAME is not set."
+    echo ""
+    echo "  Set your ServiceNow username (LAN ID):"
+    echo "    export SERVICENOW_USERNAME={your-lan-id}"
+    echo ""
+fi
+
+if [ -z "$SERVICENOW_PASSWORD" ]; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: SERVICENOW_PASSWORD is not set."
+    echo ""
+    echo "  Set your ServiceNow password:"
+    echo "    export SERVICENOW_PASSWORD={your-password}"
+    echo ""
+fi
+
 if [ $missing_count -gt 0 ]; then
     echo "----------------------------------------"
     echo "The MCP servers will be configured with variable references,"
@@ -109,6 +129,37 @@ if claude mcp add --transport http --scope user github https://api.githubcopilot
     echo "  ✓ GitHub MCP server added"
 else
     echo "  ⚠ GitHub MCP server already exists (skipped)"
+fi
+
+echo ""
+echo "Installing ServiceNow MCP server (user scope)..."
+# ServiceNow MCP runs locally with basic auth against prod
+# Requires: Python 3.12+, uv package manager, VPN (Zscaler)
+SERVICENOW_MCP_DIR="${HOME}/.claude-mcp/servicenow-mcp"
+if [ -d "$SERVICENOW_MCP_DIR" ]; then
+    echo "  ⚠ ServiceNow MCP already cloned at $SERVICENOW_MCP_DIR"
+    echo "    To update, run: cd $SERVICENOW_MCP_DIR && git pull && source .venv/bin/activate && uv sync --all-groups"
+else
+    mkdir -p "${HOME}/.claude-mcp"
+    git clone git@github.com:Nordstrom-Internal/APP10014-servicenow-mcp.git "$SERVICENOW_MCP_DIR"
+    cd "$SERVICENOW_MCP_DIR"
+    uv venv
+    source .venv/bin/activate
+    uv sync --all-groups
+    uv pip install --native-tls -e .
+    cd - > /dev/null
+fi
+
+# Register ServiceNow MCP with Claude Code (only if not already registered)
+if claude mcp add --scope user servicenow \
+    -e SERVICENOW_AUTH_MODE=basic \
+    -e SERVICENOW_INSTANCE_URL=https://nordstrom.service-now.com \
+    -e SERVICENOW_USERNAME='${SERVICENOW_USERNAME}' \
+    -e SERVICENOW_PASSWORD='${SERVICENOW_PASSWORD}' \
+    -- "${SERVICENOW_MCP_DIR}/.venv/bin/python" -m servicenow_mcp.server 2>/dev/null; then
+    echo "  ✓ ServiceNow MCP server added (prod, basic auth)"
+else
+    echo "  ⚠ ServiceNow MCP server already exists (skipped)"
 fi
 
 echo ""
@@ -152,6 +203,19 @@ if claude mcp add --scope user aha-mcp \
     echo "  ✓ Aha! MCP server added"
 else
     echo "  ⚠ Aha! MCP server already exists (skipped)"
+fi
+
+echo ""
+echo "Adding Slack MCP server (user scope)..."
+# Slack MCP is read-only, uses Chrome + Okta SSO for auth (no API key needed)
+# Requires: Node.js 18+, Google Chrome, VPN (Zscaler)
+if claude mcp add --scope user nordstrom-slack \
+    -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+    -- npx github:Nordstrom-Sandbox/gx6c-nordstrom-slack-mcp 2>/dev/null; then
+    echo "  ✓ Slack MCP server added (read-only)"
+    echo "    Note: First use will open Chrome for Okta login"
+else
+    echo "  ⚠ Slack MCP server already exists (skipped)"
 fi
 
 echo ""

@@ -51,6 +51,8 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | `github` | GitHub | Repository operations, PRs, code search, file contents, issues |
 | `nordstrom-schema-repo` | Nordstrom Schema Registry | Query Kafka event schemas (Avro/JSON); list domains and schemas; search by field name |
 | `aha-mcp` | Aha! | Product roadmap items, features, requirements, releases; query and create ideas |
+| `servicenow` | ServiceNow | Incidents, change requests, service requests; query tickets (requires VPN) |
+| `nordstrom-slack` | Slack | Read threads, search channels, browse messages, lookup users (read-only, requires VPN) |
 
 ### MCP Tool Naming Convention
 
