@@ -105,7 +105,7 @@ Set these environment variables before running the setup script:
 5. Export: `export AHA_API_TOKEN=<token>`
 
 #### ServiceNow Credentials
-ServiceNow uses CI pipeline service account credentials (not personal credentials):
+ServiceNow uses CI pipeline service account credentials — the same account your CI/CD pipeline uses to create ServiceNow Change Requests. Personal credentials will not work.
 - Contact your team lead or DevOps for the service account credentials
 - Export: `export SERVICENOW_USERNAME=<username>`
 - Export: `export SERVICENOW_PASSWORD=<password>`
@@ -138,6 +138,8 @@ You should see all configured servers listed with their scope (user).
 ## Troubleshooting
 
 ### ServiceNow 401 Errors
+- Use the CI pipeline service account credentials (the same credentials used to create ServiceNow Change Requests in your CI/CD pipeline)
+- Personal credentials will not work — only the CI service account has basic auth access
 - Verify `SERVICENOW_USERNAME` and `SERVICENOW_PASSWORD` are set correctly
 - Ensure VPN is connected
 - Note: Basic auth only works against prod (`nordstrom.service-now.com`), not nonprod
