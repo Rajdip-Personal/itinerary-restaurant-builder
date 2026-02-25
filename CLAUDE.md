@@ -41,6 +41,49 @@ The memory bank lives in `/memory-bank/` and persists context across sessions. I
 
 **Always read memory-bank/ before starting any task.** Update it after completing any significant work.
 
+## Memory Bank Protocol (MANDATORY)
+
+After ANY of these actions, you MUST update the memory bank before proceeding:
+
+| Action | Update These Files |
+|--------|-------------------|
+| Answering open questions | `activeContext.md`, `productContext.md` |
+| Making architectural decisions | `systemPatterns.md`, `techContext.md` |
+| Completing a pipeline stage | `progress.md` |
+| Identifying blockers | `activeContext.md` |
+| Setup/config changes (branches, worktrees, tools) | `activeContext.md` |
+
+**Do NOT wait until session end. Save incrementally as you work.**
+
+## Automatic Memory Updates
+
+Claude MUST proactively save to memory bank (without being asked) after:
+
+- Worktree or branch setup changes
+- Key architectural or design decisions
+- Tool/integration configuration changes
+- Blockers identified or resolved
+- Environment or infrastructure setup
+- Any decision that would be painful to re-discover
+
+If unsure whether something is "critical enough" to save — save it. Err on the side of over-documenting.
+
+## Framework Changes Protocol
+
+When a git worktree is set up for framework development (check `activeContext.md` for current setup):
+
+**Framework files** (agents, commands, skills, scripts, templates, CLAUDE.md) must be changed in **BOTH** locations:
+
+1. **Framework branch** (e.g., `framework-improvements`) — the canonical source for the change
+2. **Current working branch** (e.g., `robert-test-run`) — so the user benefits immediately during their session
+
+**Process:**
+1. Make the edit in the framework worktree first
+2. Immediately apply the same edit to the current working directory
+3. Do NOT wait for the user to ask — apply to both automatically
+
+This ensures framework improvements are both preserved (in the framework branch) and usable (in the current session).
+
 ## MCP Server Integrations
 
 The following MCP servers are configured. Use the exact server name prefix when calling tools.
