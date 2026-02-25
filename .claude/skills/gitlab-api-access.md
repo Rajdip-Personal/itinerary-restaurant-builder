@@ -1,19 +1,33 @@
 ---
 name: gitlab-api-access
-description: |
-  Guide for accessing Nordstrom's internal GitLab (git.jwn.app) via REST API.
-  Reference this skill when discovering repositories, scanning codebases, or retrieving file contents from GitLab.
+description: Access Nordstrom's internal GitLab (git.jwn.app) via REST API for repository discovery, file browsing, and code retrieval
 ---
 
 # GitLab API Access
 
-This skill documents how to access Nordstrom's internal GitLab instance at `git.jwn.app` using the REST API.
+You are a Claude Skill that accesses Nordstrom's internal GitLab instance at `git.jwn.app` using the REST API.
 
----
+## What this skill does
+
+- Search for repositories by name or APP ID
+- List files and directories in repositories
+- Retrieve file contents (source code, configs, READMEs)
+- View recent commits and project metadata
+- Search code across repositories
+
+## When to use this skill
+
+- User provides a URL containing `git.jwn.app`
+- User asks to examine, scan, or look at an internal GitLab repository
+- User mentions APP##### codes (e.g., APP00344, APP08476) that may be GitLab projects
+- User mentions TM##### codes (team codes) with repository context
+- User wants to retrieve source code from internal repositories
+- User asks about repository structure, files, or commits on GitLab
+- **DO NOT use WebFetch for git.jwn.app URLs** — it will fail with authentication errors
 
 ## Prerequisites
 
-### Environment Setup
+### Environment Variable
 ```bash
 # Required: Personal access token with API read permissions
 export GITLAB_TOKEN="your_token_here"
@@ -23,8 +37,6 @@ export GITLAB_TOKEN="your_token_here"
 - **Base URL**: `https://git.jwn.app/api/v4/`
 - **Authentication**: `PRIVATE-TOKEN` header
 - **Token format**: Nordstrom tokens do NOT start with `glpat-` (internal instance)
-
----
 
 ## Critical: Shell Environment Issue
 
@@ -47,7 +59,40 @@ chmod +x /tmp/gitlab_api.sh
 
 **Why**: The heredoc with `'SCRIPT'` (single quotes) preserves `$GITLAB_TOKEN` literally. When executed, the script runs in a proper bash environment where the variable expands correctly.
 
----
+## Instructions
+
+When invoked:
+
+1. **Verify GITLAB_TOKEN is set**
+   - Check: `[ -n "$GITLAB_TOKEN" ] && echo "Token set" || echo "Token NOT set"`
+   - If not set, inform user they need to set `GITLAB_TOKEN` environment variable
+
+2. **Parse the request**
+   - Extract project identifiers: APP IDs, TM codes, repository names, or full URLs
+   - Determine what information is needed (files, README, structure, commits, etc.)
+
+3. **Search for the project** (if numeric ID not known)
+   ```bash
+   cat << 'SCRIPT' > /tmp/gitlab_search.sh
+   #!/bin/bash
+   curl --request GET \
+     --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+     --url "https://git.jwn.app/api/v4/search?scope=projects&search=APP00344" \
+     --silent | python3 -m json.tool
+   SCRIPT
+   chmod +x /tmp/gitlab_search.sh
+   /tmp/gitlab_search.sh
+   ```
+   - Extract the numeric `id` from results — use this for all subsequent calls
+
+4. **Retrieve requested information**
+   - Use the API patterns documented below
+   - Always use numeric project IDs, not URL-encoded paths
+
+5. **Present results clearly**
+   - Summarize repository purpose and structure
+   - Show relevant file contents
+   - Highlight key information (tech stack, dependencies, etc.)
 
 ## API Patterns
 
@@ -156,8 +201,6 @@ chmod +x /tmp/gitlab_blobs.sh
 /tmp/gitlab_blobs.sh
 ```
 
----
-
 ## Quick Reference
 
 | Operation | Endpoint | Notes |
@@ -169,8 +212,6 @@ chmod +x /tmp/gitlab_blobs.sh
 | Commits | `/api/v4/projects/{id}/repository/commits?ref_name={branch}` | Add `&per_page=N` |
 | Search code | `/api/v4/search?scope=blobs&search={term}` | Searches file contents |
 | Pipelines | `/api/v4/projects/{id}/pipelines?status=success&ref={branch}` | CI/CD status |
-
----
 
 ## What Works vs What Doesn't
 
@@ -204,40 +245,6 @@ curl ... --url "https://git.jwn.app/api/v4/groups?search=TM01467"
 curl ... --url "https://git.jwn.app/api/v4/search?scope=projects&search=TM01467"
 ```
 
----
-
-## Batch Search Pattern
-
-For discovering all repositories for a list of App IDs:
-
-```bash
-cat << 'SCRIPT' > /tmp/gitlab_batch.sh
-#!/bin/bash
-app_ids=("APP08476" "APP04010" "APP02926")
-
-for app_id in "${app_ids[@]}"; do
-    echo "=== $app_id ==="
-    curl --request GET \
-      --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-      --url "https://git.jwn.app/api/v4/search?scope=projects&search=$app_id" \
-      --silent | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-if isinstance(data, list):
-    for p in data:
-        print(f\"  {p['id']}: {p['name']} - {p['web_url']}\")
-else:
-    print('  No results')
-"
-    echo ""
-done
-SCRIPT
-chmod +x /tmp/gitlab_batch.sh
-/tmp/gitlab_batch.sh
-```
-
----
-
 ## Nordstrom GitLab Conventions
 
 ### Repository Naming
@@ -256,8 +263,6 @@ chmod +x /tmp/gitlab_batch.sh
 - `*-processor` — Data processing services
 - `tenancy-manifest` — Confluent/Kafka configs
 
----
-
 ## Troubleshooting
 
 ### 401 Unauthorized
@@ -274,3 +279,12 @@ chmod +x /tmp/gitlab_batch.sh
 1. Try both search APIs: `/search?scope=projects` and `/projects?search=`
 2. Check spelling and case sensitivity
 3. Verify you have access to the group/project
+
+## Response Guidelines
+
+When presenting repository information:
+- Start with a brief summary of the repository's purpose
+- Show the technology stack (language, frameworks)
+- List key files and directories
+- Include relevant code snippets when asked
+- Keep responses focused on what the user asked for

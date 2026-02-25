@@ -236,9 +236,31 @@ else
 fi
 
 echo ""
+echo "=== Installing Claude Code Skills ==="
+echo ""
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "Installing GitLab API Access skill..."
+GITLAB_SKILL_SRC="${PROJECT_DIR}/.claude/skills/gitlab-api-access.md"
+GITLAB_SKILL_DIR="${HOME}/.claude/skills/gitlab-api-access"
+
+if [ -f "$GITLAB_SKILL_SRC" ]; then
+    mkdir -p "$GITLAB_SKILL_DIR"
+    cp "$GITLAB_SKILL_SRC" "${GITLAB_SKILL_DIR}/SKILL.md"
+    echo "  ✓ GitLab API Access skill installed to ~/.claude/skills/gitlab-api-access/"
+else
+    echo "  ✗ GitLab skill not found at $GITLAB_SKILL_SRC"
+fi
+
+echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "MCP servers configured. To verify, run:"
 echo "  claude mcp list"
 echo ""
-echo "Restart Claude Code to use the new MCP servers."
+echo "Skills installed to ~/.claude/skills/"
+echo ""
+echo "Restart Claude Code to use the new MCP servers and skills."
