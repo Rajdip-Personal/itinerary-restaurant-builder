@@ -262,8 +262,8 @@ Supply Chain engineering squads work with applications that have dependencies sp
 | # | Question | Owner | Status | Answer |
 |---|----------|-------|--------|--------|
 | 1 | Which specific application/repo will each squad analyze during the workshop? | Squad Lead | **Answered** | APP00344-routing-service (GitLab project ID 2422) — Enterprise Routing Service, Java/Gradle, K8s deployment |
-| 2 | Do we have API access to the schema repository, or is it MCP-only? | Platform Team | Open | — |
-| 3 | Are Splunk queries documented somewhere, or do we need to discover them from dashboards? | SRE Team | Open | — |
-| 4 | Should generated stories go directly into Jira, or just into the docs/user-stories.md file? | Workshop Facilitator | Open | — |
-| 5 | Is there a standard Helm chart template we should reference for K8s deployment stories? | Cloud Platform | Open | — |
-| 6 | How much existing documentation exists in Confluence for each squad's application? | Squad Leads | Open | — |
+| 2 | Do we have API access to the schema repository, or is it MCP-only? | Platform Team | **Answered** | MCP server only — use configured `nordstrom-schema-repo` MCP server for discovery |
+| 3 | Are Splunk queries documented somewhere, or do we need to discover them from dashboards? | SRE Team | **Answered** | Squad will provide Splunk queries manually during the workshop |
+| 4 | Should generated stories go directly into Jira, or just into the docs/user-stories.md file? | Workshop Facilitator | **Answered** | Markdown file only — generate to `docs/user-stories.md` for review before adding to Jira |
+| 5 | Is there a standard Helm chart template we should reference for K8s deployment stories? | Cloud Platform | **Answered** | No Helm — use Nordstrom Standard Pipeline for deployments |
+| 6 | How much existing documentation exists in Confluence for each squad's application? | Squad Leads | **Answered** | Confluence home page exists: https://confluence.nordstrom.com/spaces/SCh/pages/495622523/SC+Tech+-+Enterprise+Routing+Service |

@@ -10,7 +10,6 @@ tools:
   - Grep
   - Bash
   - Task
-model: opus
 ---
 
 # Orchestrator Agent
@@ -50,8 +49,8 @@ Once those are complete, you take over to coordinate the remaining pipeline.
 │  ORCHESTRATOR COORDINATES (You spawn subagents via Task tool)           │
 │                                                                         │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐             │
-│  │1.Proto-  │──▶│2.Planning│──▶│ 3. Reqs  │──▶│4.Stories │             │
-│  │  type-ui │   │  Agent   │   │  Agent   │   │Generator │             │
+│  │1.Proto-  │──▶│2.Planning│──▶│ 3. Reqs  │──▶│4. Design │             │
+│  │  type-ui │   │  Agent   │   │  Agent   │   │          │             │
 │  │(optional)│   │          │   │          │   │          │             │
 │  └──────────┘   └──────────┘   └──────────┘   └──────────┘             │
 │       │              │              │              │                    │
@@ -60,8 +59,8 @@ Once those are complete, you take over to coordinate the remaining pipeline.
 │   validates      validates      validates      validates                │
 │                                                                         │
 │  ┌──────────┐   ┌──────────┐                                           │
-│  │5. Design │──▶│6.Validate│                                           │
-│  │          │   │ Coverage │                                           │
+│  │5.Stories │──▶│6.Validate│                                           │
+│  │Generator │   │ Coverage │                                           │
 │  └──────────┘   └──────────┘                                           │
 │       │              │                                                  │
 │       ▼              ▼                                                  │
@@ -70,13 +69,31 @@ Once those are complete, you take over to coordinate the remaining pipeline.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-Optional at any stage:
+**Always running:**
+- `memory-agent` — Central authority for all memory operations. Spawn FIRST and keep running.
+
+**Optional at any stage:**
 - `code-scanner` — Analyze existing codebase (invoke if project has existing code)
-- `memory-agent` — Update memory bank (invoke for complex memory operations)
 
 ## Assessment Protocol
 
 When invoked, follow this protocol:
+
+### Step 0: Spawn Memory Agent (FIRST)
+
+**Before doing anything else**, spawn the memory-agent:
+
+```
+Task tool:
+- subagent_type: "memory-agent"
+- prompt: "Initialize as the central memory authority for this pipeline session.
+          Check memory-bank/ state and report ready.
+          You will handle all memory operations for other agents."
+- description: "Initialize memory agent"
+- run_in_background: true
+```
+
+The memory-agent runs throughout the pipeline. All other agents communicate with it for memory operations instead of writing directly to memory-bank/.
 
 ### Step 1: Read Current State
 1. Read `memory-bank/progress.md` — What's been done?
@@ -99,9 +116,9 @@ When invoked, follow this protocol:
 | PRD ready, no prototype (UI project) | Generate interactive prototype | (direct or Task) |
 | PRD ready, no plan | Generate execution plan | planning-agent |
 | Plan exists, no requirements | Extract requirements | requirements-agent |
-| Requirements exist, no stories | Generate user stories | story-generator |
-| Stories exist, no design | Generate technical design | (direct) |
-| Design exists, no validation | Run validation | (direct) |
+| Requirements exist, no design | Generate technical design | design-agent |
+| Design exists, no stories | Generate user stories | story-generator |
+| Stories exist, no validation | Run validation | (direct) |
 | All artifacts exist | Present summary, ask for iteration | — |
 
 ### Step 3: Delegate to Subagent
@@ -110,7 +127,7 @@ When delegating to a specialized agent, use the **Task tool**:
 
 ```
 Task tool parameters:
-- subagent_type: "planning-agent" | "requirements-agent" | "story-generator" | "code-scanner" | "memory-agent"
+- subagent_type: "planning-agent" | "requirements-agent" | "design-agent" | "story-generator" | "code-scanner" | "memory-agent"
 - prompt: Clear instructions including:
   - What to produce
   - Which input files to read (PRD path, memory-bank files)

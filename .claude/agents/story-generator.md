@@ -144,9 +144,17 @@ Write all stories to `docs/user-stories.md`:
 ## After You Finish
 
 1. **Write stories** to `docs/user-stories.md`.
-2. **Update memory-bank/progress.md** — Mark story generation as completed.
-3. **Update memory-bank/activeContext.md** — Record decisions, questions, and next steps.
-4. **Summarize for the human** — Present story count, point total, sprint distribution, and any requirements that couldn't be mapped to stories (gaps).
+2. **Send memory update to memory-agent:**
+   ```
+   MEMORY UPDATE:
+   - Agent: story-generator
+   - Type: progress
+   - Content: Story generation completed. X stories, Y total points, Z sprints.
+   - Context: Requirements coverage: [X/Y mapped]. Gaps: [list if any].
+   ```
+3. **Summarize for the human** — Present story count, point total, sprint distribution, and any requirements that couldn't be mapped to stories (gaps).
+
+**Note:** Do NOT write directly to memory-bank/. Send all memory updates to memory-agent.
 
 ## Important
 

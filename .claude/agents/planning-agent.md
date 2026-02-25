@@ -71,9 +71,17 @@ Numbered list of planning assumptions.
 ## After You Finish
 
 1. **Write the plan** to `docs/execution-plan.md`.
-2. **Update memory-bank/progress.md** — Mark planning as completed, list next steps.
-3. **Update memory-bank/activeContext.md** — Record key planning decisions and any open questions.
-4. **Summarize for the human** — Present a concise summary of phases, key milestones, and any questions or assumptions that need validation.
+2. **Send memory update to memory-agent:**
+   ```
+   MEMORY UPDATE:
+   - Agent: planning-agent
+   - Type: progress
+   - Content: Execution plan completed. X phases, Y work packages.
+   - Context: Key planning decisions: [list]. Assumptions: [list].
+   ```
+3. **Summarize for the human** — Present a concise summary of phases, key milestones, and any questions or assumptions that need validation.
+
+**Note:** Do NOT write directly to memory-bank/. Send all memory updates to memory-agent.
 
 ## Important
 

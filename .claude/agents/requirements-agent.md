@@ -126,9 +126,17 @@ Write all requirements to `docs/requirements.md` with this structure:
 ## After You Finish
 
 1. **Write requirements** to `docs/requirements.md`.
-2. **Update memory-bank/progress.md** — Mark requirements extraction as completed.
-3. **Update memory-bank/activeContext.md** — Record any ambiguities or decisions made.
-4. **Summarize for the human** — Present requirement counts, highlight any gaps or ambiguities in the PRD, and list questions that need answers.
+2. **Send memory update to memory-agent:**
+   ```
+   MEMORY UPDATE:
+   - Agent: requirements-agent
+   - Type: progress
+   - Content: Requirements extraction completed. X total requirements (BR: X, TR: X, FR: X, NFR: X)
+   - Context: [any ambiguities or decisions made]
+   ```
+3. **Summarize for the human** — Present requirement counts, highlight any gaps or ambiguities in the PRD, and list questions that need answers.
+
+**Note:** Do NOT write directly to memory-bank/. Send all memory updates to memory-agent.
 
 ## Important
 

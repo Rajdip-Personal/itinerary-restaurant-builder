@@ -2,11 +2,54 @@
 
 ## Project Overview
 
-This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → user stories → technical design → validation in a 3-hour hands-on workshop.
+This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → technical design → user stories → validation in a 3-hour hands-on workshop.
 
 **This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.
 
 ## Fundamental Principles
+
+### INTERACTIVE USER INPUT (MANDATORY)
+
+**All user input gathering MUST use the `AskUserQuestion` tool.** Never output questions as plain text and wait for freeform responses.
+
+**Why:** Plain text questions create poor UX — users don't know what format to respond in, questions get lost in output, and there's no structure.
+
+**How to use `AskUserQuestion`:**
+
+```
+AskUserQuestion:
+  questions:
+    - question: "Which database should we use?"
+      header: "Database"        # Short label (max 12 chars)
+      multiSelect: false        # true if multiple selections allowed
+      options:
+        - label: "PostgreSQL (Recommended)"
+          description: "Standard Nordstrom platform, managed backups"
+        - label: "MySQL"
+          description: "Alternative if specific features needed"
+        - label: "MongoDB"
+          description: "For document-oriented data models"
+```
+
+**Rules:**
+1. **Always provide 2-4 options** — even if one seems obvious, give alternatives
+2. **Put recommended option first** with "(Recommended)" in the label
+3. **Users can always type "Other"** — freeform input is automatic
+4. **Use `multiSelect: true`** when choices aren't mutually exclusive
+5. **Ask 1-4 questions per call** — each appears as a separate tab
+6. **Use `markdown` preview** for comparing code snippets, mockups, or configurations
+
+**When to use:**
+- Project selection
+- Clarifying ambiguous requirements
+- Choosing between implementation approaches
+- Gathering preferences or decisions
+- Any time you would otherwise ask a question in plain text
+
+**When NOT to use:**
+- Confirming completion ("Ready to proceed?" → just proceed or show navigation prompt)
+- Yes/no validations where the action is obvious
+- When the user has already provided the answer in their message
 
 ### CODE IS THE SOURCE OF TRUTH
 
@@ -30,6 +73,42 @@ When analyzing any repository or application:
 - Finding links to related systems
 - Historical decisions and rationale
 - But NEVER as a substitute for reading the code
+
+### STOP ON AGENT ERRORS (MANDATORY)
+
+**If any subagent fails with an error, STOP IMMEDIATELY.**
+
+When spawning agents via the Task tool, errors can occur:
+- API errors (invalid model, rate limits, timeouts)
+- Agent configuration errors (missing tools, bad prompts)
+- Execution errors (clone failures, permission issues)
+
+**When an error occurs:**
+1. **STOP** — Do not attempt workarounds or alternative agents
+2. **REPORT** — Tell the user exactly what failed and the error message
+3. **DIAGNOSE** — Identify the likely cause (model config, missing credentials, etc.)
+4. **WAIT** — Let the user decide how to fix it before proceeding
+
+**Why this matters:**
+- Workarounds hide problems and create confusion
+- The user needs to know when infrastructure is broken
+- Substituting a different agent changes behavior unpredictably
+- The documented pipeline assumes specific agents with specific capabilities
+
+**Example of WRONG behavior:**
+```
+Orchestrator agent fails with API error
+→ "Let me try a general-purpose agent instead"  ← WRONG
+```
+
+**Example of CORRECT behavior:**
+```
+Orchestrator agent fails with API error
+→ "The orchestrator agent failed with: [error message]"
+→ "The model reference in .claude/agents/orchestrator.md may be invalid"
+→ "Please fix the configuration before proceeding"
+→ STOP and wait for user
+```
 
 ## Architecture
 
@@ -83,34 +162,52 @@ The memory bank lives in `/memory-bank/` and persists context across sessions. I
 - `activeContext.md` — Current focus, recent decisions, open questions, blockers
 - `progress.md` — Completed, in progress, blocked, up next
 
-**Always read memory-bank/ before starting any task.** Update it after completing any significant work.
+**Always read memory-bank/ before starting any task.**
 
 ## Memory Bank Protocol (MANDATORY)
 
-After ANY of these actions, you MUST update the memory bank before proceeding:
+### Centralized Memory Agent
 
-| Action | Update These Files |
-|--------|-------------------|
-| Answering open questions | `activeContext.md`, `productContext.md` |
-| Making architectural decisions | `systemPatterns.md`, `techContext.md` |
-| Completing a pipeline stage | `progress.md` |
-| Identifying blockers | `activeContext.md` |
-| Setup/config changes (branches, worktrees, tools) | `activeContext.md` |
+The **memory-agent** is the central authority for all memory operations. During the orchestrator pipeline:
+- Memory-agent is spawned FIRST and runs throughout
+- All other agents communicate with memory-agent for updates
+- No agent writes directly to memory-bank/ except memory-agent
 
-**Do NOT wait until session end. Save incrementally as you work.**
+### Phase 1 (Human-Driven): Direct Updates
 
-## Automatic Memory Updates
+During `/refine-prd` and `/review-prd` (before orchestrator takes over), main Claude updates memory-bank/ directly since memory-agent is not yet running.
 
-Claude MUST proactively save to memory bank (without being asked) after:
+### Phase 2 (Orchestrator-Driven): Via Memory Agent
 
-- Worktree or branch setup changes
-- Key architectural or design decisions
-- Tool/integration configuration changes
-- Blockers identified or resolved
-- Environment or infrastructure setup
-- Any decision that would be painful to re-discover
+Once the orchestrator spawns memory-agent, all updates go through it:
 
-If unsure whether something is "critical enough" to save — save it. Err on the side of over-documenting.
+| Action | Send to Memory Agent |
+|--------|---------------------|
+| Answering open questions | `Type: decision` with question and answer |
+| Making architectural decisions | `Type: decision` with decision and rationale |
+| Completing a pipeline stage | `Type: progress` with stage completion |
+| Identifying blockers | `Type: blocker` with description |
+| Code analysis findings | `Type: finding` with tech stack, patterns, gaps |
+
+**Message format to memory-agent:**
+```
+MEMORY UPDATE:
+- Agent: [your-agent-name]
+- Type: decision | finding | progress | question | blocker
+- Content: [what to record]
+- Context: [why this matters]
+```
+
+### Memory Agent Responsibilities
+
+The memory-agent:
+- Determines which file(s) information belongs in
+- Maintains consistent formatting and timestamps
+- Detects and flags conflicts
+- Preserves history (supersedes, never deletes)
+- Reports confirmation of what was recorded
+
+**Do NOT wait until session end. Send updates incrementally as you work.**
 
 ## MCP Server Integrations
 
@@ -249,8 +346,22 @@ When a user asks about their setup or wants to start using the workshop tooling:
 
    Then:
    1. Display "Ready to Start"
-   2. List available projects by scanning `projects/` directory for subdirectories containing `prd.md`
-   3. **Explicitly ask:** "Which project is your team working on?" and list the projects as numbered options
+   2. Scan `projects/` directory for subdirectories containing `prd.md`
+   3. **Use `AskUserQuestion`** to ask project selection:
+      ```
+      AskUserQuestion:
+        questions:
+          - question: "Which project is your team working on?"
+            header: "Project"
+            multiSelect: false
+            options:
+              - label: "RTO Compliance"
+                description: "Track employee return-to-office compliance"
+              - label: "Scan Compliance"
+                description: "Monitor security scan compliance across repos"
+              - label: "Infrastructure & Delivery"
+                description: "Document infrastructure and generate compliance stories"
+      ```
    4. Do NOT offer to create a new project or use templates
 
 **After User Selects Project — PRD Reading Step (MANDATORY):**
@@ -361,8 +472,8 @@ After `/review-prd` completes, **spawn the orchestrator agent** to coordinate th
 | 3 | Prototype UI (optional) | (direct or planning-agent) |
 | 4 | Execution Plan | planning-agent |
 | 5 | Requirements | requirements-agent |
-| 6 | User Stories | story-generator |
-| 7 | Technical Design | (direct) |
+| 6 | Technical Design | design-agent |
+| 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
 
 The orchestrator:
@@ -385,7 +496,7 @@ Use the Task tool to spawn the orchestrator agent:
 - subagent_type: "orchestrator"
 - prompt: "The PRD for {project-name} has been refined and reviewed.
           Assess the current state and coordinate the remaining pipeline
-          (prototype → plan → requirements → stories → design → validation).
+          (prototype → plan → requirements → design → stories → validation).
           The project PRD is at: projects/{project-name}/prd.md"
 - description: "Coordinate remaining pipeline"
 ```
