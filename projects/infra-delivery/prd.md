@@ -261,7 +261,7 @@ Supply Chain engineering squads work with applications that have dependencies sp
 
 | # | Question | Owner | Status | Answer |
 |---|----------|-------|--------|--------|
-| 1 | Which specific application/repo will each squad analyze during the workshop? | Squad Lead | Open | — |
+| 1 | Which specific application/repo will each squad analyze during the workshop? | Squad Lead | **Answered** | APP00344-routing-service (GitLab project ID 2422) — Enterprise Routing Service, Java/Gradle, K8s deployment |
 | 2 | Do we have API access to the schema repository, or is it MCP-only? | Platform Team | Open | — |
 | 3 | Are Splunk queries documented somewhere, or do we need to discover them from dashboards? | SRE Team | Open | — |
 | 4 | Should generated stories go directly into Jira, or just into the docs/user-stories.md file? | Workshop Facilitator | Open | — |

@@ -6,6 +6,31 @@ This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engin
 
 **This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.
 
+## Fundamental Principles
+
+### CODE IS THE SOURCE OF TRUTH
+
+**This is the most important principle in this workshop.**
+
+When analyzing any repository or application:
+- **The actual source code is the ONLY authoritative source** for understanding what an application does
+- README files, Confluence pages, Jira tickets, and other documentation are **secondary context only**
+- Documentation can be outdated, incomplete, or wrong — code cannot lie about what it actually does
+- **NEVER make assessments about a codebase without reading the actual code**
+- If you cannot clone and read the code, you cannot make technical assessments
+
+**Before any code analysis:**
+1. The repository MUST be cloned locally via SSH
+2. Analysis MUST use local file system operations (Read, Glob, Grep)
+3. If SSH clone fails, the analysis STOPS — do not attempt API-based or HTTPS workarounds
+4. All findings MUST reference specific files and line numbers in the actual code
+
+**Documentation is useful for:**
+- Understanding business context and intent
+- Finding links to related systems
+- Historical decisions and rationale
+- But NEVER as a substitute for reading the code
+
 ## Architecture
 
 The system uses a **two-phase architecture**:
@@ -419,7 +444,8 @@ All generated code, designs, and stories **must** adhere to:
 
 ## Important Notes
 
+- **CODE IS THE SOURCE OF TRUTH** — Never assess a codebase without reading the actual code. Documentation lies; code doesn't.
 - **Never commit secrets, credentials, or PII** to this repository
 - **Always validate agent outputs** — agents make mistakes, humans catch them
-- **Memory bank is the source of truth** — keep it updated
+- **Memory bank is the source of truth** for project context — keep it updated
 - **This repo is for learning** — encourage experimentation and iteration
