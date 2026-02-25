@@ -23,7 +23,8 @@ The system uses an **orchestrator pattern** with specialized agents collaboratin
 │         /memory-bank/ (persistent)               │
 ├─────────────────────────────────────────────────┤
 │           MCP Server Integrations                │
-│   Jira · Confluence · GitHub · Slack · Aha!      │
+│ Jira · Confluence · GitHub · ServiceNow · Slack  │
+│         Aha! · Schema Repo                       │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -49,9 +50,10 @@ The following MCP servers are available for agent use:
 | **Jira** | Create/update stories, epics, sprints; query existing work |
 | **Confluence** | Read/write design docs, runbooks, team pages |
 | **GitHub** | Repository operations, PRs, code search |
-| **Slack** | Notifications, team communication |
+| **ServiceNow** | Query incidents, change requests, service requests (read-only) |
+| **Slack** | Read threads, search channels, browse messages (read-only) |
 | **Aha!** | Product roadmap items, feature requests |
-| **SharePoint** | Corporate documents, org charts, policies |
+| **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
 
 ## Slash Commands
 

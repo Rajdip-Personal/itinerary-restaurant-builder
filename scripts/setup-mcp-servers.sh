@@ -77,8 +77,8 @@ if [ -z "$SERVICENOW_USERNAME" ]; then
     missing_count=$((missing_count + 1))
     echo "WARNING: SERVICENOW_USERNAME is not set."
     echo ""
-    echo "  Set your ServiceNow username (LAN ID):"
-    echo "    export SERVICENOW_USERNAME={your-lan-id}"
+    echo "  Set the ServiceNow service account username (from CI pipeline credentials):"
+    echo "    export SERVICENOW_USERNAME={service-account-username}"
     echo ""
 fi
 
@@ -86,8 +86,8 @@ if [ -z "$SERVICENOW_PASSWORD" ]; then
     missing_count=$((missing_count + 1))
     echo "WARNING: SERVICENOW_PASSWORD is not set."
     echo ""
-    echo "  Set your ServiceNow password:"
-    echo "    export SERVICENOW_PASSWORD={your-password}"
+    echo "  Set the ServiceNow service account password (from CI pipeline credentials):"
+    echo "    export SERVICENOW_PASSWORD={service-account-password}"
     echo ""
 fi
 
@@ -133,7 +133,9 @@ fi
 
 echo ""
 echo "Installing ServiceNow MCP server (user scope)..."
-# ServiceNow MCP runs locally with basic auth against prod
+# ServiceNow MCP runs locally with basic auth against prod (READ-ONLY)
+# Uses CI pipeline service account credentials
+# Note: Write operations (create incident/change) require OAuth, not supported with basic auth
 # Requires: Python 3.12+, uv package manager, VPN (Zscaler)
 SERVICENOW_MCP_DIR="${HOME}/.claude-mcp/servicenow-mcp"
 if [ -d "$SERVICENOW_MCP_DIR" ]; then
@@ -157,7 +159,7 @@ if claude mcp add --scope user servicenow \
     -e SERVICENOW_USERNAME='${SERVICENOW_USERNAME}' \
     -e SERVICENOW_PASSWORD='${SERVICENOW_PASSWORD}' \
     -- "${SERVICENOW_MCP_DIR}/.venv/bin/python" -m servicenow_mcp.server 2>/dev/null; then
-    echo "  ✓ ServiceNow MCP server added (prod, basic auth)"
+    echo "  ✓ ServiceNow MCP server added (prod, read-only)"
 else
     echo "  ⚠ ServiceNow MCP server already exists (skipped)"
 fi
