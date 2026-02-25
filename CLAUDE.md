@@ -129,6 +129,7 @@ echo "GITHUB_PAT: $([ -n \"\$GITHUB_PAT\" ] && echo 'SET' || echo 'NOT SET')"
 echo "AHA_API_TOKEN: $([ -n \"\$AHA_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
 echo "SERVICENOW_USERNAME: $([ -n \"\$SERVICENOW_USERNAME\" ] && echo 'SET' || echo 'NOT SET')"
 echo "SERVICENOW_PASSWORD: $([ -n \"\$SERVICENOW_PASSWORD\" ] && echo 'SET' || echo 'NOT SET')"
+echo "GITLAB_TOKEN: $([ -n \"\$GITLAB_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
 ```
 
 **3. Check local MCP server installations:**
@@ -169,6 +170,7 @@ The following environment variables **must** be set for MCP server authenticatio
 | `AHA_API_TOKEN` | Aha! API authentication |
 | `SERVICENOW_USERNAME` | ServiceNow username |
 | `SERVICENOW_PASSWORD` | ServiceNow password |
+| `GITLAB_TOKEN` | GitLab API authentication (git.jwn.app) |
 
 **How to set environment variables:**
 
@@ -180,6 +182,7 @@ export GITHUB_PAT="your-github-pat"
 export AHA_API_TOKEN="your-aha-token"
 export SERVICENOW_USERNAME="your-servicenow-username"
 export SERVICENOW_PASSWORD="your-servicenow-password"
+export GITLAB_TOKEN="your-gitlab-token"
 ```
 
 Then reload your shell: `source ~/.zshrc` (or restart your terminal).

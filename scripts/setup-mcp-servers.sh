@@ -7,7 +7,7 @@
 #   - Claude Code CLI installed
 #   - Python 3.12+ and uv package manager (for ServiceNow MCP)
 #   - Environment variables set: JIRA_PAT, CONFLUENCE_PAT, GITHUB_PAT, AHA_API_TOKEN,
-#     SERVICENOW_USERNAME, SERVICENOW_PASSWORD
+#     SERVICENOW_USERNAME, SERVICENOW_PASSWORD, GITLAB_TOKEN
 #
 
 set -e
@@ -88,6 +88,21 @@ if [ -z "$SERVICENOW_PASSWORD" ]; then
     echo ""
     echo "  Set the ServiceNow service account password (from CI pipeline credentials):"
     echo "    export SERVICENOW_PASSWORD={service-account-password}"
+    echo ""
+fi
+
+if [ -z "$GITLAB_TOKEN" ]; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: GITLAB_TOKEN is not set."
+    echo ""
+    echo "  To create a GitLab token:"
+    echo "    1. Go to: https://git.jwn.app/-/user_settings/personal_access_tokens"
+    echo "    2. Click \"Add new token\""
+    echo "    3. Give it a descriptive name"
+    echo "    4. Select scopes: read_api, read_repository"
+    echo "    5. Click \"Create personal access token\""
+    echo "    6. Copy the token"
+    echo "    7. Then run: export GITLAB_TOKEN={gitlab token}"
     echo ""
 fi
 
@@ -221,9 +236,31 @@ else
 fi
 
 echo ""
+echo "=== Installing Claude Code Skills ==="
+echo ""
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "Installing GitLab API Access skill..."
+GITLAB_SKILL_SRC="${PROJECT_DIR}/.claude/skills/gitlab-api-access.md"
+GITLAB_SKILL_DIR="${HOME}/.claude/skills/gitlab-api-access"
+
+if [ -f "$GITLAB_SKILL_SRC" ]; then
+    mkdir -p "$GITLAB_SKILL_DIR"
+    cp "$GITLAB_SKILL_SRC" "${GITLAB_SKILL_DIR}/SKILL.md"
+    echo "  ✓ GitLab API Access skill installed to ~/.claude/skills/gitlab-api-access/"
+else
+    echo "  ✗ GitLab skill not found at $GITLAB_SKILL_SRC"
+fi
+
+echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "MCP servers configured. To verify, run:"
 echo "  claude mcp list"
 echo ""
-echo "Restart Claude Code to use the new MCP servers."
+echo "Skills installed to ~/.claude/skills/"
+echo ""
+echo "Restart Claude Code to use the new MCP servers and skills."
