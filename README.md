@@ -24,23 +24,14 @@ This repo provides a pre-built system of specialized AI agents that collaborate 
 git clone <repo-url>
 cd agentic-ai-workshop
 
-# 2. Open Claude Code in the repo directory
-claude
+# 2. First-time setup only — run once to configure MCP servers and install tmux
+#    (You'll need to set the appropriate tokens in env vars first — see "MCP Server Setup" below)
+./scripts/setup.sh
 
-# 3. Start refining your PRD
-/refine-prd projects/rto-compliance/prd.md   # or scan-compliance or infra-delivery
+# 3. Start the workshop
+./scripts/start-workshop.sh
 
-# 4. Preview the UI (optional but recommended for front-end apps)
-/prototype-ui projects/rto-compliance/prd.md  # opens at localhost:5173
-
-# 5. Once PRD is solid, run the pipeline
-/generate-plan           # Generate execution plan from PRD
-/extract-requirements    # Extract structured requirements
-/generate-stories        # Generate sprint-ready user stories
-/generate-design         # Create technical design document
-/validate-coverage       # Cross-check everything for gaps
-
-# 5. Review, iterate, and refine at each step
+# 4. Once in Claude, type: start
 ```
 
 ---
