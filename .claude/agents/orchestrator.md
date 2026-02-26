@@ -165,7 +165,7 @@ Spawn memory-agent as first teammate using Task tool:
     subagent_type: "memory-agent"
     team_name: "<team_name from your spawn prompt>"
     name: "memory-agent"
-    mode: "bypassPermissions"
+    mode: "acceptEdits"
     prompt: "You are the memory-agent teammate for the workshop-pipeline team.
              Initialize as the central memory authority.
              Check memory-bank/ state and report ready.
@@ -227,14 +227,14 @@ SendMessage:
 
 When no existing teammate can handle the work, spawn a new one using the `Task` tool with `team_name` parameter. **Never use Bash to spawn agents.**
 
-**ALWAYS use `mode: "bypassPermissions"` when spawning teammates.** The team lead (main session) is the only session that interacts with the human for permissions. Teammates must be able to read, write, and edit files without prompting — the human-in-the-loop check happens when you present outputs to the team lead for validation.
+**ALWAYS use `mode: "acceptEdits"` when spawning teammates.** The team lead (main session) is the only session that interacts with the human for permissions. Teammates must be able to read, write, and edit files without prompting — the human-in-the-loop check happens when you present outputs to the team lead for validation.
 
 ```
 Task tool:
   subagent_type: "planning-agent" | "requirements-agent" | "design-agent" | "story-generator" | "code-scanner"
   team_name: "<team_name from your spawn prompt>"
   name: "<agent-name>"
-  mode: "bypassPermissions"
+  mode: "acceptEdits"
   prompt: |
     You are a teammate in the workshop-pipeline team.
 
