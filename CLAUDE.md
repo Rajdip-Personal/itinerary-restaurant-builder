@@ -718,6 +718,8 @@ The orchestrator will take over coordination from there, spawning teammates as n
 
 **The team lead's only teammate communication is with the orchestrator.** All other coordination flows through the orchestrator.
 
+**Do NOT pre-fill decisions that agents are supposed to ask the human.** When relaying approval messages to teammates, only relay what the human actually said. Do not add details the human hasn't confirmed (e.g., repo names, file paths, technology choices). If an agent has a dedicated gate to ask the human for input, let that gate run — do not bypass it by providing the answer in advance.
+
 ## Key Directories
 
 | Directory | Purpose |

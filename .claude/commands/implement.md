@@ -26,8 +26,9 @@ Before starting, verify these artifacts exist:
 ## Determine Project Context
 
 1. Read `memory-bank/activeContext.md` to identify the current project name
-2. Resolve the code repo path: the sibling directory `../{project-name}/` relative to the workshop repo
-3. Read `memory-bank/techContext.md` for tech stack summary
+2. Read `memory-bank/techContext.md` for tech stack summary
+
+**Do NOT resolve or assume the code repo path.** The sprint-agent has a dedicated gate (Step 3a) that asks the human for the repo name. Let the sprint-agent handle that.
 
 ## Start Implementation
 
@@ -45,7 +46,7 @@ SendMessage:
 
     Project: {project-name}
     Workshop repo: {absolute path}
-    Code repo target: {absolute path to sibling directory}
+    Note: Do NOT pass a code repo path — the sprint-agent will ask the human for the repo name in its Step 3a gate.
   summary: "Human requests implementation phase"
 ```
 
@@ -70,6 +71,9 @@ Task:
 
     Read the stories, build the implementation queue, and coordinate coding agents.
     Start by reading docs/stories-*.md and docs/execution-plan.md.
+
+    IMPORTANT: Do NOT assume or auto-resolve the code repo path. You MUST ask the human
+    for the repo name via your Step 3a gate before bootstrapping.
   description: "Coordinate story implementation"
 ```
 
