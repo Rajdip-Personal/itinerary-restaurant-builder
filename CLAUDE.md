@@ -715,6 +715,7 @@ The orchestrator will take over coordination from there, spawning teammates as n
 | `memory-bank/` | Persistent shared context across all agents and sessions |
 | `templates/` | PRD template and other starting documents |
 | `docs/` | Generated outputs (plans, requirements, stories, designs, reports) |
+| `prototype/` | UI prototype (Vite + React app) — standard location for `/prototype-ui` output |
 | `projects/` | Project-specific PRDs and artifacts |
 
 ## Nordstrom Engineering Standards

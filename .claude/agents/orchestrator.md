@@ -181,7 +181,7 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 1. Read `memory-bank/progress.md` — What's been done?
 2. Read `memory-bank/activeContext.md` — What are we working on? What project?
 3. Check `docs/` for existing artifacts:
-   - `docs/prototype/` — Prototype generated?
+   - `prototype/` — Prototype generated? (at repo root, NOT under docs/)
    - `docs/execution-plan.md` — Planning done?
    - `docs/requirements.md` — Requirements extracted?
    - `docs/detailed-design.md` — Design created?
