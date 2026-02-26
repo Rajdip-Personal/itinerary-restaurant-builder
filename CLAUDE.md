@@ -194,10 +194,17 @@ This workshop uses **Agent Teams** (not subagents). The key difference:
 │  │        ↑             ↑             ↑             ↑          │    │
 │  │        └─────────────┼─────────────┼─────────────┘          │    │
 │  │                  SendMessage                                 │    │
-│  │  ┌──────────┐  ┌──────────┐                                 │    │
-│  │  │  Story   │  │   Code   │                                 │    │
-│  │  │Generator │  │ Scanner  │                                 │    │
-│  │  └──────────┘  └──────────┘                                 │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │    │
+│  │  │  Story   │  │   Code   │  │  Sprint  │                   │    │
+│  │  │Generator │  │ Scanner  │  │  Agent   │                   │    │
+│  │  └──────────┘  └──────────┘  └────┬─────┘                   │    │
+│  │                                    │                         │    │
+│  │                           ┌────────┼────────┐                │    │
+│  │                           │        │        │                │    │
+│  │                       ┌───┴──┐ ┌───┴──┐ ┌───┴──┐            │    │
+│  │                       │Coding│ │Coding│ │Coding│            │    │
+│  │                       │Agt 1 │ │Agt 2 │ │Agt N │            │    │
+│  │                       └──────┘ └──────┘ └──────┘            │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                                                                      │
 │  Human validates at each stage before team proceeds                  │
@@ -613,6 +620,7 @@ These commands trigger agent pipelines. **Users don't need to memorize these** �
 | `/manage-memory` | View or update the memory bank |
 | `/generate-design` | Generate detailed technical design document |
 | `/validate-coverage` | Cross-check stories against requirements for gaps |
+| `/implement` | Start the implementation phase — sprint agent spawns coding agents to implement stories |
 
 ## Workflow
 
@@ -639,6 +647,7 @@ After `/review-prd` completes, the main session creates an Agent Team and spawns
 | 6 | Technical Design | design-agent |
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
+| 9 | Implementation | sprint-agent → coding-agent(s) |
 
 The orchestrator (persistent teammate):
 - Reads state from memory-bank and docs/
@@ -649,6 +658,10 @@ The orchestrator (persistent teammate):
 - The team lead relays to the human and sends the response back
 - Updates memory-bank via memory-agent
 - Continues to next stage
+
+For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
+- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval, spawns coding agents
+- **Coding Agent(s)** — each takes one story, plans files, implements code, writes tests, builds, commits. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
 
 **Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
 
@@ -709,7 +722,7 @@ The orchestrator will take over coordination from there, spawning teammates as n
 
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/agents/` | Agent teammate definitions (orchestrator, planning, requirements, stories, scanner, memory) |
+| `.claude/agents/` | Agent teammate definitions (orchestrator, planning, requirements, stories, scanner, memory, sprint, coding) |
 | `.claude/commands/` | Slash command definitions (/plan, /requirements, /stories, etc.) |
 | `.claude/skills/` | Reusable knowledge (engineering standards, requirements writing) |
 | `memory-bank/` | Persistent shared context across all agents and sessions |

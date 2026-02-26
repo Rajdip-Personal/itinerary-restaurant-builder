@@ -130,16 +130,25 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 │   → human        → human        → human        → human                  │
 │   validates      validates      validates      validates                 │
 │                                                                          │
-│  ┌──────────┐   ┌──────────┐                                            │
-│  │5.Stories │──▶│6.Validate│                                            │
-│  │Generator │   │ Coverage │                                            │
-│  └──────────┘   └──────────┘                                            │
-│       │              │                                                   │
-│       ▼              ▼                                                   │
-│   Orchestrator   Orchestrator                                            │
-│   → team-lead    → team-lead                                             │
-│   → human        → human                                                 │
-│   validates      validates                                               │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐                            │
+│  │5.Stories │──▶│6.Validate│──▶│7.Implement│                            │
+│  │Generator │   │ Coverage │   │Sprint-Agt │                            │
+│  └──────────┘   └──────────┘   └──────────┘                            │
+│       │              │              │                                    │
+│       ▼              ▼              ▼                                    │
+│   Orchestrator   Orchestrator   Orchestrator                            │
+│   → team-lead    → team-lead    → team-lead                             │
+│   → human        → human        → human                                 │
+│   validates      validates      approves start                          │
+│                                     │                                   │
+│                                ┌────┴────┐                              │
+│                                │Sprint   │                              │
+│                                │  Agent  │                              │
+│                                └────┬────┘                              │
+│                           ┌────────┼────────┐                           │
+│                           ▼        ▼        ▼                           │
+│                       Coding   Coding   Coding                          │
+│                       Agent 1  Agent 2  Agent N                         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -202,7 +211,8 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before stories | (direct or Task) |
 | Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
-| All artifacts exist | Message team-lead with summary, ask for iteration | — |
+| Validation done, human approves implementation | Start implementation | sprint-agent |
+| All artifacts exist (including implementation) | Message team-lead with summary | — |
 
 **UI Prototype Rule (MANDATORY):**
 To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
@@ -470,6 +480,58 @@ Before moving to the next stage, verify:
 | Requirements Quality | Requirements → Design | All categories covered, mandatory NFRs included, all testable |
 | Design Quality | Design → Stories | Architecture defined, APIs specified, security addressed |
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
+| Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
+
+## Implementation Phase
+
+After validation is complete and the human approves starting implementation, spawn the sprint-agent:
+
+```
+Task:
+  subagent_type: "sprint-agent"
+  team_name: "<team_name>"
+  name: "sprint-agent"
+  mode: "acceptEdits"
+  prompt: |
+    You are the sprint-agent for the implementation phase.
+
+    Project: {project-name}
+    Workshop repo: {absolute path to workshop repo}
+    Team name: {team_name}
+
+    Read the stories (docs/stories-*.md), execution plan (docs/execution-plan.md),
+    and design docs to build the implementation queue.
+
+    IMPORTANT: Always use mode: acceptEdits when spawning coding agents.
+  description: "Coordinate story implementation"
+```
+
+The sprint-agent takes over implementation coordination from here. It will:
+1. Build an ordered implementation queue from stories and execution plan
+2. Present the queue to you (for relay to team lead → human)
+3. Bootstrap the code repo in a sibling directory
+4. Present each story to the human for approval before implementation
+5. Spawn coding agents to implement approved stories
+6. Track progress and report back
+
+**Your role during implementation:** Relay messages between sprint-agent and team lead. The sprint-agent handles all implementation coordination — do NOT spawn coding agents directly.
+
+## Local Deployment Target
+
+**Before spawning any pipeline agents**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set, **include this in every agent spawn prompt:**
+
+```
+DEPLOYMENT TARGET: local
+- Do NOT generate CI/CD pipeline work packages, requirements, designs, or stories
+- Do NOT generate K8s deployment, Helm charts, or container configuration
+- Do NOT generate container security scanning requirements
+- DO generate: auth, RBAC, structured logging, health endpoints, tests, local dev setup
+- Infrastructure uses embedded/in-memory alternatives (H2, SQLite, in-memory cache)
+```
+
+This ensures all downstream agents produce artifacts that are implementable locally.
 
 ## Handling Code Scans
 
@@ -496,6 +558,7 @@ After each stage completes and human validates (via team lead), show in your mes
 │  [ ] detailed-design                            │
 │  [ ] user-stories                               │
 │  [ ] validation                                 │
+│  [ ] implementation                             │
 ├─────────────────────────────────────────────────┤
 │ [1] Continue to next stage (recommended)        │
 │ [2] Re-run current stage with feedback          │

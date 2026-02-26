@@ -102,6 +102,33 @@ Every project must include these non-functional requirements based on Nordstrom 
 9. **NFR: Test Coverage** — Minimum 80% unit test coverage, integration tests for APIs
 10. **NFR: Deployment** — Standard K8s with blue-green or canary strategy
 
+## Local Deployment Target
+
+**Before generating requirements**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYMENT TARGET: local`):
+
+**SKIP these requirements:**
+- TR for CI/CD pipeline (GitHub Actions)
+- TR for Kubernetes deployment, Helm, namespace
+- TR for container build and security scanning
+- NFR for blue-green / canary deployment
+- NFR for HPA, PDB, resource limits
+
+**REPLACE with:**
+- TR for local development environment (embedded DB, in-memory cache, mock services)
+- TR for local build and test toolchain
+
+**KEEP these requirements (they work locally):**
+- All Business Requirements (BR-) — unchanged
+- All Functional Requirements (FR-) — unchanged
+- NFR: Authentication & Authorization (stubbed locally, but designed for real auth)
+- NFR: PII Protection
+- NFR: Structured Logging
+- NFR: Health Checks
+- NFR: Test Coverage
+- NFR: Secrets Management (use local config/env vars instead of Vault)
+
 ## Output Structure
 
 Write all requirements to `docs/requirements.md` with this structure:

@@ -68,13 +68,39 @@ Numbered list of planning assumptions.
 
 ## Planning Guidelines
 
-1. **Start with foundations** — Phase 1 should always cover infrastructure, CI/CD, and core data model setup.
+1. **Start with foundations** — Phase 1 should always cover infrastructure, core data model setup, and local development environment.
 2. **Vertical slices** — Each phase should deliver working, demonstrable functionality (not horizontal layers).
 3. **Security early** — Authentication, authorization, and PII handling must be in Phase 1 or early Phase 2.
 4. **Observability from the start** — Logging, monitoring, and health checks are not "nice to have" — include them in Phase 1.
 5. **Testing throughout** — Every phase includes its own testing, not a "testing phase" at the end.
-6. **Nordstrom standards** — Reference standard K8s deployment, GitHub CI/CD, structured JSON logging, health endpoints in infrastructure work packages.
+6. **Nordstrom standards** — Reference structured JSON logging, health endpoints, RBAC, and testing standards in infrastructure work packages.
 7. **Realistic scope** — Assume 2-week sprints with a team of 4-6 engineers. Don't overload phases.
+
+## Local Deployment Target
+
+**Before generating the plan**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYMENT TARGET: local`):
+
+**SKIP these work packages:**
+- CI/CD pipeline setup (GitHub Actions)
+- Kubernetes deployment, Helm charts, namespace configuration
+- Container build, image scanning, container security
+- Blue-green / canary deployment strategy
+- HPA, PDB, resource limits
+
+**REPLACE with:**
+- Local development environment setup (embedded DB, in-memory cache, mock services)
+- Application bootstrap and scaffold
+- Local build and test configuration
+
+**KEEP these work packages:**
+- Authentication and RBAC setup (runs locally with stubbed auth)
+- Structured JSON logging
+- Health check endpoints (`/health`, `/ready`)
+- Database schema and migrations (using embedded DB)
+- All testing (unit, integration)
+- All functional feature work packages
 
 ## After You Finish
 
