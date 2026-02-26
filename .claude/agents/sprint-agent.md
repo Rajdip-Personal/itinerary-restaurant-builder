@@ -91,7 +91,6 @@ SendMessage:
 
     [Full queue with ordering and dependency notes]
 
-    **Code Repo:** ../{project-name}/ (sibling to workshop repo)
     **Tech Stack:** [from design doc]
     **Total Stories:** X
     **Parallel opportunities:** X pairs/groups
@@ -103,11 +102,39 @@ SendMessage:
 
 **STOP and WAIT** for human approval before proceeding.
 
-## Step 3: Bootstrap Code Repo
+**Do NOT mention or ask about the code repo name here.** The repo name is asked separately in Step 3a after the queue is approved. This keeps the two decisions (queue order vs. repo name) as distinct gates.
 
-After human approves the queue, bootstrap the code repository.
+## Step 3: Bootstrap Code Repo (MANDATORY GATE — TWO-STEP)
 
-1. **Determine project location:** Resolve the absolute path for `../{project-name}/` (sibling to workshop repo)
+After human approves the queue, you MUST complete **Step 3a** before **Step 3b**. Do NOT combine them. Do NOT skip 3a even if the approval message mentions a repo name — the human must explicitly confirm the name in a dedicated exchange.
+
+### Step 3a: Ask for Repo Name (BLOCKING — STOP HERE)
+
+Send a message to the **orchestrator** asking ONLY about the repo name. Do NOT spawn any coding agents yet.
+
+```
+SendMessage:
+  type: "message"
+  recipient: "orchestrator"
+  content: |
+    ## Code Repository Name
+
+    Before I start building, what should we name the code repository?
+
+    **Suggested default:** `{project-name-kebab-case}` (e.g., `rto-compliance-viewer`)
+    **Location:** `../{repo-name}/` (sibling to workshop repo)
+
+    Please ask the human to confirm the name or provide their own.
+  summary: "Asking human for code repo name"
+```
+
+**STOP. Do NOT proceed to Step 3b until the orchestrator replies with the confirmed repo name.** This is a hard gate — no repo name confirmation, no bootstrap.
+
+### Step 3b: Spawn Bootstrap Agent
+
+Only after the repo name is confirmed:
+
+1. **Determine project location:** Resolve the absolute path for `../{repo-name}/` (sibling to workshop repo), using the confirmed name.
 2. **Spawn a coding agent** with the bootstrap task:
 
 ```
