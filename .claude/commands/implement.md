@@ -48,7 +48,9 @@ TeamCreate:
 
 Note the `team_name` from the result — it may differ from your input (e.g., `workshop-pipeline-1`). Use the **returned** team name for all subsequent operations.
 
-### Step 2: Spawn Sprint-Agent
+### Step 2: Spawn Orchestrator
+
+**The team lead ONLY spawns the orchestrator. The orchestrator spawns all other teammates (including the sprint-agent). This is non-negotiable per CLAUDE.md Team Lead Rules.**
 
 **If an orchestrator is already running** (full pipeline session), message it:
 
@@ -66,32 +68,37 @@ SendMessage:
   summary: "Human requests implementation phase"
 ```
 
-**If no orchestrator is running** (resumed session, standalone use), spawn the sprint-agent directly as a teammate:
+**If no orchestrator is running** (resumed session, standalone use), spawn the orchestrator as a teammate. The orchestrator will then spawn the sprint-agent:
 
 ```
 Task:
-  subagent_type: "sprint-agent"
+  subagent_type: "orchestrator"
   team_name: "<team_name from TeamCreate result>"
-  name: "sprint-agent"
+  name: "orchestrator"
   mode: "bypassPermissions"
   prompt: |
-    You are the sprint-agent for the implementation phase.
+    You are the orchestrator teammate for team <team_name>.
+    The project "{project-name}" has completed all pipeline stages through validation.
+    The human has requested to start the implementation phase via /implement.
 
     Project: {project-name}
     Workshop repo: {absolute path}
-    Team name: {team_name}
+    Team name: <team_name>
 
-    Read the stories, build the implementation queue, and coordinate coding agents.
-    Start by reading docs/stories-*.md and docs/execution-plan.md.
+    Your job: spawn the sprint-agent to coordinate story implementation.
 
-    IMPORTANT: Do NOT assume or auto-resolve the code repo path. You MUST ask the human
-    for the repo name via your Step 3a gate before bootstrapping.
+    IMPORTANT: Do NOT pass a code repo path to the sprint-agent — the sprint-agent has a
+    dedicated gate (Step 3a) that asks the human for the repo name. Let that gate run.
+    Do not bypass it by providing the answer in advance.
 
-    IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.
-  description: "Coordinate story implementation"
+    IMPORTANT: Always use mode: bypassPermissions when spawning teammates.
+
+    IMPORTANT: The sprint-agent will message the team lead directly for human input
+    (not through you). This is by design to reduce relay hops.
+  description: "Coordinate implementation phase"
 ```
 
-The sprint-agent will message you (team lead) when it needs human input. Relay to the human and send responses back.
+The sprint-agent will message you (team lead) directly when it needs human input — bypassing the orchestrator. Relay to the human and send responses back to the sprint-agent.
 
 ## Additional Context
 $ARGUMENTS
