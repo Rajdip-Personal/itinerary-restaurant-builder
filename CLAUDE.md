@@ -355,8 +355,8 @@ The following environment variables **must** be set for MCP server authenticatio
 
 | Variable | Purpose |
 |----------|---------|
-| `JIRA_API_TOKEN` | Jira API authentication |
-| `CONFLUENCE_API_TOKEN` | Confluence API authentication |
+| `JIRA_PAT` | Jira Personal Access Token |
+| `CONFLUENCE_PAT` | Confluence Personal Access Token |
 | `GITHUB_PAT` | GitHub Personal Access Token |
 | `AHA_API_TOKEN` | Aha! API authentication |
 | `SERVICENOW_USERNAME` | ServiceNow username |
@@ -367,8 +367,8 @@ The following environment variables **must** be set for MCP server authenticatio
 
 Add these to your shell profile (`~/.zshrc` or `~/.bashrc`):
 ```bash
-export JIRA_API_TOKEN="your-jira-token"
-export CONFLUENCE_API_TOKEN="your-confluence-token"
+export JIRA_PAT="your-jira-token"
+export CONFLUENCE_PAT="your-confluence-token"
 export GITHUB_PAT="your-github-pat"
 export AHA_API_TOKEN="your-aha-token"
 export SERVICENOW_USERNAME="your-servicenow-username"
