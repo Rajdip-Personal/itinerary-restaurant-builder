@@ -448,15 +448,39 @@ When a user asks about their setup or wants to start using the workshop tooling:
    - **If user chooses "No"**: STOP. Do NOT proceed. Wait for user to fix issues and restart.
    - **If user chooses "Yes"**: proceed to "Ready to Start" (Step 6)
 
-**Step 6 — Ready to Start:**
+**Step 6 — Team Setup & Branch Creation:**
 
 10. Display "Ready to Start"
-11. Scan `projects/` directory for subdirectories containing `prd.md` (use `Glob("projects/*/prd.md")`, NOT bash `ls` or `find`)
-12. **Use `AskUserQuestion`** to ask project selection:
+11. **Ask for team name** using `AskUserQuestion`:
     ```
     AskUserQuestion:
       questions:
-        - question: "Which project is your team working on?"
+        - question: "What is your team's name? This will be used to create a dedicated branch for your work."
+          header: "Team Name"
+          multiSelect: false
+          options:
+            - label: "Enter team name"
+              description: "e.g., 'alpha', 'phoenix', 'supply-chain-1' — keep it short, lowercase, no spaces"
+    ```
+    - The user will type their team name in the "Other" freeform input
+12. **Create and checkout a team branch:**
+    - Sanitize the team name: lowercase, replace spaces with hyphens, remove special characters
+    - Branch name format: `team-{sanitized-name}` (e.g., `team-alpha`, `team-phoenix`)
+    - **Check if a branch already exists** (case-insensitive): run `git branch -a | grep -i "team-{sanitized-name}"` to find any existing branch regardless of case
+    - If a matching branch exists: checkout that existing branch (`git checkout {existing-branch-name}`) — preserve the original branch's casing
+    - If no matching branch exists: create a new branch from `framework-changes` with `git checkout framework-changes && git checkout -b team-{sanitized-name}`
+    - **TODO: Before the workshop, update this to branch from `main` once `framework-changes` has been merged into `main`.**
+    - Display confirmation: "Switched to branch `{branch-name}`" (existing) or "Created and switched to branch `team-{sanitized-name}`" (new)
+    - **All team work happens on this branch** — PRD refinements, memory bank updates, generated docs, etc.
+
+**Step 7 — Project Selection:**
+
+13. Scan `projects/` directory for subdirectories containing `prd.md` (use `Glob("projects/*/prd.md")`, NOT bash `ls` or `find`)
+14. **Use `AskUserQuestion`** to ask project selection. Dynamically build options from the projects found in step 13, plus always include a "Create my own project" option:
+    ```
+    AskUserQuestion:
+      questions:
+        - question: "Which project is your team working on? Select a pre-built project or create your own."
           header: "Project"
           multiSelect: false
           options:
@@ -466,26 +490,59 @@ When a user asks about their setup or wants to start using the workshop tooling:
               description: "Monitor security scan compliance across repos"
             - label: "Infrastructure & Delivery"
               description: "Document infrastructure and generate compliance stories"
+            - label: "Create my own project"
+              description: "Start a new custom project with your own PRD"
     ```
-13. Do NOT offer to create a new project or use templates
+15. **CRITICAL — Handling the user's response:**
+    - If the user selects one of the **pre-built project options by label** (exact match) → use that project
+    - If the user selects **"Create my own project"** OR types **any freeform text in "Other"** → treat it as a **custom project**. Do NOT map freeform text to an existing project. If the user typed a name, that is their custom project name.
+    - **Never assume freeform input refers to an existing project.** "RTO POC" ≠ "RTO Compliance". "Scan Tool" ≠ "Scan Compliance". Only exact label matches select pre-built projects.
+
+**Handling Custom Projects:**
+
+16. If the user chose to create a custom project:
+    a. Use the freeform text as the project name (if provided), or ask for a project name
+    b. Sanitize the name for a directory: lowercase, replace spaces with hyphens, remove special characters
+    c. Create the project directory: `projects/{sanitized-name}/`
+    d. Ask the user how they want to provide the PRD:
+       ```
+       AskUserQuestion:
+         questions:
+           - question: "How would you like to set up your PRD?"
+             header: "PRD Source"
+             multiSelect: false
+             options:
+               - label: "Start from the PRD template (Recommended)"
+                 description: "Copy the workshop PRD template and customize it during /refine-prd"
+               - label: "Start from an existing project's PRD"
+                 description: "Copy one of the pre-built project PRDs as a starting point"
+               - label: "I'll paste my own PRD content"
+                 description: "Provide your own PRD text to use as the starting point"
+       ```
+    e. Based on the response:
+       - **Template:** Copy `templates/prd-template.md` (if it exists) to `projects/{name}/prd.md`, or create a minimal PRD skeleton
+       - **Existing project:** Ask which project to copy from, then copy that `prd.md` to `projects/{name}/prd.md`
+       - **Own content:** Ask the user to paste their PRD, then write it to `projects/{name}/prd.md`
+    f. Continue to the PRD Reading Step below
 
 **After User Selects Project — PRD Reading Step (MANDATORY):**
 
-7. **Present the PRD for team reading:**
-   - Read the selected project's `prd.md` file
-   - Display a **clearly labeled summary** (brief table with Vision, Problem, Deliverables, Open Questions count)
-   - **HIGHLY ENCOURAGE** the team to read the full PRD on GitHub with a browser
-   - Provide the GitHub URL using the **main branch**: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/main/projects/{project-name}/prd.md`
-   - Say: "When everyone has read the PRD, type **ready** to continue."
-   - **STOP and WAIT** for the user to type "ready"
-   - Do NOT proceed, offer suggestions, or show workflow commands until the user types "ready"
-   - This is a deliberate human-in-the-loop pause to ensure the team understands the project before refinement begins
+17. **Present the PRD for team reading:**
+    - Read the selected project's `prd.md` file
+    - Display a **clearly labeled summary** (brief table with Vision, Problem, Deliverables, Open Questions count)
+    - **HIGHLY ENCOURAGE** the team to read the full PRD on GitHub with a browser
+    - Provide the GitHub URL using the **team's branch**: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-{name}/projects/{project-name}/prd.md`
+    - **Note:** The GitHub link only works after the branch has been pushed. If the branch hasn't been pushed yet, tell the team to read the PRD locally or push the branch first with `git push -u origin team-{name}`.
+    - Say: "When everyone has read the PRD, type **ready** to continue."
+    - **STOP and WAIT** for the user to type "ready"
+    - Do NOT proceed, offer suggestions, or show workflow commands until the user types "ready"
+    - This is a deliberate human-in-the-loop pause to ensure the team understands the project before refinement begins
 
-8. **After user types "ready":**
-   - **Automatically begin `/refine-prd`** — do NOT show a list of all commands
-   - Skip the project selection step in `/refine-prd` since the project is already known
-   - Start directly with Step 2 (Load Context) and Step 3 (Assess PRD Completeness)
-   - The guided workflow will lead the user through each step sequentially
+18. **After user types "ready":**
+    - **Automatically begin `/refine-prd`** — do NOT show a list of all commands
+    - Skip the project selection step in `/refine-prd` since the project is already known
+    - Start directly with Step 2 (Load Context) and Step 3 (Assess PRD Completeness)
+    - The guided workflow will lead the user through each step sequentially
 
 ## Pipeline Navigation
 
