@@ -219,6 +219,11 @@ To determine if a project has a UI, check the PRD for: frontend tech stack (Reac
 
 The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
 
+**UI Prototype Rule (MANDATORY):**
+To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
+
+The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
+
 ### Step 3: Reuse or Spawn Teammate
 
 #### REUSE FIRST (MANDATORY)
