@@ -32,9 +32,25 @@ Before starting, verify these artifacts exist:
 
 ## Start Implementation
 
-### If in an Agent Team (orchestrator is running):
+### Step 1: Ensure Agent Team Exists
 
-Message the orchestrator to start the implementation phase:
+**Always create a team first.** This is required whether resuming a project or continuing from the full pipeline. The team lead (main session) must own the team so it can relay human input.
+
+**Check if a team already exists** by looking for an active team context. If you are already in a team (e.g., orchestrator is running from the full pipeline), skip to Step 2.
+
+**If no team exists** (e.g., resuming a project in a new session):
+
+```
+TeamCreate:
+  team_name: "workshop-pipeline"
+  description: "PRD to implementation pipeline for {project-name}"
+```
+
+Note the `team_name` from the result — it may differ from your input (e.g., `workshop-pipeline-1`). Use the **returned** team name for all subsequent operations.
+
+### Step 2: Spawn Sprint-Agent
+
+**If an orchestrator is already running** (full pipeline session), message it:
 
 ```
 SendMessage:
@@ -50,16 +66,12 @@ SendMessage:
   summary: "Human requests implementation phase"
 ```
 
-The orchestrator will spawn the sprint-agent and coordinate from there.
-
-### If NOT in an Agent Team (standalone use):
-
-Spawn the sprint-agent directly:
+**If no orchestrator is running** (resumed session, standalone use), spawn the sprint-agent directly as a teammate:
 
 ```
 Task:
   subagent_type: "sprint-agent"
-  team_name: "<create team first if needed>"
+  team_name: "<team_name from TeamCreate result>"
   name: "sprint-agent"
   mode: "bypassPermissions"
   prompt: |
@@ -74,8 +86,12 @@ Task:
 
     IMPORTANT: Do NOT assume or auto-resolve the code repo path. You MUST ask the human
     for the repo name via your Step 3a gate before bootstrapping.
+
+    IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.
   description: "Coordinate story implementation"
 ```
+
+The sprint-agent will message you (team lead) when it needs human input. Relay to the human and send responses back.
 
 ## Additional Context
 $ARGUMENTS
