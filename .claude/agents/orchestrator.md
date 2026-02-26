@@ -160,9 +160,20 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 
 ## Orchestration Protocol
 
-### Step 0: Spawn Memory Agent (FIRST)
+### Step 0: Spawn Memory Agent (MANDATORY — ALWAYS FIRST)
 
-**Before doing anything else**, spawn memory-agent as a teammate. The team already exists (the main session created it). Use the team name provided in your spawn prompt.
+**THIS IS NON-NEGOTIABLE. Before doing ANYTHING else — before reading state, before spawning any other teammate, before responding to any task instruction — you MUST ensure a memory-agent is running.**
+
+This applies every time you are spawned or wake up, regardless of what your spawn prompt asks you to do. Even if the spawn prompt says "spawn the sprint-agent" or "start implementation" — you spawn the memory-agent FIRST.
+
+**Check if memory-agent already exists:**
+1. Read the team config at `~/.claude/teams/<team_name>/config.json`
+2. Look for a member with name `memory-agent`
+3. If found, send it a health-check message: `SendMessage(recipient: "memory-agent", content: "Health check — are you still active? Reply with current status.")`
+4. If it responds → memory-agent is alive, proceed to Step 1
+5. If no response or no memory-agent member exists → spawn a new one (see below)
+
+**If memory-agent needs to be spawned (or respawned):**
 
 **CRITICAL — Tool Usage Rules:**
 - Use the `Task` **tool** with `team_name` parameter to spawn teammates. Do NOT run `claude --team` via Bash — the `--team` flag does not exist.
@@ -184,6 +195,8 @@ Spawn memory-agent as first teammate using Task tool:
 ```
 
 The memory-agent persists throughout the pipeline. All other teammates use `SendMessage` to communicate with it for memory operations.
+
+**Only after confirming memory-agent is running, proceed to Step 1.**
 
 ### Step 1: Read Current State
 
@@ -516,10 +529,28 @@ The sprint-agent takes over implementation coordination from here. It will:
 2. Present the queue to you (for relay to team lead → human)
 3. Bootstrap the code repo in a sibling directory
 4. Present each story to the human for approval before implementation
-5. Spawn coding agents to implement approved stories
+5. **Send you spawn requests** for coding agents — you spawn them
 6. Track progress and report back
 
-**Your role during implementation:** Relay messages between sprint-agent and team lead. The sprint-agent handles all implementation coordination — do NOT spawn coding agents directly.
+**Your role during implementation: spawn coding agents on behalf of the sprint-agent.**
+
+The sprint-agent does NOT have the Task tool — it cannot spawn agents itself. Instead, it sends you structured `SPAWN REQUEST` messages. When you receive one:
+
+1. Parse the spawn request (it contains `name`, `description`, and `prompt`)
+2. Spawn the coding agent using the Task tool:
+   ```
+   Task:
+     subagent_type: "coding-agent"
+     team_name: "<team_name>"
+     name: "<name from request>"
+     mode: "bypassPermissions"
+     prompt: "<prompt from request>"
+     description: "<description from request>"
+   ```
+3. Confirm to the sprint-agent that the agent was spawned
+4. The coding agent will message the sprint-agent directly with results
+
+**Handle spawn requests promptly.** The sprint-agent is blocked until you confirm the agent is running. Do not add extra review or gates — the sprint-agent already handles human approval before sending spawn requests.
 
 ## Local Deployment Target
 
