@@ -50,6 +50,14 @@ fi
 
 echo -e "${GREEN}✓ Python $PYTHON_VERSION is installed${NC}"
 
+# Export Zscaler root CA so pip trusts corporate SSL inspection proxy.
+# All Nordstrom machines have the Zscaler CA in the macOS System keychain.
+ZSCALER_CA_FILE="${TMPDIR:-/tmp}/nordstrom-zscaler-ca.pem"
+if [ ! -f "$ZSCALER_CA_FILE" ]; then
+    security find-certificate -a -p /Library/Keychains/System.keychain > "$ZSCALER_CA_FILE"
+fi
+export SSL_CERT_FILE="$ZSCALER_CA_FILE"
+
 # Create venv and install it2
 IT2_VENV="$HOME/.it2-venv"
 
