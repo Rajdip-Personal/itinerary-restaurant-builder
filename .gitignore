@@ -6,3 +6,4 @@ node_modules/
 memory-bank/
 prototype/node_modules/
 prototype/dist/
+.mcp.json

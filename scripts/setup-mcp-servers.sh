@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Setup MCP Servers for Claude Code
-# This script configures Jira, Confluence, GitHub, ServiceNow, Nordstrom Schema Repo, Aha!, and Slack MCP servers at the user level.
+# This script configures Jira, Confluence, GitHub, ServiceNow, Nordstrom Schema Repo, Aha!, and Slack MCP servers at the project level.
 #
 # Prerequisites:
 #   - Claude Code CLI installed
@@ -121,7 +121,7 @@ fi
 
 echo ""
 echo "Adding Jira MCP server..."
-if claude mcp add --transport http --scope user jira-mcp https://api.nordstrom.app/app09978/jira/mcp \
+if claude mcp add --transport http --scope project jira-mcp https://api.nordstrom.app/app09978/jira/mcp \
     --header 'Authorization: Bearer ${JIRA_PAT}' 2>/dev/null; then
     echo "  ✓ Jira MCP server added"
 else
@@ -130,7 +130,7 @@ fi
 
 echo ""
 echo "Adding Confluence MCP server..."
-if claude mcp add --transport http --scope user confluence-mcp https://api.nordstrom.app/app09978/confluence/mcp \
+if claude mcp add --transport http --scope project confluence-mcp https://api.nordstrom.app/app09978/confluence/mcp \
     --header 'Authorization: Bearer ${CONFLUENCE_PAT}' 2>/dev/null; then
     echo "  ✓ Confluence MCP server added"
 else
@@ -138,8 +138,8 @@ else
 fi
 
 echo ""
-echo "Adding GitHub MCP server (user level)..."
-if claude mcp add --transport http --scope user github https://api.githubcopilot.com/mcp \
+echo "Adding GitHub MCP server (project scope)..."
+if claude mcp add --transport http --scope project github https://api.githubcopilot.com/mcp \
     --header 'Authorization: Bearer ${GITHUB_PAT}' 2>/dev/null; then
     echo "  ✓ GitHub MCP server added"
 else
@@ -147,7 +147,7 @@ else
 fi
 
 echo ""
-echo "Installing ServiceNow MCP server (user scope)..."
+echo "Installing ServiceNow MCP server (project scope)..."
 # ServiceNow MCP runs locally with basic auth against prod (READ-ONLY)
 # Uses CI pipeline service account credentials
 # Note: Write operations (create incident/change) require OAuth, not supported with basic auth
@@ -168,7 +168,7 @@ else
 fi
 
 # Register ServiceNow MCP with Claude Code (only if not already registered)
-if claude mcp add --scope user servicenow \
+if claude mcp add --scope project servicenow \
     -e SERVICENOW_AUTH_MODE=basic \
     -e SERVICENOW_INSTANCE_URL=https://nordstrom.service-now.com \
     -e SERVICENOW_USERNAME='${SERVICENOW_USERNAME}' \
@@ -180,25 +180,35 @@ else
 fi
 
 echo ""
-echo "Installing Nordstrom Schema Repo MCP server (user scope)..."
+echo "Installing Nordstrom Schema Repo MCP server (project scope)..."
 SCHEMA_REPO_DIR="${HOME}/.claude-mcp/nordstrom-schema-repo-mcp"
+SCHEMA_DATA_DIR="${HOME}/.local/share/nordstrom-schema-repo"
 if [ -d "$SCHEMA_REPO_DIR" ]; then
     echo "  ⚠ Schema repo already cloned at $SCHEMA_REPO_DIR"
-    echo "    To update, run: cd $SCHEMA_REPO_DIR && git pull && ./install-claude-code.sh --scope user"
+    echo "    To update, run: cd $SCHEMA_REPO_DIR && git pull && ./install-claude-code.sh"
 else
     mkdir -p "${HOME}/.claude-mcp"
     git clone git@github.com:Nordstrom-Sandbox/nordstrom-schema-repo-mcp.git "$SCHEMA_REPO_DIR"
     cd "$SCHEMA_REPO_DIR"
-    if ./install-claude-code.sh --scope user; then
-        echo "  ✓ Nordstrom Schema Repo MCP server installed (user scope)"
+    if ./install-claude-code.sh; then
+        echo "  ✓ Nordstrom Schema Repo MCP server installed (user scope by upstream script)"
     else
         echo "  ✗ Failed to install Nordstrom Schema Repo MCP server"
     fi
     cd - > /dev/null
 fi
 
+# Re-register at project scope (upstream install-claude-code.sh hardcodes user scope)
+if claude mcp add --scope project nordstrom-schema-repo \
+    -e SCHEMA_REPO_DATA_DIR="${SCHEMA_DATA_DIR}" \
+    -- "${SCHEMA_DATA_DIR}/venv/bin/python" -m schema_repo_mcp.server 2>/dev/null; then
+    echo "  ✓ Nordstrom Schema Repo MCP server added (project scope)"
+else
+    echo "  ⚠ Nordstrom Schema Repo MCP server already exists at project scope (skipped)"
+fi
+
 echo ""
-echo "Installing Aha! MCP server (user scope)..."
+echo "Installing Aha! MCP server (project scope)..."
 AHA_MCP_DIR="${HOME}/.claude-mcp/aha-mcp"
 if [ -d "$AHA_MCP_DIR" ]; then
     echo "  ⚠ Aha MCP already cloned at $AHA_MCP_DIR"
@@ -213,7 +223,7 @@ else
 fi
 
 # Register Aha MCP with Claude Code (only if not already registered)
-if claude mcp add --scope user aha-mcp \
+if claude mcp add --scope project aha-mcp \
     -e AHA_API_TOKEN='${AHA_API_TOKEN}' \
     -e AHA_DOMAIN=nordstrom \
     -- node "${AHA_MCP_DIR}/build/index.js" 2>/dev/null; then
@@ -223,10 +233,10 @@ else
 fi
 
 echo ""
-echo "Adding Slack MCP server (user scope)..."
+echo "Adding Slack MCP server (project scope)..."
 # Slack MCP is read-only, uses Chrome + Okta SSO for auth (no API key needed)
 # Requires: Node.js 18+, Google Chrome, VPN (Zscaler)
-if claude mcp add --scope user nordstrom-slack \
+if claude mcp add --scope project nordstrom-slack \
     -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
     -- npx github:Nordstrom-Sandbox/gx6c-nordstrom-slack-mcp 2>/dev/null; then
     echo "  ✓ Slack MCP server added (read-only)"

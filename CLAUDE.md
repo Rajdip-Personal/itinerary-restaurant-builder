@@ -110,6 +110,35 @@ Orchestrator agent fails with API error
 → STOP and wait for user
 ```
 
+### MCP SERVERS ARE THE ONLY PATH TO EXTERNAL DATA (MANDATORY)
+
+**When a task requires data from Jira, Confluence, GitHub, Aha!, ServiceNow, Slack, or GitLab, the corresponding MCP server tool MUST be used. No alternative approaches are permitted.**
+
+| Data Source | Required MCP Server | Forbidden Alternatives |
+|-------------|--------------------|-----------------------|
+| Jira | `mcp__jira-mcp__*` tools | `curl`, REST API calls, web scraping |
+| Confluence | `mcp__confluence-mcp__*` tools | `curl`, REST API calls, web scraping |
+| GitHub | `mcp__github__*` tools | `curl`, `gh` CLI, REST API calls |
+| Aha! | `mcp__aha-mcp__*` tools | `curl`, REST API calls |
+| ServiceNow | `mcp__servicenow__*` tools | `curl`, REST API calls |
+| Slack | `mcp__nordstrom-slack__*` tools | `curl`, Slack API calls |
+| Schema Repo | `mcp__nordstrom-schema-repo__*` tools | `curl`, REST API calls |
+| GitLab | `gitlab-api-access` skill | `curl`, REST API calls |
+
+**Why this is non-negotiable:**
+- MCP servers handle authentication, pagination, and error handling correctly
+- Alternative approaches bypass security controls and audit trails
+- If an MCP server is not connected, the operation CANNOT proceed — this is by design
+- The user was warned at startup about missing servers and chose to continue
+
+**If an MCP server call fails during the workflow:**
+1. Report the error to the user
+2. Explain that the MCP server for [service] is not connected/configured
+3. Do NOT attempt to use `curl`, REST APIs, `gh` CLI, or any other workaround to get the same data
+4. The workflow stops for that data source — the user must fix the MCP server configuration
+
+**For all other data sources** (websites, public APIs, internal services not listed above, etc.), Claude is free to use any available tool — `curl`, `WebFetch`, `Bash`, or any other approach that works.
+
 ## Architecture
 
 The system uses a **two-phase architecture** with **Agent Teams**:
@@ -271,42 +300,40 @@ When the user asks about their Claude Code setup or MCP server configuration, us
 
 **1. List MCP servers at user scope:**
 ```bash
-python3 -c "
-import json
-with open('$HOME/.claude.json') as f:
-    d = json.load(f)
-# User-scope MCP servers
-user_mcps = d.get('mcpServers', {})
-print('=== User-Scope MCP Servers ===')
-for name, config in user_mcps.items():
-    print(f'  {name}: {config.get(\"type\", \"stdio\")}')
-if not user_mcps:
-    print('  (none configured)')
-"
+bash scripts/check-mcp-config.sh
 ```
+This script is pre-allowed in `.claude/settings.json` so it runs without permission prompts.
 
 **2. Check environment variables for MCP authentication:**
 ```bash
-echo "JIRA_API_TOKEN: $([ -n \"\$JIRA_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
-echo "CONFLUENCE_API_TOKEN: $([ -n \"\$CONFLUENCE_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
-echo "GITHUB_PAT: $([ -n \"\$GITHUB_PAT\" ] && echo 'SET' || echo 'NOT SET')"
-echo "AHA_API_TOKEN: $([ -n \"\$AHA_API_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
-echo "SERVICENOW_USERNAME: $([ -n \"\$SERVICENOW_USERNAME\" ] && echo 'SET' || echo 'NOT SET')"
-echo "SERVICENOW_PASSWORD: $([ -n \"\$SERVICENOW_PASSWORD\" ] && echo 'SET' || echo 'NOT SET')"
-echo "GITLAB_TOKEN: $([ -n \"\$GITLAB_TOKEN\" ] && echo 'SET' || echo 'NOT SET')"
+bash scripts/check-env.sh
 ```
-
-**3. Check local MCP server installations:**
-```bash
-ls -la ~/.claude-mcp/ 2>/dev/null || echo "No local MCP servers in ~/.claude-mcp/"
-```
+This script is pre-allowed in `.claude/settings.json` so it runs without permission prompts.
 
 **Key locations:**
 - `~/.claude.json` — Main Claude Code config (contains `mcpServers` at user scope)
-- `~/.claude-mcp/` — Local MCP server installations (cloned repos)
 - `~/Library/Application Support/Claude/claude_desktop_config.json` — Claude Desktop app config (NOT Claude Code CLI)
 
 **Important:** Do NOT confuse Claude Desktop config with Claude Code CLI config. They are separate.
+
+### Verifying MCP Server Connection Status
+
+After checking configuration and environment variables, verify that MCP servers are actually running and responding by calling a lightweight health check tool for each. **Run all checks in parallel** for speed.
+
+| MCP Server | Health Check Tool | Args |
+|------------|------------------|------|
+| `jira-mcp` | `mcp__jira-mcp__server_info` | _(none)_ |
+| `confluence-mcp` | `mcp__confluence-mcp__server_info` | _(none)_ |
+| `github` | `mcp__github__get_me` | _(none)_ |
+| `aha-mcp` | `mcp__aha-mcp__search_documents` | `query: "test"` |
+| `servicenow` | `mcp__servicenow__health_check` | _(none)_ |
+| `nordstrom-slack` | `mcp__nordstrom-slack__get_channel_messages` | `channel_name: "general", limit: 1` |
+| `nordstrom-schema-repo` | `mcp__nordstrom-schema-repo__list_domains` | _(none)_ |
+
+**Interpreting results:**
+- **Success** (any valid response) → server is connected and authenticated
+- **Error/timeout** → server is not running, not configured, or credentials are invalid
+- Record each result as `Connected` or `Not Connected` for the status table
 
 ### Required MCP Servers
 
@@ -355,56 +382,88 @@ Then reload your shell: `source ~/.zshrc` (or restart your terminal).
 
 When a user asks about their setup or wants to start using the workshop tooling:
 
-1. Run the MCP server check commands above
+**Step 1 — Check MCP Server Configuration:**
+
+1. Run the MCP server config check command (python3 script to read `~/.claude.json`)
 2. Compare configured servers against the required list
-3. Check all required environment variables
 
-**Validation Step 1 — MCP Servers:**
+**Step 2 — Check Environment Variables:**
 
-4. **If ANY required MCP servers are missing:**
-   - List which servers are missing in a table
-   - Instruct the user to run:
-     ```bash
-     scripts/setup-mcp-servers.sh
+3. Run the environment variable check command
+4. Compare against the required list
+
+**Step 3 — Check MCP Server Connection Status:**
+
+5. Run health check tools for all configured MCP servers **in parallel** (see "Verifying MCP Server Connection Status" above)
+6. Record each server as `Connected` or `Not Connected`
+
+**Step 4 — Display Combined Status Table:**
+
+7. Display a single summary table combining all three checks:
+
+```
+┌───────────────────────┬────────────┬───────────┬─────────────┐
+│ Service               │ Configured │ Env Vars  │ Connected   │
+├───────────────────────┼────────────┼───────────┼─────────────┤
+│ Jira                  │ ✓          │ ✓         │ ✓           │
+│ Confluence            │ ✓          │ ✓         │ ✗           │
+│ GitHub                │ ✓          │ ✓         │ ✓           │
+│ Aha!                  │ ✗          │ ✓         │ —           │
+│ ServiceNow            │ ✓          │ ✗         │ —           │
+│ Slack                 │ ✓          │ —         │ ✓           │
+│ Schema Repo           │ ✓          │ —         │ ✓           │
+│ GitLab                │ —          │ ✓         │ —           │
+└───────────────────────┴────────────┴───────────┴─────────────┘
+```
+   - Use `✓` for pass, `✗` for fail, `—` for not applicable (e.g., no env var needed, or can't check connection if not configured)
+   - For servers that are not configured, skip the connection check and show `—`
+
+**Step 5 — Handle Issues (MANDATORY: Ask User):**
+
+8. **If ALL checks pass** (all configured, all env vars set, all connected): proceed directly to "Ready to Start" (Step 6)
+
+9. **If ANY check fails** (missing config, missing env var, or not connected):
+   - Display the status table (Step 4) so the user sees exactly what's wrong
+   - List specific remediation steps for each issue:
+     - Missing MCP server → run `scripts/setup-mcp-servers.sh`, restart Claude Code
+     - Missing env var → add to `~/.zshrc`, run `source ~/.zshrc`, restart Claude Code
+     - Not connected → check credentials, restart Claude Code, verify network
+   - **MUST use `AskUserQuestion`** to ask the user whether to continue:
      ```
-   - **STOP HERE** — Do NOT proceed until all MCP servers are configured
-   - After the user runs the setup script, they must restart Claude Code for changes to take effect
-   - Do NOT continue to environment variable check or "Ready to Start"
+     AskUserQuestion:
+       questions:
+         - question: "Some MCP servers or environment variables are not ready (see above). Do you want to continue anyway? Note: any workflow step that needs a missing/disconnected service will STOP and cannot use workarounds."
+           header: "Continue?"
+           multiSelect: false
+           options:
+             - label: "Yes, continue anyway"
+               description: "Proceed to project selection — workflows will stop if they need an unavailable service"
+             - label: "No, I'll fix the issues first"
+               description: "Stop here so I can fix configuration, then restart Claude Code"
+     ```
+   - **If user chooses "No"**: STOP. Do NOT proceed. Wait for user to fix issues and restart.
+   - **If user chooses "Yes"**: proceed to "Ready to Start" (Step 6)
 
-**Validation Step 2 — Environment Variables:**
+**Step 6 — Ready to Start:**
 
-5. **If ANY required environment variables are NOT SET:**
-   - List which variables are missing in a table
-   - Show the user how to set them (add to `~/.zshrc` or `~/.bashrc`)
-   - **STOP HERE** — Do NOT proceed until all environment variables are set
-   - After setting variables, user must run `source ~/.zshrc` or restart their terminal, then restart Claude Code
-   - Do NOT continue to "Ready to Start"
-
-**Ready to Start:**
-
-6. **Only if ALL of the following are true:**
-   - ALL required MCP servers are configured
-   - ALL required environment variables are set
-
-   Then:
-   1. Display "Ready to Start"
-   2. Scan `projects/` directory for subdirectories containing `prd.md`
-   3. **Use `AskUserQuestion`** to ask project selection:
-      ```
-      AskUserQuestion:
-        questions:
-          - question: "Which project is your team working on?"
-            header: "Project"
-            multiSelect: false
-            options:
-              - label: "RTO Compliance"
-                description: "Track employee return-to-office compliance"
-              - label: "Scan Compliance"
-                description: "Monitor security scan compliance across repos"
-              - label: "Infrastructure & Delivery"
-                description: "Document infrastructure and generate compliance stories"
-      ```
-   4. Do NOT offer to create a new project or use templates
+10. Display "Ready to Start"
+11. Scan `projects/` directory for subdirectories containing `prd.md` (use `Glob("projects/*/prd.md")`, NOT bash `ls` or `find`)
+12. **Use `AskUserQuestion`** to ask project selection:
+    ```
+    AskUserQuestion:
+      questions:
+        - question: "Which project is your team working on?"
+          header: "Project"
+          multiSelect: false
+          options:
+            - label: "RTO Compliance"
+              description: "Track employee return-to-office compliance"
+            - label: "Scan Compliance"
+              description: "Monitor security scan compliance across repos"
+            - label: "Infrastructure & Delivery"
+              description: "Document infrastructure and generate compliance stories"
+    ```
+13. Do NOT offer to create a new project or use templates
 
 **After User Selects Project — PRD Reading Step (MANDATORY):**
 

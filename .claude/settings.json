@@ -1,5 +1,14 @@
 {
   "model": "global.anthropic.claude-opus-4-6-v1",
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/check-env*)",
+      "Bash(bash */scripts/check-env*)",
+      "Bash(bash scripts/check-mcp-config*)",
+      "Bash(bash */scripts/check-mcp-config*)",
+      "Bash(chmod +x */scripts/*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

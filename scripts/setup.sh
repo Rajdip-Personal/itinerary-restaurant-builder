@@ -27,9 +27,32 @@ echo ""
 # Track overall success
 overall_success=true
 
-# Step 0: Install tmux (required for Agent Teams)
+# Step 0: Check python3 (required for MCP config checks and iTerm2 setup)
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}Step 0/2: Install tmux (required for Agent Teams split-pane view)${NC}"
+echo -e "${BLUE}Step 0/3: Check python3${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+if command -v python3 &>/dev/null; then
+    py_version=$(python3 --version 2>&1)
+    echo -e "${GREEN}✓ python3 is installed ($py_version)${NC}"
+else
+    echo -e "${RED}✗ python3 is not installed${NC}"
+    echo "  python3 is required for MCP config checks and iTerm2 split-pane setup."
+    if command -v brew &>/dev/null; then
+        echo "  Install via Homebrew:  brew install python@3.12"
+    else
+        echo "  macOS:  brew install python@3.12"
+        echo "  Linux:  sudo apt-get install python3"
+    fi
+    overall_success=false
+fi
+
+echo ""
+
+# Step 1: Install tmux (required for Agent Teams)
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}Step 1/3: Install tmux (required for Agent Teams split-pane view)${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -56,9 +79,9 @@ fi
 
 echo ""
 
-# Step 1: iTerm2 Split-Pane Setup
+# Step 2: iTerm2 Split-Pane Setup
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}Step 1/2: iTerm2 Split-Pane Setup${NC}"
+echo -e "${BLUE}Step 2/3: iTerm2 Split-Pane Setup${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -77,9 +100,9 @@ fi
 
 echo ""
 
-# Step 2: MCP Servers Setup
+# Step 3: MCP Servers Setup
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}Step 2/2: MCP Servers Setup${NC}"
+echo -e "${BLUE}Step 3/3: MCP Servers Setup${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -109,7 +132,7 @@ if [ "$overall_success" = true ]; then
     echo -e "${GREEN}All setup steps completed successfully!${NC}"
     echo ""
     echo "Next steps:"
-    echo "  1. Restart Claude Code (jwn-claude) for changes to take effect"
+    echo "  1. Restart Claude Code (scripts/start-workshop.sh) for changes to take effect"
     echo "  2. If using iTerm2 split-pane mode, ensure Python API is enabled"
     echo "  3. Run 'jwn-claude' from the workshop directory to begin"
     echo ""
