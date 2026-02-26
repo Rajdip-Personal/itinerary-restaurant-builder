@@ -530,9 +530,11 @@ When a user asks about their setup or wants to start using the workshop tooling:
 17. **Present the PRD for team reading:**
     - Read the selected project's `prd.md` file
     - Display a **clearly labeled summary** (brief table with Vision, Problem, Deliverables, Open Questions count)
-    - **HIGHLY ENCOURAGE** the team to read the full PRD on GitHub with a browser
-    - Provide the GitHub URL using the **team's branch**: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-{name}/projects/{project-name}/prd.md`
-    - **Note:** The GitHub link only works after the branch has been pushed. If the branch hasn't been pushed yet, tell the team to read the PRD locally or push the branch first with `git push -u origin team-{name}`.
+    - **HIGHLY ENCOURAGE** the team to read the full PRD — but verify it's on GitHub first:
+      1. Check if the branch exists on the remote: `git ls-remote --heads origin team-{name}`
+      2. If the branch exists, check the file exists and matches local: `git diff origin/team-{name} -- projects/{project-name}/prd.md`
+      - **If both pass** (branch pushed, file exists on remote, diff is empty): provide the GitHub URL: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-{name}/projects/{project-name}/prd.md`
+      - **If any check fails** (branch not pushed, file missing from remote, or local version differs): do NOT display a GitHub URL. Instead say: "The PRD has not been pushed to GitHub yet. Please read it locally at `projects/{project-name}/prd.md`."
     - Say: "When everyone has read the PRD, type **ready** to continue."
     - **STOP and WAIT** for the user to type "ready"
     - Do NOT proceed, offer suggestions, or show workflow commands until the user types "ready"
