@@ -115,7 +115,7 @@ Task:
   subagent_type: "coding-agent"
   team_name: "<team_name>"
   name: "coding-agent-bootstrap"
-  mode: "acceptEdits"
+  mode: "bypassPermissions"
   prompt: |
     TASK: BOOTSTRAP
 
@@ -183,7 +183,7 @@ Task:
   subagent_type: "coding-agent"
   team_name: "<team_name>"
   name: "coding-agent-{story-id}"
-  mode: "acceptEdits"
+  mode: "bypassPermissions"
   prompt: |
     TASK: IMPLEMENT STORY
 

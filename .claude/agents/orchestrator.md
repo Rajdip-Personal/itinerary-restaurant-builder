@@ -174,7 +174,7 @@ Spawn memory-agent as first teammate using Task tool:
     subagent_type: "memory-agent"
     team_name: "<team_name from your spawn prompt>"
     name: "memory-agent"
-    mode: "acceptEdits"
+    mode: "bypassPermissions"
     prompt: "You are the memory-agent teammate for the workshop-pipeline team.
              Initialize as the central memory authority.
              Check memory-bank/ state and report ready.
@@ -253,21 +253,21 @@ SendMessage:
 ```
 1. SendMessage(type: "shutdown_request", recipient: "prototype-builder", content: "Stalled. Shutting down.")
 2. [Wait for shutdown_approved]
-3. Task(subagent_type: "general-purpose", name: "prototype-builder", mode: "acceptEdits", ...)
+3. Task(subagent_type: "general-purpose", name: "prototype-builder", mode: "bypassPermissions", ...)
 ```
 
 #### Spawning a New Teammate (only when needed)
 
 When no existing teammate can handle the work, spawn a new one using the `Task` tool with `team_name` parameter. **Never use Bash to spawn agents.**
 
-**ALWAYS use `mode: "acceptEdits"` when spawning teammates.** The team lead (main session) is the only session that interacts with the human for permissions. Teammates must be able to read, write, and edit files without prompting — the human-in-the-loop check happens when you present outputs to the team lead for validation.
+**ALWAYS use `mode: "bypassPermissions"` when spawning teammates.** The team lead (main session) is the only session that interacts with the human for permissions. Teammates must be able to read, write, and edit files without prompting — the human-in-the-loop check happens when you present outputs to the team lead for validation.
 
 ```
 Task tool:
   subagent_type: "planning-agent" | "requirements-agent" | "design-agent" | "story-generator" | "code-scanner"
   team_name: "<team_name from your spawn prompt>"
   name: "<agent-name>"
-  mode: "acceptEdits"
+  mode: "bypassPermissions"
   prompt: |
     You are a teammate in the workshop-pipeline team.
 
@@ -491,7 +491,7 @@ Task:
   subagent_type: "sprint-agent"
   team_name: "<team_name>"
   name: "sprint-agent"
-  mode: "acceptEdits"
+  mode: "bypassPermissions"
   prompt: |
     You are the sprint-agent for the implementation phase.
 
@@ -502,7 +502,7 @@ Task:
     Read the stories (docs/stories-*.md), execution plan (docs/execution-plan.md),
     and design docs to build the implementation queue.
 
-    IMPORTANT: Always use mode: acceptEdits when spawning coding agents.
+    IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.
   description: "Coordinate story implementation"
 ```
 

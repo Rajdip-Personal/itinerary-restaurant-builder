@@ -60,7 +60,7 @@ Task:
   subagent_type: "sprint-agent"
   team_name: "<create team first if needed>"
   name: "sprint-agent"
-  mode: "acceptEdits"
+  mode: "bypassPermissions"
   prompt: |
     You are the sprint-agent for the implementation phase.
 
