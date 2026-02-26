@@ -687,6 +687,24 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
 
 The orchestrator will take over coordination from there, spawning teammates as needed and messaging the team lead to keep the human in the loop.
 
+### Team Lead Rules (MANDATORY)
+
+**The team lead (main session) ONLY spawns the orchestrator.** All other teammates are spawned and managed by the orchestrator. This is non-negotiable.
+
+| Action | Who Does It |
+|--------|-------------|
+| Create team (`TeamCreate`) | Team lead |
+| Spawn orchestrator | Team lead |
+| Spawn all other teammates (memory-agent, planning-agent, etc.) | **Orchestrator only** |
+| Shut down and respawn teammates | **Orchestrator only** |
+| Message teammates with task assignments | **Orchestrator only** |
+| Message the orchestrator with human feedback/approvals | Team lead |
+| Relay orchestrator output to the human | Team lead |
+
+**If a teammate needs to be respawned** (e.g., to fix permissions), the team lead MUST message the orchestrator and ask it to handle the respawn. The team lead must NOT spawn teammates directly — doing so creates naming conflicts, breaks the orchestrator's coordination, and causes confusion about who manages whom.
+
+**The team lead's only teammate communication is with the orchestrator.** All other coordination flows through the orchestrator.
+
 ## Key Directories
 
 | Directory | Purpose |
