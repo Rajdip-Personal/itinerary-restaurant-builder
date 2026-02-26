@@ -57,12 +57,12 @@ Supply Chain engineering squads work with applications that have dependencies sp
   - Logging standards (structured JSON, correlation IDs, no PII)
   - Monitoring standards (health endpoints, SLIs/SLOs, dashboards, alerting)
   - CI/CD standards (GitHub Actions pipeline, security scanning)
-  - Deployment standards (standard K8s, Helm charts, resource limits)
+  - Deployment standards (standard K8s, Nordstrom Standard Pipeline, resource limits)
   - Testing standards (80% coverage, integration tests, performance tests)
 - Detailed design document combining all findings with architecture diagrams
 - User stories for every identified gap, organized into epics and sprints
 - Standard CI/CD pipeline configuration for GitHub Actions
-- Standard K8s deployment configuration (Helm chart templates)
+- Standard K8s deployment configuration (Nordstrom Standard Pipeline — no Helm)
 
 ### Out of Scope
 - Actually implementing the infrastructure changes (this project produces the design and stories; squads implement)
@@ -151,7 +151,7 @@ Supply Chain engineering squads work with applications that have dependencies sp
    - Missing monitoring → stories to add SLIs, dashboards, alerts
    - Security gaps → stories for auth, secrets, PII masking
    - Missing tests → stories for unit, integration, performance tests
-   - K8s deployment gaps → stories for Helm charts, resource limits, HPA
+   - K8s deployment gaps → stories for Nordstrom Standard Pipeline configuration, resource limits, HPA
 
 ### Business Rules
 - Every discovery finding must be linked to a source (repository, Confluence page, Kafka topic, etc.)
@@ -216,7 +216,7 @@ Supply Chain engineering squads work with applications that have dependencies sp
 
 ### Infrastructure
 - Generated CI/CD configurations target GitHub Actions
-- Generated deployment configurations target standard K8s with Helm
+- Generated deployment configurations target standard K8s with Nordstrom Standard Pipeline (no Helm)
 - Generated monitoring configurations target the standard observability platform
 - All generated artifacts are committed to the application's GitHub repository
 
@@ -267,3 +267,7 @@ Supply Chain engineering squads work with applications that have dependencies sp
 | 4 | Should generated stories go directly into Jira, or just into the docs/user-stories.md file? | Workshop Facilitator | **Answered** | Markdown file only — generate to `docs/user-stories.md` for review before adding to Jira |
 | 5 | Is there a standard Helm chart template we should reference for K8s deployment stories? | Cloud Platform | **Answered** | No Helm — use Nordstrom Standard Pipeline for deployments |
 | 6 | How much existing documentation exists in Confluence for each squad's application? | Squad Leads | **Answered** | Confluence home page exists: https://confluence.nordstrom.com/spaces/SCh/pages/495622523/SC+Tech+-+Enterprise+Routing+Service |
+| 7 | How does the routing service handle authentication today? | Squad | **Answered** | Network-level only — internal LB, no application-layer auth (no OAuth, API keys, mTLS, or Istio AuthorizationPolicy). External users cannot reach it. Any internal Nordstrom service on the network or peered VPCs can call it. This is a gap vs. Nordstrom standards requiring mTLS/OAuth2 + RBAC. |
+| 8 | Should Spring Boot 3.x + Java 17 upgrade be in scope for generated stories? | Squad | **Answered** | P2 backlog — document the need but not sprint-ready. Spring Boot 2.7.15 is EOL and creates growing security scan risk from unpatched CVEs. |
+| 9 | Should Hystrix → Resilience4j migration be in scope for generated stories? | Squad | **Answered** | P2 backlog — bundle with Spring Boot upgrade. Hystrix is in maintenance mode but still receives security fixes, lower risk than SB EOL. |
+| 10 | Does the routing service handle PII/PI data? | Squad | **Answered** | PI only — postal codes (not full addresses) flow through for routing. No SSN/email/phone. However, Splunk log analysis confirms ZIP+4 codes (134 entries, 41 unique values in 60-min sample) are logged in verbatim request bodies via `ShipToZip` field. OrderId and hashed ShopperID also logged. Log masking stories needed for PI data in request body logging. |

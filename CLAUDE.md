@@ -112,10 +112,22 @@ Orchestrator agent fails with API error
 
 ## Architecture
 
-The system uses a **two-phase architecture**:
+The system uses a **two-phase architecture** with **Agent Teams**:
 
 1. **Phase 1 (Human-Driven):** Main Claude handles setup, project selection, and PRD refinement directly
-2. **Phase 2 (Orchestrator-Driven):** After PRD is ready, an orchestrator subagent coordinates the remaining pipeline by spawning specialized subagents
+2. **Phase 2 (Agent Team):** After PRD is ready, the main Claude session becomes **Team Lead** (via `TeamCreate`) and spawns the **orchestrator as a persistent teammate**, which then coordinates the remaining pipeline by spawning other teammates that persist and communicate with each other
+
+### Agent Teams vs Subagents
+
+This workshop uses **Agent Teams** (not subagents). The key difference:
+
+| Subagents | Agent Teams |
+|-----------|-------------|
+| Run, complete, and die | **Persist** throughout session |
+| Report back only to caller | **Message each other** directly |
+| Isolated context | Shared task list, direct communication |
+
+### Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -125,31 +137,61 @@ The system uses a **two-phase architecture**:
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PHASE 2: Orchestrator-Driven (Subagent)                             │
+│  PHASE 2: Agent Team (Main Claude = Team Lead)                       │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    Orchestrator Agent                        │    │
-│  │     Reads state · Spawns subagents · Reviews output          │    │
-│  │              Presents to human · Updates memory              │    │
-│  ├────────┬────────┬────────┬────────┬─────────────────────────┤    │
-│  │Planning│Require-│ Story  │ Code   │   Memory                │    │
-│  │ Agent  │ ments  │Genera- │Scanner │   Agent                 │    │
-│  │        │ Agent  │  tor   │        │                         │    │
-│  └────────┴────────┴────────┴────────┴─────────────────────────┘    │
+│  │          Team Lead: Main Claude Session                      │    │
+│  │     Creates team (TeamCreate) · Spawns orchestrator          │    │
+│  │     Relays human input/validation to orchestrator            │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                              │                                       │
+│                         SendMessage                                  │
+│                              │                                       │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              Orchestrator (persistent teammate)              │    │
+│  │     Spawns & coordinates all other teammates                 │    │
+│  │     Reviews outputs · Messages team-lead for validation      │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                              │                                       │
+│                    Task (team_name) + SendMessage                    │
+│                              │                                       │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Teammates (persist)                       │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │    │
+│  │  │ Memory   │←→│ Planning │←→│ Require- │←→│  Design  │    │    │
+│  │  │  Agent   │  │  Agent   │  │  ments   │  │  Agent   │    │    │
+│  │  │ (always) │  │          │  │  Agent   │  │          │    │    │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │    │
+│  │        ↑             ↑             ↑             ↑          │    │
+│  │        └─────────────┼─────────────┼─────────────┘          │    │
+│  │                  SendMessage                                 │    │
+│  │  ┌──────────┐  ┌──────────┐                                 │    │
+│  │  │  Story   │  │   Code   │                                 │    │
+│  │  │Generator │  │ Scanner  │                                 │    │
+│  │  └──────────┘  └──────────┘                                 │    │
+│  └─────────────────────────────────────────────────────────────┘    │
 │                                                                      │
-│  Human validates at each stage before orchestrator proceeds          │
+│  Human validates at each stage before team proceeds                  │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       Shared Memory Bank                             │
-│                  /memory-bank/ (persistent)                          │
+│           memory-agent writes · other teammates read                 │
 ├─────────────────────────────────────────────────────────────────────┤
 │                    MCP Server Integrations                           │
 │       Jira · Confluence · GitHub · ServiceNow · Slack                │
 │                    Aha! · Schema Repo                                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Starting Claude with Agent Teams
+
+This repository includes `.claude/settings.json` which automatically configures:
+- **Model:** Opus 4.6 (`us.anthropic.claude-opus-4-6-v1`)
+- **Agent Teams:** Enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`)
+
+When you start `claude` (or `jwn-claude`) from this repository, these settings are applied automatically.
 
 ## Memory Bank
 
@@ -463,12 +505,12 @@ These steps run directly in the main Claude session with heavy human interaction
 | 1 | `/refine-prd` | Refine PRD with guided questions (auto-starts after "ready") |
 | 2 | `/review-prd` | Walk through open questions, gather answers |
 
-### Phase 2: Orchestrator-Driven (Subagent)
+### Phase 2: Orchestrator-Driven (Agent Team)
 
-After `/review-prd` completes, **spawn the orchestrator agent** to coordinate the remaining pipeline:
+After `/review-prd` completes, the main session creates an Agent Team and spawns the **orchestrator as a persistent teammate** to coordinate the remaining pipeline:
 
-| Step | Stage | Subagent Spawned |
-|------|-------|------------------|
+| Step | Stage | Teammate Spawned by Orchestrator |
+|------|-------|----------------------------------|
 | 3 | Prototype UI (optional) | (direct or planning-agent) |
 | 4 | Execution Plan | planning-agent |
 | 5 | Requirements | requirements-agent |
@@ -476,38 +518,56 @@ After `/review-prd` completes, **spawn the orchestrator agent** to coordinate th
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
 
-The orchestrator:
+The orchestrator (persistent teammate):
 - Reads state from memory-bank and docs/
 - Determines what stage is next
-- Spawns the appropriate subagent using the Task tool
-- Reviews subagent output for quality
-- Presents to human for validation
-- Updates memory-bank
+- Spawns the appropriate teammate using the Task tool with `team_name`
+- Reviews teammate output for quality
+- Messages the team lead (main session) when human validation is needed
+- The team lead relays to the human and sends the response back
+- Updates memory-bank via memory-agent
 - Continues to next stage
 
-**Human is still in the loop** — the orchestrator presents outputs and waits for validation before proceeding.
+**Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
 
 ### Spawning the Orchestrator
 
-After `/review-prd` passes its readiness check, spawn the orchestrator:
+After `/review-prd` passes its readiness check, the main session becomes the **team lead** and spawns the orchestrator as a **persistent teammate**:
 
 ```
-Use the Task tool to spawn the orchestrator agent:
-- subagent_type: "orchestrator"
-- prompt: "The PRD for {project-name} has been refined and reviewed.
-          Assess the current state and coordinate the remaining pipeline
-          (prototype → plan → requirements → design → stories → validation).
-          The project PRD is at: projects/{project-name}/prd.md"
-- description: "Coordinate remaining pipeline"
+1. Create the team:
+   TeamCreate:
+     team_name: "workshop-pipeline"
+     description: "PRD to implementation pipeline for Nordstrom Supply Chain"
+   → Note the team_name in the result (it may differ from your input)
+
+2. Spawn the orchestrator as a persistent teammate:
+   Task tool:
+     subagent_type: "orchestrator"
+     team_name: "<team_name from TeamCreate result>"
+     name: "orchestrator"
+     prompt: "You are the orchestrator teammate for team <team_name>.
+              The PRD for {project-name} has been refined and reviewed.
+              Assess the current state and coordinate the remaining pipeline
+              (prototype → plan → requirements → design → stories → validation).
+              The project PRD is at: projects/{project-name}/prd.md
+              Use this team_name for all Task tool calls: <team_name>"
+     description: "Coordinate remaining pipeline"
 ```
 
-The orchestrator will take over from there, spawning subagents as needed and keeping the human in the loop.
+**Why the main session is team lead, not the orchestrator:**
+- `TeamCreate` designates its caller as team lead — only the main session can do this
+- The main session is the only process that directly interacts with the human
+- The orchestrator is spawned as a persistent teammate (via `Task` with `team_name`) so it stays alive across pipeline stages, receives messages, and can spawn other teammates
+- The orchestrator messages the team lead when it needs human validation; the team lead relays to the human
+
+The orchestrator will take over coordination from there, spawning teammates as needed and messaging the team lead to keep the human in the loop.
 
 ## Key Directories
 
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/agents/` | Subagent definitions (orchestrator, planning, requirements, stories, scanner, memory) |
+| `.claude/agents/` | Agent teammate definitions (orchestrator, planning, requirements, stories, scanner, memory) |
 | `.claude/commands/` | Slash command definitions (/plan, /requirements, /stories, etc.) |
 | `.claude/skills/` | Reusable knowledge (engineering standards, requirements writing) |
 | `memory-bank/` | Persistent shared context across all agents and sessions |

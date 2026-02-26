@@ -76,19 +76,23 @@ The system uses a **two-phase architecture**:
 └──────────────────────────────────────────────────────────┘
 ```
 
-### Phase 2: Orchestrator-Driven (After PRD is ready)
+### Phase 2: Agent Team (After PRD is ready)
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                 Orchestrator Agent                        │
-│    Reads state · Spawns subagents · Reviews output        │
-│         Presents to human · Updates memory                │
+│            Team Lead: Main Claude Session                  │
+│  Creates team (TeamCreate) · Spawns orchestrator           │
+│       Relays human input/validation to orchestrator        │
+├──────────────────────────────────────────────────────────┤
+│         Orchestrator (persistent teammate)                 │
+│  Spawns & coordinates all other teammates                  │
+│  Reviews outputs · Messages team-lead for validation       │
 ├──────────┬───────────┬──────────┬──────────┬────────────┤
 │ Planning │Requirements│  Story   │   Code   │  Memory    │
 │  Agent   │   Agent   │Generator │ Scanner  │  Agent     │
 │          │           │          │          │            │
-│ PRD →    │ PRD →     │ Reqs →   │ Code →   │ Reads/     │
-│ Phases & │ BR/TR/    │ Epics &  │ Analysis │ writes     │
-│ Milestones│ FR/NFR   │ Stories  │ & Gaps   │ context    │
+│ PRD →    │ PRD →     │ Reqs →   │ Code →   │ Central    │
+│ Phases & │ BR/TR/    │ Epics &  │ Analysis │ memory     │
+│ Milestones│ FR/NFR   │ Stories  │ & Gaps   │ authority  │
 ├──────────┴───────────┴──────────┴──────────┴────────────┤
 │                  Shared Memory Bank                       │
 │   projectbrief · productContext · techContext              │
@@ -100,23 +104,24 @@ The system uses a **two-phase architecture**:
 └──────────────────────────────────────────────────────────┘
 ```
 
-After `/refine-prd` and `/review-prd` complete, the **orchestrator agent** is spawned to coordinate the remaining pipeline. The orchestrator:
+After `/refine-prd` and `/review-prd` complete, the main Claude session creates an **Agent Team** and spawns the **orchestrator as a persistent teammate**. The orchestrator:
 - Reads state from memory-bank and docs/
-- Spawns specialized subagents (planning-agent, requirements-agent, etc.) using the Task tool
-- Reviews subagent output for quality
-- Presents to human for validation before proceeding
-- Updates memory-bank after each stage
+- Spawns specialized teammates (planning-agent, requirements-agent, etc.) using the Task tool with `team_name`
+- Reviews teammate output for quality
+- Messages the team lead when human validation is needed; the team lead relays to the human
+- Updates memory-bank via the memory-agent (the only agent that writes to memory-bank directly)
 
-Each subagent is a Claude Code subprocess with:
-- A defined purpose and set of tools
-- A detailed system prompt with output format specifications
-- Access to the shared memory bank for context
+Each teammate is a persistent Claude Code agent that:
+- Has a defined purpose and set of tools
+- Communicates with other teammates via `SendMessage`
+- Stays alive to receive follow-up instructions or feedback
+- Shares a task list with the team for coordination
 
 ---
 
 ## Memory Bank
 
-The memory bank (`memory-bank/`) is shared persistent context that all agents read from and write to:
+The memory bank (`memory-bank/`) is shared persistent context. The **memory-agent** is the only agent that writes to it — all other teammates send updates via `SendMessage`:
 
 | File | Purpose |
 |------|---------|
@@ -279,9 +284,9 @@ agentic-ai-workshop/
 ├── README.md                          # This file
 ├── .gitignore
 ├── .claude/
-│   ├── settings.json                  # Hooks configuration
-│   ├── agents/                        # Subagent definitions
-│   │   ├── orchestrator.md            # Pipeline coordinator (spawns other agents)
+│   ├── settings.json                  # Model, hooks, and Agent Teams configuration
+│   ├── agents/                        # Agent teammate definitions
+│   │   ├── orchestrator.md            # Pipeline coordinator (persistent teammate, spawns other teammates)
 │   │   ├── planning-agent.md          # PRD → execution plan
 │   │   ├── requirements-agent.md      # PRD → structured requirements
 │   │   ├── story-generator.md         # Requirements → user stories
