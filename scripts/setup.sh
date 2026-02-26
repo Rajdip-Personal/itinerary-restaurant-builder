@@ -134,7 +134,6 @@ if [ "$overall_success" = true ]; then
     echo "Next steps:"
     echo "  1. Restart Claude Code (scripts/start-workshop.sh) for changes to take effect"
     echo "  2. If using iTerm2 split-pane mode, ensure Python API is enabled"
-    echo "  3. Run 'jwn-claude' from the workshop directory to begin"
     echo ""
 else
     echo -e "${YELLOW}Setup completed with some issues.${NC}"
