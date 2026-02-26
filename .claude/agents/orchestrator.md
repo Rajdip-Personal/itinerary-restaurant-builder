@@ -229,6 +229,23 @@ SendMessage:
   summary: "New planning task assignment"
 ```
 
+#### Replacing a Failed or Stalled Teammate (MANDATORY)
+
+**Before spawning a replacement agent, ALWAYS shut down the old one first.** If an agent has stalled, failed, or is no longer responding:
+
+1. Send a `shutdown_request` to the existing agent via `SendMessage`
+2. Wait for the `shutdown_approved` response (or a brief timeout)
+3. Only THEN spawn the replacement
+
+**NEVER spawn a second agent of the same role while the first is still alive.** This creates duplicate work, wastes resources, conflicting file writes, and confuses the team lead.
+
+**Example — replacing a stalled prototype-builder:**
+```
+1. SendMessage(type: "shutdown_request", recipient: "prototype-builder", content: "Stalled. Shutting down.")
+2. [Wait for shutdown_approved]
+3. Task(subagent_type: "general-purpose", name: "prototype-builder", mode: "acceptEdits", ...)
+```
+
 #### Spawning a New Teammate (only when needed)
 
 When no existing teammate can handle the work, spawn a new one using the `Task` tool with `team_name` parameter. **Never use Bash to spawn agents.**
