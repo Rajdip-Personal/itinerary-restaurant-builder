@@ -668,12 +668,14 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
      subagent_type: "orchestrator"
      team_name: "<team_name from TeamCreate result>"
      name: "orchestrator"
+     mode: "bypassPermissions"
      prompt: "You are the orchestrator teammate for team <team_name>.
               The PRD for {project-name} has been refined and reviewed.
               Assess the current state and coordinate the remaining pipeline
               (prototype → plan → requirements → design → stories → validation).
               The project PRD is at: projects/{project-name}/prd.md
-              Use this team_name for all Task tool calls: <team_name>"
+              Use this team_name for all Task tool calls: <team_name>
+              IMPORTANT: Always use mode: bypassPermissions when spawning teammates."
      description: "Coordinate remaining pipeline"
 ```
 
