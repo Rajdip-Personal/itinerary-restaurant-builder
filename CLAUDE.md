@@ -362,6 +362,8 @@ The following environment variables **must** be set for MCP server authenticatio
 | `SERVICENOW_USERNAME` | ServiceNow username |
 | `SERVICENOW_PASSWORD` | ServiceNow password |
 | `GITLAB_TOKEN` | GitLab API authentication (git.jwn.app) |
+| `ARTIFACTORY_USER` | Artifactory username (required for ServiceNow MCP local setup) |
+| `ARTIFACTORY_API_KEY` | Artifactory API key (required for ServiceNow MCP local setup) |
 
 **How to set environment variables:**
 
@@ -374,6 +376,8 @@ export AHA_API_TOKEN="your-aha-token"
 export SERVICENOW_USERNAME="your-servicenow-username"
 export SERVICENOW_PASSWORD="your-servicenow-password"
 export GITLAB_TOKEN="your-gitlab-token"
+export ARTIFACTORY_USER="your-lanid"
+export ARTIFACTORY_API_KEY="your-artifactory-api-key"
 ```
 
 Then reload your shell: `source ~/.zshrc` (or restart your terminal).

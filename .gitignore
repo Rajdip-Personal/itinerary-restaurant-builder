@@ -7,3 +7,4 @@ memory-bank/
 prototype/node_modules/
 prototype/dist/
 .mcp.json
+.claude/repos/

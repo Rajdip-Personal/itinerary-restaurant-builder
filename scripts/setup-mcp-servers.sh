@@ -12,6 +12,11 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+REPOS_DIR="${PROJECT_DIR}/.claude/repos"
+
 echo "=== Claude Code MCP Server Setup ==="
 echo ""
 
@@ -106,6 +111,20 @@ if [ -z "$GITLAB_TOKEN" ]; then
     echo ""
 fi
 
+if [ -z "$ARTIFACTORY_USER" ] || { [ -z "$ARTIFACTORY_API_KEY" ] && [ -z "$ARTIFACTORY_PASSWORD" ]; }; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: Artifactory credentials not set (needed for ServiceNow MCP setup)."
+    echo ""
+    echo "  Set these in your shell profile (~/.zshrc):"
+    echo "    export ARTIFACTORY_USER={your-lanid}"
+    echo "    export ARTIFACTORY_API_KEY={your-artifactory-api-key}"
+    echo ""
+    echo "  To get your API key:"
+    echo "    1. Go to: https://artifactory.nordstrom.com/ui/admin/artifactory/user_profile"
+    echo "    2. Generate or copy your API key"
+    echo ""
+fi
+
 if [ $missing_count -gt 0 ]; then
     echo "----------------------------------------"
     echo "The MCP servers will be configured with variable references,"
@@ -152,18 +171,28 @@ echo "Installing ServiceNow MCP server (project scope)..."
 # Uses CI pipeline service account credentials
 # Note: Write operations (create incident/change) require OAuth, not supported with basic auth
 # Requires: Python 3.12+, uv package manager, VPN (Zscaler)
-SERVICENOW_MCP_DIR="${HOME}/.claude-mcp/servicenow-mcp"
+# Use native TLS so uv trusts the macOS keychain (which has the Zscaler corporate CA cert).
+# Without this, uv uses OpenSSL which doesn't trust the corporate SSL inspection proxy.
+export UV_NATIVE_TLS=true
+# Map Nordstrom Artifactory credentials to uv's expected env var format.
+# ServiceNow MCP's pyproject.toml uses Artifactory as default PyPI index with authenticate=always.
+if [ -z "$UV_INDEX_ARTIFACTORY_USERNAME" ] && [ -n "$ARTIFACTORY_USER" ]; then
+    export UV_INDEX_ARTIFACTORY_USERNAME="${ARTIFACTORY_USER}"
+    export UV_INDEX_ARTIFACTORY_PASSWORD="${ARTIFACTORY_API_KEY:-$ARTIFACTORY_PASSWORD}"
+    echo "  Mapped ARTIFACTORY_USER/ARTIFACTORY_API_KEY to UV_INDEX_ARTIFACTORY_USERNAME/PASSWORD"
+fi
+SERVICENOW_MCP_DIR="${REPOS_DIR}/servicenow-mcp"
 if [ -d "$SERVICENOW_MCP_DIR" ]; then
     echo "  ⚠ ServiceNow MCP already cloned at $SERVICENOW_MCP_DIR"
-    echo "    To update, run: cd $SERVICENOW_MCP_DIR && git pull && source .venv/bin/activate && uv sync --all-groups"
+    echo "    To update, run: cd $SERVICENOW_MCP_DIR && git pull && source .venv/bin/activate && UV_NATIVE_TLS=true uv sync --all-groups"
 else
-    mkdir -p "${HOME}/.claude-mcp"
+    mkdir -p "${REPOS_DIR}"
     git clone git@github.com:Nordstrom-Internal/APP10014-servicenow-mcp.git "$SERVICENOW_MCP_DIR"
     cd "$SERVICENOW_MCP_DIR"
     uv venv
     source .venv/bin/activate
     uv sync --all-groups
-    uv pip install --native-tls -e .
+    uv pip install -e .
     cd - > /dev/null
 fi
 
@@ -181,13 +210,13 @@ fi
 
 echo ""
 echo "Installing Nordstrom Schema Repo MCP server (project scope)..."
-SCHEMA_REPO_DIR="${HOME}/.claude-mcp/nordstrom-schema-repo-mcp"
+SCHEMA_REPO_DIR="${REPOS_DIR}/nordstrom-schema-repo-mcp"
 SCHEMA_DATA_DIR="${HOME}/.local/share/nordstrom-schema-repo"
 if [ -d "$SCHEMA_REPO_DIR" ]; then
     echo "  ⚠ Schema repo already cloned at $SCHEMA_REPO_DIR"
     echo "    To update, run: cd $SCHEMA_REPO_DIR && git pull && ./install-claude-code.sh"
 else
-    mkdir -p "${HOME}/.claude-mcp"
+    mkdir -p "${REPOS_DIR}"
     git clone git@github.com:Nordstrom-Sandbox/nordstrom-schema-repo-mcp.git "$SCHEMA_REPO_DIR"
     cd "$SCHEMA_REPO_DIR"
     if ./install-claude-code.sh; then
@@ -209,12 +238,12 @@ fi
 
 echo ""
 echo "Installing Aha! MCP server (project scope)..."
-AHA_MCP_DIR="${HOME}/.claude-mcp/aha-mcp"
+AHA_MCP_DIR="${REPOS_DIR}/aha-mcp"
 if [ -d "$AHA_MCP_DIR" ]; then
     echo "  ⚠ Aha MCP already cloned at $AHA_MCP_DIR"
     echo "    To update, run: cd $AHA_MCP_DIR && git pull && npm run build"
 else
-    mkdir -p "${HOME}/.claude-mcp"
+    mkdir -p "${REPOS_DIR}"
     git clone git@github.com:aha-develop/aha-mcp.git "$AHA_MCP_DIR"
     cd "$AHA_MCP_DIR"
     npm install
@@ -248,10 +277,6 @@ fi
 echo ""
 echo "=== Installing Claude Code Skills ==="
 echo ""
-
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "Installing GitLab API Access skill..."
 GITLAB_SKILL_SRC="${PROJECT_DIR}/.claude/skills/gitlab-api-access.md"
