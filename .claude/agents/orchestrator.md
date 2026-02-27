@@ -402,27 +402,35 @@ Please ask the human to validate. Options:
 
 **After sending this message, STOP and WAIT. Do NOT spawn the next teammate until you receive explicit approval from the team lead.**
 
-### Step 7: On Approval — Spawn Next Stage + Update Memory IN PARALLEL (MANDATORY)
+### Step 7: On Approval — Act Fast, Minimize Turns (MANDATORY)
 
-**Speed matters.** When the team lead sends you an approval message (e.g., "Human approved requirements, proceed to design"), you MUST do ALL of the following **in a single turn** — not sequentially across multiple turns:
+**Speed matters.** When the team lead sends you an approval message (e.g., "Human approved requirements, proceed to design"), follow this order to minimize latency:
 
-1. **Spawn the next stage's teammate(s)** — this is the highest priority action
-2. **Send memory update to memory-agent** — do this in the SAME turn as the spawn
-3. **Commit and push** — run git commands in the SAME turn
-4. **Update task list** — mark current task complete, update next task
+**Turn 1 (immediate — no waiting):**
+1. **Spawn the next stage's teammate(s)** — highest priority, do this FIRST
+2. **Send memory update to memory-agent** — in the SAME turn as the spawn
+3. **Update task list** — mark current task complete, update next task
 
-**Do NOT wait for memory-agent confirmation before spawning.** Memory updates are fire-and-forget — the memory-agent will process them asynchronously. The next stage's agents should be spawning immediately when approval arrives.
+**Turn 2 (after memory-agent confirms):**
+4. **Commit and push** — MUST wait for memory-agent to finish writing files so that `memory-bank/` changes are included in the commit
+
+**Why this order:**
+- Spawning is instant and unblocks the next stage immediately
+- Memory update fires in parallel with the spawn — no waiting
+- But commit+push must capture the memory-bank file changes, so it waits for memory-agent confirmation
+- This gives you 2 turns max instead of 3+
 
 **WRONG (sequential — causes latency):**
 ```
 Turn 1: Receive approval → send memory update → go idle
 Turn 2: Memory confirms → spawn next agents → go idle
-Turn 3: Commit and push
+Turn 3: Commit and push → go idle
 ```
 
-**RIGHT (parallel — fast):**
+**RIGHT (fast):**
 ```
-Turn 1: Receive approval → spawn next agents + send memory update + commit/push — ALL IN ONE TURN
+Turn 1: Receive approval → spawn next agents + send memory update (parallel)
+Turn 2: Memory confirms → commit+push (captures memory-bank changes)
 ```
 
 Memory update format (send alongside the spawn, not before it):
