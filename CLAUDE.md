@@ -604,6 +604,35 @@ Track pipeline state in `memory-bank/progress.md`:
 - When each step was last completed
 - Whether downstream steps need regeneration after upstream changes
 
+### Commit and Push After Each Step (MANDATORY)
+
+**After every pipeline step completes, commit all changes and push the team branch to GitHub.** This preserves work and lets team members review artifacts.
+
+**When to commit+push:**
+- After `/refine-prd` completes (readiness check passes)
+- After `/review-prd` completes (all questions addressed)
+- After each orchestrator stage completes (plan, requirements, design, stories, validation)
+- After implementation milestones (sprint-agent manages its own pushes to the implementation repo)
+
+**How:**
+1. Stage all changed files: `git add projects/ memory-bank/ docs/` (only workshop artifacts — never `.env` or credentials)
+2. Commit with a descriptive message: `"Complete /refine-prd for {project-name}"` or `"Complete /review-prd — all open questions resolved"`
+3. Push the team branch: `git push origin team-{name}`
+4. If the push fails because the remote branch doesn't exist yet: `git push -u origin team-{name}`
+
+**What gets committed:**
+- `projects/{name}/prd.md` — PRD updates
+- `memory-bank/` — All memory bank files
+- `docs/` — Generated plans, requirements, designs, stories, reports
+- Any other workshop artifacts created during the step
+
+**What NEVER gets committed:**
+- `.env` files, credentials, secrets, API tokens
+- `node_modules/`, `__pycache__/`, `.venv/`, or other dependency directories
+- Large binary files
+
+**The orchestrator and its teammates should also commit+push** after each stage they complete. Include this instruction when spawning the orchestrator.
+
 ## Slash Commands
 
 These commands trigger agent pipelines. **Users don't need to memorize these** — the guided workflow presents them automatically via navigation prompts.
