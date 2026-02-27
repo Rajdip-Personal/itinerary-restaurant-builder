@@ -183,9 +183,43 @@ This prevents Jira from auto-linking to unrelated projects.
 - Correct: `custom_fields: {"Story Points": 3}`
 - Wrong: `custom_fields: "{\"Story Points\": 3}"` (causes Pydantic validation error)
 
-## Step 5: Write Mapping File
+## Step 5: Verify All Stories Created (MANDATORY)
 
-After creating all epics and stories, write `docs/jira-mapping.md`:
+After creating all epics and stories, **verify that every expected story exists in Jira** before writing the mapping file.
+
+### 5a. Query Jira for all project stories
+
+```
+mcp__jira-mcp__search_issues(
+  jql: "project = {KEY} AND issuetype = Story ORDER BY created ASC",
+  fields: "summary,status,priority",
+  max_results: 100
+)
+```
+
+### 5b. Compare against expected stories
+
+1. Count the stories returned by Jira
+2. Compare against the total number of stories you attempted to create
+3. For each expected workshop story ID (e.g., STORY-P1-001), check that a matching summary exists in the Jira results
+
+### 5c. Handle missing stories
+
+If any stories are missing:
+1. **Identify which stories are missing** — compare the expected list against the Jira results by matching on the workshop story ID in the summary
+2. **Attempt to re-create** each missing story using the same parameters from Step 4
+3. **Re-verify** — query Jira again to confirm the re-created stories now exist
+4. If re-creation also fails, record the failures in the Errors table of the mapping file
+
+### 5d. Report verification result
+
+Include the verification result in your completion message to the orchestrator:
+- `Verified: {N}/{total} stories confirmed in Jira`
+- If any are still missing after retry: `Missing after retry: {list of workshop IDs}`
+
+## Step 6: Write Mapping File
+
+After verifying all epics and stories, write `docs/jira-mapping.md`:
 
 ```markdown
 # Jira Issue Mapping
@@ -214,7 +248,7 @@ After creating all epics and stories, write `docs/jira-mapping.md`:
 | (none if all succeeded) | | |
 ```
 
-## Step 6: Report Completion
+## Step 7: Report Completion
 
 1. Message orchestrator with summary:
    ```
