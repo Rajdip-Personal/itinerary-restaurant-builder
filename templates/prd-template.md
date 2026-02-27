@@ -113,10 +113,6 @@
 - [Expected throughput]
 - [Expected concurrent users]
 
-### Scalability
-- [Growth expectations]
-- [Scaling strategy]
-
 ### Observability
 - [Logging requirements]
 - [Monitoring requirements]
@@ -138,9 +134,9 @@
 - **Infrastructure:** [Technology]
 
 ### Infrastructure
-- [Deployment target (standard K8s)]
-- [CI/CD platform (GitHub Actions)]
-- [Environment strategy]
+- **Local only** — installed and run on the developer's machine
+- No server deployment, no containers, no CI/CD pipeline
+- Installation and run instructions for local development
 
 ---
 
