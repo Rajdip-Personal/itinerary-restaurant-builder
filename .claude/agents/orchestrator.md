@@ -565,13 +565,15 @@ Task:
 
 The sprint-agent takes over implementation coordination from here. It will:
 1. Build an ordered implementation queue from stories and execution plan
-2. Present the queue to you (for relay to team lead → human)
-3. Bootstrap the code repo in a sibling directory
-4. Present each story to the human for approval before implementation
-5. **Send you spawn requests** for coding agents — you spawn them
-6. Track progress and report back
+2. Present the queue to the **team-lead directly** for human approval
+3. Ask the team-lead for the repo name, then request bootstrap
+4. After bootstrap, ask the team-lead to create the GitHub repo and push
+5. Present each story to the **team-lead directly** for human approval
+6. **Send you spawn requests** for coding agents — you spawn them
+7. Merge each coding agent's feature branch and push to GitHub after each completion
+8. Track progress and report back
 
-**Your role during implementation: spawn coding agents on behalf of the sprint-agent.**
+**Your role during implementation: spawn coding agents on behalf of the sprint-agent.** The sprint-agent handles all human-facing communication directly with the team-lead. You only handle spawn requests.
 
 The sprint-agent does NOT have the Task tool — it cannot spawn agents itself. Instead, it sends you structured `SPAWN REQUEST` messages. When you receive one:
 

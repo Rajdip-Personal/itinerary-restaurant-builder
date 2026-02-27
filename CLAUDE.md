@@ -663,8 +663,8 @@ The orchestrator (persistent teammate):
 For the Jira sync stage (optional), the orchestrator spawns the **jira-agent**, which creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent.
 
 For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
-- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval, spawns coding agents. If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
-- **Coding Agent(s)** — each takes one story, plans files, implements code, writes tests, builds, commits. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
+- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
+- **Coding Agent(s)** — each takes one story, creates a `feature/{story-id}` branch, implements code, writes tests, builds, and commits on the feature branch. Does NOT merge to main or push — the sprint-agent handles that. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
 
 **Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
 
@@ -716,10 +716,13 @@ The orchestrator will take over coordination from there, spawning teammates as n
 | Message teammates with task assignments | **Orchestrator only** |
 | Message the orchestrator with human feedback/approvals | Team lead |
 | Relay orchestrator output to the human | Team lead |
+| Message team-lead with human approval requests (implementation phase) | **Sprint-agent** |
+| Create GitHub repo via MCP (when sprint-agent requests it) | **Team lead** |
+| Relay sprint-agent output to the human (implementation phase) | Team lead |
 
 **If a teammate needs to be respawned** (e.g., to fix permissions), the team lead MUST message the orchestrator and ask it to handle the respawn. The team lead must NOT spawn teammates directly — doing so creates naming conflicts, breaks the orchestrator's coordination, and causes confusion about who manages whom.
 
-**The team lead's only teammate communication is with the orchestrator.** All other coordination flows through the orchestrator.
+**The team lead communicates with the orchestrator and the sprint-agent.** The orchestrator handles the pipeline stages (plan → requirements → design → stories → validation). The sprint-agent handles the implementation phase and messages the team lead directly for human approvals, repo creation, and progress updates. All other teammates coordinate through the orchestrator.
 
 **Do NOT pre-fill decisions that agents are supposed to ask the human.** When relaying approval messages to teammates, only relay what the human actually said. Do not add details the human hasn't confirmed (e.g., repo names, file paths, technology choices). If an agent has a dedicated gate to ask the human for input, let that gate run — do not bypass it by providing the answer in advance.
 
@@ -735,6 +738,17 @@ The orchestrator will take over coordination from there, spawning teammates as n
 | `docs/` | Generated outputs (plans, requirements, stories, designs, reports) |
 | `prototype/` | UI prototype (Vite + React app) — standard location for `/prototype-ui` output |
 | `projects/` | Project-specific PRDs and artifacts |
+
+## Workshop Deployment Target: Local Only
+
+**All applications built in this workshop run locally on the developer's machine.** This means:
+
+- **PRDs must NOT include** CI/CD pipelines, Kubernetes deployment, container builds, Helm charts, or server-side infrastructure
+- **PRDs must NOT include** Scalability sections (no horizontal scaling, no HPA, no multi-region)
+- **NFRs should focus on:** security (auth, PII handling), performance (local response times), observability (logging, error messages), and code quality (tests, linting)
+- **Infrastructure section** should say "Local only" — installation via package manager (pip, npm, etc.), no cloud deployment
+
+The Nordstrom Engineering Standards below are reference material for production readiness. During the workshop, only the standards applicable to local development apply (security, logging, code quality). Deployment and monitoring standards are out of scope.
 
 ## Nordstrom Engineering Standards
 

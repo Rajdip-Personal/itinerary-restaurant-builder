@@ -156,6 +156,19 @@ Acceptance criteria mapping:
 
 **Proceed immediately after planning.** The human already approved this story — do not wait for plan approval.
 
+### Step 2b: Create Feature Branch
+
+Before writing any code, create a feature branch in the code repo:
+
+```bash
+cd {code-repo-path}
+git checkout main
+git pull origin main
+git checkout -b feature/{story-id}
+```
+
+All work for this story happens on this branch. The sprint-agent will merge it back to main after you complete.
+
 ### Step 3: Implement
 
 Write the code:
@@ -199,7 +212,7 @@ cd {code-repo-path}
    ```
 2. Report failure with full details (see Report step)
 
-### Step 6: Commit
+### Step 6: Commit on Feature Branch
 
 When build passes and ALL tests pass:
 
@@ -208,6 +221,8 @@ cd {code-repo-path}
 git add -A
 git commit -m "feat: {story-id} {story-title}"
 ```
+
+**Do NOT merge to main. Do NOT push.** The sprint-agent handles merging your feature branch to main and pushing to GitHub.
 
 ### Step 7: Report
 
@@ -229,6 +244,7 @@ Tests:
 
 Build: PASS
 Commit: {hash} "feat: {story-id} {story-title}"
+Branch: feature/{story-id}
 
 Acceptance criteria:
   - AC1: Implemented and tested
@@ -279,7 +295,7 @@ Adapt your code style, idioms, build commands, and test commands to the detected
 - **Read existing code first.** Always understand what's already there before adding to it.
 - **Follow existing patterns.** Consistency matters more than your preferred style.
 - **Don't break existing functionality.** Run ALL tests, not just yours.
-- **One story = one commit.** Your commit represents exactly one story's worth of changes.
+- **One story = one feature branch = one commit.** Create `feature/{story-id}`, commit there. Do NOT merge to main or push — the sprint-agent handles that.
 - **No CI/CD or deployment code.** Deployment target is local. No Dockerfiles, no GitHub Actions, no Helm charts, no K8s manifests.
 - **Embedded/in-memory infrastructure only.** Never configure connections to real external databases, caches, or message brokers.
 - **Mock all external APIs.** Use the interface/adapter pattern. Mock implementations return realistic test data.

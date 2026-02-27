@@ -63,8 +63,8 @@ Review the PRD and report on each section:
 | Scope (In/Out/Future) | Complete / Partial / Missing | Is the boundary clear? |
 | User Stories (High Level) | Complete / Partial / Missing | All personas covered? |
 | Functional Requirements | Complete / Partial / Missing | Workflows defined? Business rules clear? |
-| Non-Functional Requirements | Complete / Partial / Missing | Security, performance, observability? |
-| Technical Constraints | Complete / Partial / Missing | Integrations identified? Tech stack chosen? |
+| Non-Functional Requirements | Complete / Partial / Missing | Security, performance, observability? (No CI/CD or deployment NFRs — apps are local-only) |
+| Technical Constraints | Complete / Partial / Missing | Integrations identified? Tech stack chosen? Infrastructure should say "Local only" |
 | Dependencies & Risks | Complete / Partial / Missing | Hard dependencies flagged? |
 | Milestones | Complete / Partial / Missing | Deliverable increments defined? |
 | Open Questions | Complete / Partial / Missing | Unknowns captured? (NOT answered — just captured) |
@@ -84,7 +84,8 @@ The Open Questions in Section 10 (e.g., "Which repo will we analyze?", "Do we ha
 - Is a persona missing? → Ask who else uses or is affected by this system
 - Are integrations listed but not explained? → Ask how they connect
 - Are requirements hand-wavy? → Ask for specific, testable criteria
-- Are NFRs missing? → Ask about security, performance, observability needs
+- Are NFRs missing? → Ask about security, performance, observability needs (NOT CI/CD or deployment — apps are local-only)
+- Does the Infrastructure section mention CI/CD, K8s, or server deployment? → Remove it — all workshop apps run locally
 - Are risks not identified? → Ask what could go wrong
 
 **If the assessment in Step 3 shows all sections are "Complete", then Step 4 may be brief or skipped.**
