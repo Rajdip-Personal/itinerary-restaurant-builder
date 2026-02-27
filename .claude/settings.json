@@ -5,7 +5,14 @@
       "Edit(*)",
       "Write(*)",
       "Read(*)",
-      "Bash(*)"
+      "Bash(*)",
+      "mcp__jira-mcp__*",
+      "mcp__confluence-mcp__*",
+      "mcp__github__*",
+      "mcp__nordstrom-slack__*",
+      "mcp__nordstrom-schema-repo__*",
+      "mcp__aha-mcp__*",
+      "mcp__servicenow__*"
     ]
   },
   "hooks": {
