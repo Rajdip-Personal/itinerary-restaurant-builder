@@ -56,13 +56,58 @@ You receive from the orchestrator:
 - Workshop repo path (where PRD, stories, design docs live)
 - Team name (for reference)
 
-## Jira Integration (Conditional)
+## Jira Integration (MANDATORY when mapping exists)
 
-If `docs/jira-mapping.md` exists in the workshop repo, Jira integration is active:
+If `docs/jira-mapping.md` exists in the workshop repo, Jira status updates are **mandatory** for every story.
 
-1. **Load the mapping** — Parse the Story Mapping table to build a lookup: Workshop Story ID → Jira Issue Key
-2. **Send status updates** — For every story status change (IN_PROGRESS, DONE, FAILED, SKIPPED), send a `JIRA UPDATE` message to `jira-agent`
-3. **Include Jira keys** — When presenting stories to the human, include the Jira issue key
+### Setup
+1. **Load the mapping on startup** — Parse the Story Mapping table to build a lookup: Workshop Story ID → Jira Issue Key
+2. **Keep the mapping in memory** — You will reference it for every story transition
+
+### MANDATORY Jira Update Protocol
+
+You MUST send a Jira update request to the **team-lead** at exactly TWO points for every story:
+
+**Point 1 — When a coding agent STARTS a story (BEFORE implementation begins):**
+```
+JIRA UPDATE REQUEST:
+- Action: transition
+- Jira Key: {jira-key-from-mapping}
+- Status: "In Progress"
+- Story: {workshop-story-id} — {story-title}
+```
+
+**Point 2 — When a story is COMPLETE (AFTER feature branch merged to main and pushed):**
+```
+JIRA UPDATE REQUEST:
+- Action: transition
+- Jira Key: {jira-key-from-mapping}
+- Status: "Done"
+- Story: {workshop-story-id} — {story-title}
+- Commit: {commit-hash}
+```
+
+**On FAILURE or SKIP:**
+```
+JIRA UPDATE REQUEST:
+- Action: transition
+- Jira Key: {jira-key-from-mapping}
+- Status: "Won't Do"
+- Story: {workshop-story-id} — {story-title}
+- Reason: {failure-details or "skipped by human"}
+```
+
+### Rules
+- **NEVER skip a Jira update** — every story gets both "In Progress" and "Done" (or "Won't Do")
+- **Send "In Progress" BEFORE requesting the coding agent spawn** from orchestrator
+- **Send "Done" AFTER the merge and push succeed**
+- **If 2 stories start in parallel, send 2 separate "In Progress" requests**
+- **Route ALL Jira updates to team-lead** (not jira-agent) — team-lead has MCP access to execute transitions
+- **Include the Jira key** when presenting stories to the human
+
+### Where to send
+- **Recipient: team-lead** — the team-lead executes Jira MCP calls on your behalf
+- If a `jira-agent` teammate exists, send to `jira-agent` instead (it will handle transitions directly)
 
 If `docs/jira-mapping.md` does NOT exist, skip all Jira-related notifications. Do not fail or warn — Jira sync is optional.
 
@@ -309,17 +354,18 @@ SendMessage:
 
 Wait for the orchestrator to confirm the agent was spawned, then wait for the coding agent to message you with results.
 
-**Jira notification (if mapping exists):** After the orchestrator confirms the coding agent is spawned, notify jira-agent:
+**Jira notification (MANDATORY if mapping exists):** BEFORE requesting the coding agent spawn, send the "In Progress" Jira update to team-lead:
 ```
 SendMessage:
   type: "message"
-  recipient: "jira-agent"
+  recipient: "team-lead"
   content: |
-    JIRA UPDATE:
-    - Story: {workshop-story-id}
-    - Action: IN_PROGRESS
-    - Coding Agent: coding-agent-{story-id}
-  summary: "Jira status: {story-id} in progress"
+    JIRA UPDATE REQUEST:
+    - Action: transition
+    - Jira Key: {jira-key-from-mapping}
+    - Status: "In Progress"
+    - Story: {workshop-story-id} — {story-title}
+  summary: "Jira status: {jira-key} In Progress"
 ```
 
 ### 4c: Merge, Commit, and Push (MANDATORY after each coding agent)
@@ -352,34 +398,38 @@ SendMessage:
 
 6. **Send memory update** to memory-agent.
 
-7. **Jira notification (if mapping exists):**
+7. **Jira notification (MANDATORY if mapping exists):**
    ```
    SendMessage:
      type: "message"
-     recipient: "jira-agent"
+     recipient: "team-lead"
      content: |
-       JIRA UPDATE:
-       - Story: {workshop-story-id}
-       - Action: DONE
+       JIRA UPDATE REQUEST:
+       - Action: transition
+       - Jira Key: {jira-key-from-mapping}
+       - Status: "Done"
+       - Story: {workshop-story-id} — {story-title}
        - Commit: {commit-hash}
-     summary: "Jira status: {story-id} done"
+     summary: "Jira status: {jira-key} Done"
    ```
 
 8. **Continue** to next story (go to 4a).
 
 **On failure (build or tests won't pass after retries):**
 - Record failure details
-- **Jira notification (if mapping exists):**
+- **Jira notification (MANDATORY if mapping exists):**
   ```
   SendMessage:
     type: "message"
-    recipient: "jira-agent"
+    recipient: "team-lead"
     content: |
-      JIRA UPDATE:
-      - Story: {workshop-story-id}
-      - Action: FAILED
-      - Error: {error-details}
-    summary: "Jira status: {story-id} failed"
+      JIRA UPDATE REQUEST:
+      - Action: transition
+      - Jira Key: {jira-key-from-mapping}
+      - Status: "Won't Do"
+      - Story: {workshop-story-id} — {story-title}
+      - Reason: {error-details}
+    summary: "Jira status: {jira-key} Failed"
   ```
 - Send to team-lead for human decision:
   ```
@@ -396,16 +446,19 @@ SendMessage:
 
 **On skip (human chose to skip):**
 - Record skip in progress tracking
-- **Jira notification (if mapping exists):**
+- **Jira notification (MANDATORY if mapping exists):**
   ```
   SendMessage:
     type: "message"
-    recipient: "jira-agent"
+    recipient: "team-lead"
     content: |
-      JIRA UPDATE:
-      - Story: {workshop-story-id}
-      - Action: SKIPPED
-    summary: "Jira status: {story-id} skipped"
+      JIRA UPDATE REQUEST:
+      - Action: transition
+      - Jira Key: {jira-key-from-mapping}
+      - Status: "Won't Do"
+      - Story: {workshop-story-id} — {story-title}
+      - Reason: "Skipped by human"
+    summary: "Jira status: {jira-key} Skipped"
   ```
 - Continue to next story (go to 4a)
 
@@ -508,7 +561,7 @@ When implementation ends (all stories done, human stops, or session ends):
 - **Maximum 2 concurrent coding agents.** Workshop machines have limited resources.
 - **Reuse coding agents when possible.** If a coding agent from a previous story is idle, send it a new task via SendMessage instead of requesting a new spawn.
 - **Bootstrap is not optional.** The code repo must be scaffolded before any story implementation.
-- **Notify jira-agent on every status change** if `docs/jira-mapping.md` exists. Best-effort — do not block on confirmation.
+- **Send Jira update to team-lead on EVERY status change** if `docs/jira-mapping.md` exists. "In Progress" before coding starts, "Done" after merge+push. This is MANDATORY, not best-effort. Use the exact format from the Jira Integration section.
 - **GitHub repo creation is not optional.** After bootstrap, the repo MUST be created on GitHub and pushed before any story implementation.
 - **Commit and push after EVERY coding agent.** Each coding agent's feature branch must be merged to main and pushed to GitHub individually. Never batch commits from multiple agents. Never skip the push.
 - **Coding agents work on feature branches.** Each coding agent creates `feature/{story-id}` in the code repo. You merge it back to main after they complete.
