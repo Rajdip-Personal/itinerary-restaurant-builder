@@ -240,10 +240,40 @@ Every design element must trace to a requirement.
 ## Design Principles
 
 1. **Trace everything** — Every design element maps to an FR or NFR. No orphan designs.
-2. **Nordstrom standards first** — Default to standard patterns (K8s, GitHub Actions, structured logging).
+2. **Nordstrom standards first** — Default to standard patterns (structured logging, health endpoints, RBAC).
 3. **Security by design** — Auth, PII protection, secrets management baked in from NFRs.
 4. **Observable by default** — Logging, metrics, alerting defined upfront from NFRs.
 5. **Simple over clever** — Design for the requirements, not hypotheticals.
+
+## Local Deployment Target
+
+**Before generating the design**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYMENT TARGET: local`):
+
+**SKIP these design sections:**
+- Deployment Architecture (K8s, Helm, namespace, HPA, PDB)
+- CI/CD Pipeline design (GitHub Actions stages)
+- Container build and security scanning
+- Blue-green / canary deployment strategy
+
+**REPLACE with:**
+- **Local Development Setup** — How to run the application locally:
+  - Embedded/in-memory database (H2, SQLite) instead of PostgreSQL/MySQL
+  - In-memory cache instead of Redis
+  - In-memory event bus instead of Kafka
+  - Mock implementations for external APIs (via interface/adapter pattern)
+  - Local configuration and environment variables
+  - Build and run commands for the tech stack
+
+**KEEP these design sections (they work locally):**
+- System Context and Component Architecture
+- API Specifications (all endpoints)
+- Data Model (same schema, embedded DB)
+- Security Architecture (auth/RBAC — stubbed locally but designed for production)
+- Observability Design (structured logging, health endpoints)
+- Configuration Management
+- All Sequence Diagrams and Component Specifications
 
 ## Parallel Design Pattern (PREFERRED for large documents)
 

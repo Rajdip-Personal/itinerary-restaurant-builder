@@ -130,16 +130,25 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 │   → human        → human        → human        → human                  │
 │   validates      validates      validates      validates                 │
 │                                                                          │
-│  ┌──────────┐   ┌──────────┐                                            │
-│  │5.Stories │──▶│6.Validate│                                            │
-│  │Generator │   │ Coverage │                                            │
-│  └──────────┘   └──────────┘                                            │
-│       │              │                                                   │
-│       ▼              ▼                                                   │
-│   Orchestrator   Orchestrator                                            │
-│   → team-lead    → team-lead                                             │
-│   → human        → human                                                 │
-│   validates      validates                                               │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐                            │
+│  │5.Stories │──▶│6.Validate│──▶│7.Implement│                            │
+│  │Generator │   │ Coverage │   │Sprint-Agt │                            │
+│  └──────────┘   └──────────┘   └──────────┘                            │
+│       │              │              │                                    │
+│       ▼              ▼              ▼                                    │
+│   Orchestrator   Orchestrator   Orchestrator                            │
+│   → team-lead    → team-lead    → team-lead                             │
+│   → human        → human        → human                                 │
+│   validates      validates      approves start                          │
+│                                     │                                   │
+│                                ┌────┴────┐                              │
+│                                │Sprint   │                              │
+│                                │  Agent  │                              │
+│                                └────┬────┘                              │
+│                           ┌────────┼────────┐                           │
+│                           ▼        ▼        ▼                           │
+│                       Coding   Coding   Coding                          │
+│                       Agent 1  Agent 2  Agent N                         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -151,9 +160,20 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 
 ## Orchestration Protocol
 
-### Step 0: Spawn Memory Agent (FIRST)
+### Step 0: Spawn Memory Agent (MANDATORY — ALWAYS FIRST)
 
-**Before doing anything else**, spawn memory-agent as a teammate. The team already exists (the main session created it). Use the team name provided in your spawn prompt.
+**THIS IS NON-NEGOTIABLE. Before doing ANYTHING else — before reading state, before spawning any other teammate, before responding to any task instruction — you MUST ensure a memory-agent is running.**
+
+This applies every time you are spawned or wake up, regardless of what your spawn prompt asks you to do. Even if the spawn prompt says "spawn the sprint-agent" or "start implementation" — you spawn the memory-agent FIRST.
+
+**Check if memory-agent already exists:**
+1. Read the team config at `~/.claude/teams/<team_name>/config.json`
+2. Look for a member with name `memory-agent`
+3. If found, send it a health-check message: `SendMessage(recipient: "memory-agent", content: "Health check — are you still active? Reply with current status.")`
+4. If it responds → memory-agent is alive, proceed to Step 1
+5. If no response or no memory-agent member exists → spawn a new one (see below)
+
+**If memory-agent needs to be spawned (or respawned):**
 
 **CRITICAL — Tool Usage Rules:**
 - Use the `Task` **tool** with `team_name` parameter to spawn teammates. Do NOT run `claude --team` via Bash — the `--team` flag does not exist.
@@ -175,6 +195,8 @@ Spawn memory-agent as first teammate using Task tool:
 ```
 
 The memory-agent persists throughout the pipeline. All other teammates use `SendMessage` to communicate with it for memory operations.
+
+**Only after confirming memory-agent is running, proceed to Step 1.**
 
 ### Step 1: Read Current State
 
@@ -202,7 +224,13 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before stories | (direct or Task) |
 | Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
-| All artifacts exist | Message team-lead with summary, ask for iteration | — |
+| Validation done, human approves implementation | Start implementation | sprint-agent |
+| All artifacts exist (including implementation) | Message team-lead with summary | — |
+
+**UI Prototype Rule (MANDATORY):**
+To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
+
+The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
 
 **UI Prototype Rule (MANDATORY):**
 To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
@@ -470,6 +498,76 @@ Before moving to the next stage, verify:
 | Requirements Quality | Requirements → Design | All categories covered, mandatory NFRs included, all testable |
 | Design Quality | Design → Stories | Architecture defined, APIs specified, security addressed |
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
+| Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
+
+## Implementation Phase
+
+After validation is complete and the human approves starting implementation, spawn the sprint-agent:
+
+```
+Task:
+  subagent_type: "sprint-agent"
+  team_name: "<team_name>"
+  name: "sprint-agent"
+  mode: "bypassPermissions"
+  prompt: |
+    You are the sprint-agent for the implementation phase.
+
+    Project: {project-name}
+    Workshop repo: {absolute path to workshop repo}
+    Team name: {team_name}
+
+    Read the stories (docs/stories-*.md), execution plan (docs/execution-plan.md),
+    and design docs to build the implementation queue.
+
+    IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.
+  description: "Coordinate story implementation"
+```
+
+The sprint-agent takes over implementation coordination from here. It will:
+1. Build an ordered implementation queue from stories and execution plan
+2. Present the queue to you (for relay to team lead → human)
+3. Bootstrap the code repo in a sibling directory
+4. Present each story to the human for approval before implementation
+5. **Send you spawn requests** for coding agents — you spawn them
+6. Track progress and report back
+
+**Your role during implementation: spawn coding agents on behalf of the sprint-agent.**
+
+The sprint-agent does NOT have the Task tool — it cannot spawn agents itself. Instead, it sends you structured `SPAWN REQUEST` messages. When you receive one:
+
+1. Parse the spawn request (it contains `name`, `description`, and `prompt`)
+2. Spawn the coding agent using the Task tool:
+   ```
+   Task:
+     subagent_type: "coding-agent"
+     team_name: "<team_name>"
+     name: "<name from request>"
+     mode: "bypassPermissions"
+     prompt: "<prompt from request>"
+     description: "<description from request>"
+   ```
+3. Confirm to the sprint-agent that the agent was spawned
+4. The coding agent will message the sprint-agent directly with results
+
+**Handle spawn requests promptly.** The sprint-agent is blocked until you confirm the agent is running. Do not add extra review or gates — the sprint-agent already handles human approval before sending spawn requests.
+
+## Local Deployment Target
+
+**Before spawning any pipeline agents**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set, **include this in every agent spawn prompt:**
+
+```
+DEPLOYMENT TARGET: local
+- Do NOT generate CI/CD pipeline work packages, requirements, designs, or stories
+- Do NOT generate K8s deployment, Helm charts, or container configuration
+- Do NOT generate container security scanning requirements
+- DO generate: auth, RBAC, structured logging, health endpoints, tests, local dev setup
+- Infrastructure uses embedded/in-memory alternatives (H2, SQLite, in-memory cache)
+```
+
+This ensures all downstream agents produce artifacts that are implementable locally.
 
 ## Handling Code Scans
 
@@ -496,6 +594,7 @@ After each stage completes and human validates (via team lead), show in your mes
 │  [ ] detailed-design                            │
 │  [ ] user-stories                               │
 │  [ ] validation                                 │
+│  [ ] implementation                             │
 ├─────────────────────────────────────────────────┤
 │ [1] Continue to next stage (recommended)        │
 │ [2] Re-run current stage with feedback          │

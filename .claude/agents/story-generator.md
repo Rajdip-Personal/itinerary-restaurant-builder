@@ -111,13 +111,35 @@ Group stories into epics that represent major functional areas:
 ### Infrastructure Stories (Always Include)
 Every project needs these foundational stories:
 
-1. **US: Set up CI/CD pipeline** — GitHub Actions with build, test, lint, security scan
-2. **US: Set up Kubernetes deployment** — Helm charts, namespace, resource limits
-3. **US: Implement structured logging** — JSON logging with correlation IDs
-4. **US: Implement health check endpoints** — `/health` and `/ready` endpoints
-5. **US: Set up monitoring and alerting** — SLI metrics, dashboards, alert rules
-6. **US: Configure secrets management** — Vault/K8s secrets integration
-7. **US: Set up database and migrations** — Schema, migrations, connection pooling
+1. **US: Implement structured logging** — JSON logging with correlation IDs
+2. **US: Implement health check endpoints** — `/health` and `/ready` endpoints
+3. **US: Set up monitoring and alerting** — SLI metrics, dashboards, alert rules
+4. **US: Configure secrets management** — Vault/K8s secrets integration
+5. **US: Set up database and migrations** — Schema, migrations, connection pooling
+
+### Local Deployment Target
+
+**Before generating stories**, check `memory-bank/techContext.md` for the deployment target.
+
+If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYMENT TARGET: local`):
+
+**SKIP these stories:**
+- CI/CD pipeline setup (GitHub Actions)
+- Kubernetes deployment, Helm charts, namespace
+- Container build and security scanning
+- Blue-green / canary deployment
+
+**REPLACE with:**
+- **US: Bootstrap local development environment** — Project scaffold, embedded DB, in-memory cache, mock services, local config
+- **US: Set up local build and test** — Build script, test runner, linting
+
+**KEEP these stories (they work locally):**
+- Structured logging
+- Health check endpoints
+- Authentication and RBAC setup (stubbed for local, designed for production)
+- Database schema and migrations (embedded DB)
+- All functional feature stories
+- All test stories
 
 ## Output Structure
 
