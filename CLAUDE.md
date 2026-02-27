@@ -112,7 +112,7 @@ Orchestrator agent fails with API error
 
 ### MCP SERVERS ARE THE ONLY PATH TO EXTERNAL DATA (MANDATORY)
 
-**When a task requires data from Jira, Confluence, GitHub, Aha!, ServiceNow, Slack, or GitLab, the corresponding MCP server tool MUST be used. No alternative approaches are permitted.**
+**When a task requires data from Jira, Confluence, GitHub, Aha!, ServiceNow, Slack, Nordstrom Standards Chat, or GitLab, the corresponding MCP server tool MUST be used. No alternative approaches are permitted.**
 
 | Data Source | Required MCP Server | Forbidden Alternatives |
 |-------------|--------------------|-----------------------|
@@ -123,6 +123,7 @@ Orchestrator agent fails with API error
 | ServiceNow | `mcp__servicenow__*` tools | `curl`, REST API calls |
 | Slack | `mcp__nordstrom-slack__*` tools | `curl`, Slack API calls |
 | Schema Repo | `mcp__nordstrom-schema-repo__*` tools | `curl`, REST API calls |
+| Standards Chat | `mcp__nordstrom-standards-chat__*` tools | `curl`, REST API calls |
 | GitLab | `gitlab-api-access` skill | `curl`, REST API calls |
 
 **Why this is non-negotiable:**
@@ -217,7 +218,7 @@ This workshop uses **Agent Teams** (not subagents). The key difference:
 ├─────────────────────────────────────────────────────────────────────┤
 │                    MCP Server Integrations                           │
 │       Jira · Confluence · GitHub · ServiceNow · Slack                │
-│                    Aha! · Schema Repo                                │
+│              Aha! · Schema Repo · Standards Chat                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -300,6 +301,7 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **Aha!** | Product roadmap items, feature requests |
 | **ServiceNow** | Query incidents, change requests, service requests (read-only) |
 | **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
+| **Nordstrom Standards Chat** | Query Nordstrom engineering standards |
 
 ### Verifying MCP Server Configuration
 
@@ -336,6 +338,7 @@ After checking configuration and environment variables, verify that MCP servers 
 | `servicenow` | `mcp__servicenow__health_check` | _(none)_ |
 | `nordstrom-slack` | `mcp__nordstrom-slack__get_channel_messages` | `channel_name: "general", limit: 1` |
 | `nordstrom-schema-repo` | `mcp__nordstrom-schema-repo__list_domains` | _(none)_ |
+| `nordstrom-standards-chat` | `mcp__nordstrom-standards-chat__search` | `query: "test"` |
 
 **Interpreting results:**
 - **Success** (any valid response) → server is connected and authenticated
@@ -355,6 +358,7 @@ The following MCP servers **must** be configured before proceeding with the work
 | `aha-mcp` | Yes |
 | `servicenow` | Yes |
 | `nordstrom-slack` | Yes |
+| `nordstrom-standards-chat` | Yes |
 
 ### Required Environment Variables
 
@@ -423,6 +427,7 @@ When a user asks about their setup or wants to start using the workshop tooling:
 │ ServiceNow            │ ✓          │ ✗         │ —           │
 │ Slack                 │ ✓          │ —         │ ✓           │
 │ Schema Repo           │ ✓          │ —         │ ✓           │
+│ Standards Chat        │ ✓          │ —         │ ✓           │
 │ GitLab                │ —          │ ✓         │ —           │
 └───────────────────────┴────────────┴───────────┴─────────────┘
 ```

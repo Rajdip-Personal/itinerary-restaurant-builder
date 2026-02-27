@@ -326,6 +326,18 @@ else
     STATUS[Slack]="⚠ Already exists"
 fi
 
+# --- Nordstrom Standards Chat ---
+echo ""
+echo "Adding Nordstrom Standards Chat MCP server (project scope)..."
+if claude mcp add --scope project nordstrom-standards-chat \
+    -- npx github:Nordstrom-Sandbox/gx6c-nordstrom-standards-chat-mcp 2>/dev/null; then
+    echo "  ✓ Nordstrom Standards Chat MCP server added"
+    STATUS[StandardsChat]="✓ Installed"
+else
+    echo "  ⚠ Nordstrom Standards Chat MCP server already exists (skipped)"
+    STATUS[StandardsChat]="⚠ Already exists"
+fi
+
 # --- Skills ---
 echo ""
 echo "=== Installing Claude Code Skills ==="
@@ -356,6 +368,7 @@ printf "  %-20s %s\n" "ServiceNow" "${STATUS[ServiceNow]}"
 printf "  %-20s %s\n" "Schema Repo" "${STATUS[SchemaRepo]}"
 printf "  %-20s %s\n" "Aha!" "${STATUS[Aha]}"
 printf "  %-20s %s\n" "Slack" "${STATUS[Slack]}"
+printf "  %-20s %s\n" "Standards Chat" "${STATUS[StandardsChat]}"
 printf "  %-20s %s\n" "GitLab Skill" "${STATUS[GitLabSkill]}"
 echo ""
 
