@@ -11,6 +11,7 @@ tools:
   - Grep
   - Bash
   - SendMessage
+  - ToolSearch
 ---
 
 # Jira Agent (Persistent Teammate)
