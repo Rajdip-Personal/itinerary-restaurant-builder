@@ -402,10 +402,30 @@ Please ask the human to validate. Options:
 
 **After sending this message, STOP and WAIT. Do NOT spawn the next teammate until you receive explicit approval from the team lead.**
 
-### Step 7: Update Memory via Memory-Agent
+### Step 7: On Approval — Spawn Next Stage + Update Memory IN PARALLEL (MANDATORY)
 
-After each stage completion, send memory update to memory-agent:
+**Speed matters.** When the team lead sends you an approval message (e.g., "Human approved requirements, proceed to design"), you MUST do ALL of the following **in a single turn** — not sequentially across multiple turns:
 
+1. **Spawn the next stage's teammate(s)** — this is the highest priority action
+2. **Send memory update to memory-agent** — do this in the SAME turn as the spawn
+3. **Commit and push** — run git commands in the SAME turn
+4. **Update task list** — mark current task complete, update next task
+
+**Do NOT wait for memory-agent confirmation before spawning.** Memory updates are fire-and-forget — the memory-agent will process them asynchronously. The next stage's agents should be spawning immediately when approval arrives.
+
+**WRONG (sequential — causes latency):**
+```
+Turn 1: Receive approval → send memory update → go idle
+Turn 2: Memory confirms → spawn next agents → go idle
+Turn 3: Commit and push
+```
+
+**RIGHT (parallel — fast):**
+```
+Turn 1: Receive approval → spawn next agents + send memory update + commit/push — ALL IN ONE TURN
+```
+
+Memory update format (send alongside the spawn, not before it):
 ```
 SendMessage:
   type: "message"
