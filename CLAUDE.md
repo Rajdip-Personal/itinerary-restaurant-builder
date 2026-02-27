@@ -755,6 +755,8 @@ The orchestrator will take over coordination from there, spawning teammates as n
 
 **Do NOT pre-fill decisions that agents are supposed to ask the human.** When relaying approval messages to teammates, only relay what the human actually said. Do not add details the human hasn't confirmed (e.g., repo names, file paths, technology choices). If an agent has a dedicated gate to ask the human for input, let that gate run — do not bypass it by providing the answer in advance.
 
+**The team lead MUST NEVER write implementation code directly.** All code changes — no matter how small or few remain — must go through the Agent Teams pipeline (sprint-agent → coding-agents). If agents die from context loss or session interruption, recreate the team and respawn agents. Never take shortcuts by coding directly as team-lead. The team-lead's role is coordination and human relay, not implementation.
+
 ## Key Directories
 
 | Directory | Purpose |
