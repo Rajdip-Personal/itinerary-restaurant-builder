@@ -239,41 +239,46 @@ SendMessage:
 
 ### Step 3c: Create GitHub Repo and Push Scaffold (MANDATORY — BLOCKING)
 
-After the bootstrap coding agent completes successfully, the code repo MUST be pushed to GitHub before any story implementation begins. You do not have MCP tools, so the **team-lead** handles repo creation.
+After the bootstrap coding agent completes successfully, the code repo MUST be pushed to GitHub before any story implementation begins.
 
-1. **Send a GitHub repo creation request to the team-lead:**
+**NOTE: GitHub repo creation via MCP typically fails for enterprise orgs (Nordstrom-Sandbox).** The human will create the repo manually. Do NOT attempt MCP repo creation — go straight to asking the human.
+
+1. **Send a GitHub repo setup request to the team-lead:**
 
 ```
 SendMessage:
   type: "message"
   recipient: "team-lead"
   content: |
-    ## GitHub Repo Creation Request
+    ## GitHub Repo Setup Required (Human Action)
 
-    The bootstrap is complete. Please create the GitHub repo and push the scaffold:
+    The bootstrap is complete. The human needs to:
 
-    1. Create repo in Nordstrom-Sandbox using `mcp__github__create_repository`:
-       - organization: "Nordstrom-Sandbox"
-       - name: "{repo-name}"
-       - description: "{project description}"
-       - private: false
-       - autoInit: false
-    2. Add remote and push:
-       ```
-       cd {absolute-path-to-code-repo}
-       git remote add origin git@github.com:Nordstrom-Sandbox/{repo-name}.git
-       git branch -M main
-       git push -u origin main
-       ```
-    3. Confirm back with the GitHub repo URL.
+    1. Create the repo manually on GitHub: `Nordstrom-Sandbox/{repo-name}` (private)
+    2. Type **ready** when the repo exists on GitHub
 
-    I am BLOCKED until this is done — no story implementation can begin without the remote configured.
-  summary: "GitHub repo creation request — blocking"
+    Once the human confirms, I will add the remote and push:
+    ```
+    cd {absolute-path-to-code-repo}
+    git remote add origin git@github.com:Nordstrom-Sandbox/{repo-name}.git
+    git branch -M main
+    git push -u origin main
+    ```
+
+    I am BLOCKED until the human types "ready".
+  summary: "GitHub repo setup — waiting for human to create repo"
 ```
 
-2. **STOP and WAIT** for the team-lead to confirm the repo was created and pushed.
-3. **Verify:** Run `cd {code-repo} && git remote -v` to confirm the remote is set and `git log --oneline origin/main` to confirm the push succeeded.
-4. **Record the GitHub repo URL** in `docs/implementation-progress.md`.
+2. **STOP and WAIT** for the team-lead to confirm the human has created the repo (human types "ready").
+3. **Add remote and push:**
+   ```bash
+   cd {absolute-path-to-code-repo}
+   git remote add origin git@github.com:Nordstrom-Sandbox/{repo-name}.git
+   git branch -M main
+   git push -u origin main
+   ```
+4. **Verify:** Run `cd {code-repo} && git remote -v` to confirm the remote is set and `git log --oneline origin/main` to confirm the push succeeded.
+5. **Record the GitHub repo URL** in `docs/implementation-progress.md`.
 
 ## Step 4: Implementation Loop
 
