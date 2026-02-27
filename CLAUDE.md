@@ -194,10 +194,10 @@ This workshop uses **Agent Teams** (not subagents). The key difference:
 │  │        ↑             ↑             ↑             ↑          │    │
 │  │        └─────────────┼─────────────┼─────────────┘          │    │
 │  │                  SendMessage                                 │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │    │
-│  │  │  Story   │  │   Code   │  │  Sprint  │                   │    │
-│  │  │Generator │  │ Scanner  │  │  Agent   │                   │    │
-│  │  └──────────┘  └──────────┘  └────┬─────┘                   │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │    │
+│  │  │  Story   │  │   Code   │  │  Sprint  │  │   Jira   │     │    │
+│  │  │Generator │  │ Scanner  │  │  Agent   │  │  Agent   │     │    │
+│  │  └──────────┘  └──────────┘  └────┬─────┘  └──────────┘     │    │
 │  │                                    │                         │    │
 │  │                           ┌────────┼────────┐                │    │
 │  │                           │        │        │                │    │
@@ -647,6 +647,7 @@ After `/review-prd` completes, the main session creates an Agent Team and spawns
 | 6 | Technical Design | design-agent |
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
+| 8b | Jira Sync (optional) | jira-agent |
 | 9 | Implementation | sprint-agent → coding-agent(s) |
 
 The orchestrator (persistent teammate):
@@ -659,8 +660,10 @@ The orchestrator (persistent teammate):
 - Updates memory-bank via memory-agent
 - Continues to next stage
 
+For the Jira sync stage (optional), the orchestrator spawns the **jira-agent**, which creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent.
+
 For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
-- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval, spawns coding agents
+- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval, spawns coding agents. If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
 - **Coding Agent(s)** — each takes one story, plans files, implements code, writes tests, builds, commits. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
 
 **Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
@@ -724,7 +727,7 @@ The orchestrator will take over coordination from there, spawning teammates as n
 
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/agents/` | Agent teammate definitions (orchestrator, planning, requirements, stories, scanner, memory, sprint, coding) |
+| `.claude/agents/` | Agent teammate definitions (orchestrator, planning, requirements, stories, scanner, memory, sprint, coding, jira) |
 | `.claude/commands/` | Slash command definitions (/plan, /requirements, /stories, etc.) |
 | `.claude/skills/` | Reusable knowledge (engineering standards, requirements writing) |
 | `memory-bank/` | Persistent shared context across all agents and sessions |

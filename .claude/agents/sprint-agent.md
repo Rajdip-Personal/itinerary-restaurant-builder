@@ -46,6 +46,16 @@ You receive from the orchestrator:
 - Workshop repo path (where PRD, stories, design docs live)
 - Team name (for reference)
 
+## Jira Integration (Conditional)
+
+If `docs/jira-mapping.md` exists in the workshop repo, Jira integration is active:
+
+1. **Load the mapping** — Parse the Story Mapping table to build a lookup: Workshop Story ID → Jira Issue Key
+2. **Send status updates** — For every story status change (IN_PROGRESS, DONE, FAILED, SKIPPED), send a `JIRA UPDATE` message to `jira-agent`
+3. **Include Jira keys** — When presenting stories to the human, include the Jira issue key
+
+If `docs/jira-mapping.md` does NOT exist, skip all Jira-related notifications. Do not fail or warn — Jira sync is optional.
+
 ## Step 0: Read Context
 
 1. Read all story files: `docs/stories-*.md` (use Glob to find them)
@@ -53,6 +63,7 @@ You receive from the orchestrator:
 3. Read design docs: `docs/detailed-design.md` or `docs/design-*.md` — for tech stack, data model, API specs
 4. Read `memory-bank/techContext.md` — for tech stack and deployment target
 5. Read requirements: `docs/requirements-*.md` or `docs/requirements.md`
+6. Read `docs/jira-mapping.md` — if it exists, load the Workshop Story ID → Jira Issue Key mapping for Jira notifications
 
 ## Step 1: Build Implementation Queue
 
@@ -198,6 +209,7 @@ SendMessage:
     ────────────────────────────────────────────────
 
     **Dependencies:** [list stories this depends on and their status]
+    **Jira Issue:** {jira-key} (if Jira mapping exists)
 
     Please ask the human to READ the story above and approve implementation.
     Options:
@@ -249,15 +261,52 @@ SendMessage:
 
 Wait for the orchestrator to confirm the agent was spawned, then wait for the coding agent to message you with results.
 
+**Jira notification (if mapping exists):** After the orchestrator confirms the coding agent is spawned, notify jira-agent:
+```
+SendMessage:
+  type: "message"
+  recipient: "jira-agent"
+  content: |
+    JIRA UPDATE:
+    - Story: {workshop-story-id}
+    - Action: IN_PROGRESS
+    - Coding Agent: coding-agent-{story-id}
+  summary: "Jira status: {story-id} in progress"
+```
+
 ### 4c: Handle Result
 
 **On success:**
 - Record story as implemented in progress tracking
 - Send memory update to memory-agent
+- **Jira notification (if mapping exists):**
+  ```
+  SendMessage:
+    type: "message"
+    recipient: "jira-agent"
+    content: |
+      JIRA UPDATE:
+      - Story: {workshop-story-id}
+      - Action: DONE
+      - Commit: {commit-hash}
+    summary: "Jira status: {story-id} done"
+  ```
 - Continue to next story (go to 4a)
 
 **On failure (build or tests won't pass after retries):**
 - Record failure details
+- **Jira notification (if mapping exists):**
+  ```
+  SendMessage:
+    type: "message"
+    recipient: "jira-agent"
+    content: |
+      JIRA UPDATE:
+      - Story: {workshop-story-id}
+      - Action: FAILED
+      - Error: {error-details}
+    summary: "Jira status: {story-id} failed"
+  ```
 - Send to orchestrator for human decision:
   ```
   Story {story-id} failed implementation.
@@ -270,6 +319,21 @@ Wait for the orchestrator to confirm the agent was spawned, then wait for the co
   [3] Stop implementation session
   ```
 - **STOP and WAIT** for human decision
+
+**On skip (human chose to skip):**
+- Record skip in progress tracking
+- **Jira notification (if mapping exists):**
+  ```
+  SendMessage:
+    type: "message"
+    recipient: "jira-agent"
+    content: |
+      JIRA UPDATE:
+      - Story: {workshop-story-id}
+      - Action: SKIPPED
+    summary: "Jira status: {story-id} skipped"
+  ```
+- Continue to next story (go to 4a)
 
 ### 4d: Parallel Stories
 
@@ -365,3 +429,4 @@ When implementation ends (all stories done, human stops, or session ends):
 - **Maximum 2 concurrent coding agents.** Workshop machines have limited resources.
 - **Reuse coding agents when possible.** If a coding agent from a previous story is idle, send it a new task via SendMessage instead of requesting a new spawn.
 - **Bootstrap is not optional.** The code repo must be scaffolded before any story implementation.
+- **Notify jira-agent on every status change** if `docs/jira-mapping.md` exists. Best-effort — do not block on confirmation.

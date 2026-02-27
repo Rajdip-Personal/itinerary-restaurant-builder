@@ -60,10 +60,10 @@ You (the orchestrator) are spawned **by the main session** as a persistent teamm
 │         │                   │                   │                        │
 │         └───────────── SendMessage ─────────────┘                        │
 │                                                                          │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                │
-│  │design-agent │ ←─→ │story-gener- │ ←─→ │code-scanner │                │
-│  │             │     │    ator     │     │ (optional)  │                │
-│  └─────────────┘     └─────────────┘     └─────────────┘                │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  │design-agent │ ←─→ │story-gener- │ ←─→ │code-scanner │ ←─→ │ jira-agent  │
+│  │             │     │    ator     │     │ (optional)  │     │ (optional)  │
+│  └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,6 +94,7 @@ You are the **coordinator**, not a performer. You:
 | Technical design documents | **design-agent** |
 | User stories | **story-generator** |
 | Code analysis | **code-scanner** |
+| Jira epic/story creation, status sync | **jira-agent** |
 | Memory bank updates | **memory-agent** |
 
 **When the team lead sends revision feedback from the human, immediately spawn (or message) the appropriate specialist teammate to apply those changes.** Do NOT attempt the edits yourself first and then fall back to a teammate only after failure. Delegation is your FIRST action, not your fallback.
@@ -224,7 +225,8 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before stories | (direct or Task) |
 | Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
-| Validation done, human approves implementation | Start implementation | sprint-agent |
+| Validation done, human approves | Create Jira issues | jira-agent |
+| Jira sync complete (or skipped), human approves implementation | Start implementation | sprint-agent |
 | All artifacts exist (including implementation) | Message team-lead with summary | — |
 
 **UI Prototype Rule (MANDATORY):**
@@ -282,7 +284,7 @@ When no existing teammate can handle the work, spawn a new one using the `Task` 
 
 ```
 Task tool:
-  subagent_type: "planning-agent" | "requirements-agent" | "design-agent" | "story-generator" | "code-scanner"
+  subagent_type: "planning-agent" | "requirements-agent" | "design-agent" | "story-generator" | "code-scanner" | "jira-agent"
   team_name: "<team_name from your spawn prompt>"
   name: "<agent-name>"
   mode: "bypassPermissions"
@@ -314,6 +316,7 @@ Task tool:
 **When NOT to shut down a teammate:**
 - If the teammate's work type has more stages coming (e.g., keep `planning-agent` alive if plan revisions are likely)
 - If the teammate is `memory-agent` (always running)
+- If the teammate is `jira-agent` during implementation (receives status updates from sprint-agent)
 
 ### Step 4: Coordinate via Messages
 
@@ -500,9 +503,45 @@ Before moving to the next stage, verify:
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
 | Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
 
+## Jira Sync Phase (Optional)
+
+After validation is complete and the human approves, spawn the jira-agent to create epics and stories in Jira:
+
+```
+Task:
+  subagent_type: "jira-agent"
+  team_name: "<team_name>"
+  name: "jira-agent"
+  mode: "bypassPermissions"
+  prompt: |
+    You are the jira-agent for the workshop-pipeline team.
+
+    Project: {project-name}
+    Workshop repo: {absolute path to workshop repo}
+    Team name: {team_name}
+
+    Create Jira epics and stories from the validated story files in docs/stories-*.md.
+    Write the mapping to docs/jira-mapping.md.
+
+    After bulk creation, stay alive for status sync during implementation.
+    The sprint-agent will send you JIRA UPDATE messages for status transitions.
+  description: "Create Jira epics/stories and sync status"
+```
+
+The jira-agent will:
+1. Ask for the Jira project key (via orchestrator → team lead → human)
+2. Create one epic per phase
+3. Create stories with proper priority mapping and description formatting
+4. Write the mapping file at `docs/jira-mapping.md`
+5. Stay alive during implementation for status sync
+
+**Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
+
+If the human chooses to skip Jira sync, proceed directly to the implementation phase.
+
 ## Implementation Phase
 
-After validation is complete and the human approves starting implementation, spawn the sprint-agent:
+After Jira sync is complete (or skipped) and the human approves starting implementation, spawn the sprint-agent:
 
 ```
 Task:
@@ -594,6 +633,7 @@ After each stage completes and human validates (via team lead), show in your mes
 │  [ ] detailed-design                            │
 │  [ ] user-stories                               │
 │  [ ] validation                                 │
+│  [ ] jira-sync                                  │
 │  [ ] implementation                             │
 ├─────────────────────────────────────────────────┤
 │ [1] Continue to next stage (recommended)        │
