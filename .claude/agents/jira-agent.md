@@ -12,6 +12,15 @@ tools:
   - Bash
   - SendMessage
   - ToolSearch
+  - mcp__jira-mcp__create_issue
+  - mcp__jira-mcp__create_epic
+  - mcp__jira-mcp__add_issues_to_epic
+  - mcp__jira-mcp__search_issues
+  - mcp__jira-mcp__update_issue
+  - mcp__jira-mcp__transition_issue_by_name
+  - mcp__jira-mcp__add_comment
+  - mcp__jira-mcp__get_transitions
+  - mcp__jira-mcp__get_current_user
 ---
 
 # Jira Agent (Persistent Teammate)
