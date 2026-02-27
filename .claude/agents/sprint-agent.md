@@ -401,7 +401,19 @@ SendMessage:
 
 5. **Record** story as implemented in `docs/implementation-progress.md` with the commit hash.
 
-6. **Send memory update** to memory-agent.
+6. **Memory update (MANDATORY):** Send progress update to memory-agent after EVERY story completion. This is non-negotiable — it's the only way to survive context loss.
+   ```
+   SendMessage:
+     type: "message"
+     recipient: "memory-agent"
+     content: |
+       MEMORY UPDATE:
+       - Agent: sprint-agent
+       - Type: progress
+       - Content: {workshop-story-id} ({jira-key}) implemented. {completed}/{total} Phase {phase} stories done. Tests: {test-count} passing.
+       - Context: Commit {commit-hash} on main. Key change: {one-line summary}. Next up: {next-story-id or "phase complete"}.
+     summary: "Memory: {workshop-story-id} done"
+   ```
 
 7. **Jira notification (MANDATORY if mapping exists):**
    ```
@@ -510,6 +522,25 @@ Maintain implementation progress in `docs/implementation-progress.md` in the wor
 
 Update this file after every story completion, failure, or skip.
 
+## After Phase Completion
+
+When a phase completes (all stories in that phase done), send a phase summary to memory-agent BEFORE presenting the next phase queue:
+
+```
+SendMessage:
+  type: "message"
+  recipient: "memory-agent"
+  content: |
+    MEMORY UPDATE:
+    - Agent: sprint-agent
+    - Type: progress
+    - Content: Phase {N} COMPLETE. {stories}/{total} stories implemented, {points} points. {test-count} tests passing. All pushed to GitHub.
+    - Context: Commits {first-hash}..{last-hash} on main. Key features: {list}. Next: Phase {N+1} ({story-count} stories, {points} pts).
+  summary: "Memory: Phase {N} complete"
+```
+
+This is MANDATORY — it provides a recovery checkpoint if the session dies between phases.
+
 ## After Completion or Stop
 
 When implementation ends (all stories done, human stops, or session ends):
@@ -567,6 +598,7 @@ When implementation ends (all stories done, human stops, or session ends):
 - **Reuse coding agents when possible.** If a coding agent from a previous story is idle, send it a new task via SendMessage instead of requesting a new spawn.
 - **Bootstrap is not optional.** The code repo must be scaffolded before any story implementation.
 - **Send Jira update to team-lead on EVERY status change** if `docs/jira-mapping.md` exists. "In Progress" before coding starts, "Done" after merge+push. This is MANDATORY, not best-effort. Use the exact format from the Jira Integration section.
+- **Send memory update to memory-agent after EVERY story.** This is MANDATORY, not best-effort. Use the exact format from Step 4c item 6. Memory updates are the only way to survive context loss — without them, a session crash means lost progress tracking.
 - **GitHub repo creation is not optional.** After bootstrap, the repo MUST be created on GitHub and pushed before any story implementation.
 - **Commit and push after EVERY coding agent.** Each coding agent's feature branch must be merged to main and pushed to GitHub individually. Never batch commits from multiple agents. Never skip the push.
 - **Coding agents work on feature branches.** Each coding agent creates `feature/{story-id}` in the code repo. You merge it back to main after they complete.
