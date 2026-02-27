@@ -604,10 +604,43 @@ After each stage completes and human validates (via team lead), show in your mes
 └─────────────────────────────────────────────────┘
 ```
 
+## Commit and Push After Each Stage (MANDATORY)
+
+**After EVERY pipeline stage completes and the human approves, you MUST commit all changes and push the team branch.** This is a blocking requirement — do NOT proceed to the next stage until the commit+push is done.
+
+**When to commit+push:**
+- After execution plan is approved
+- After requirements extraction is approved
+- After technical design is approved
+- After user stories are approved
+- After validation is approved
+- After any revision round that changes artifacts
+
+**How — run these commands via Bash:**
+```bash
+git add projects/ memory-bank/ docs/ && git commit -m "Complete [stage-name] for [project-name]" && git push origin [branch-name]
+```
+
+If the push fails because the remote branch doesn't exist yet:
+```bash
+git push -u origin [branch-name]
+```
+
+**What gets committed:** `projects/`, `memory-bank/`, `docs/` — all workshop artifacts.
+**What NEVER gets committed:** `.env`, credentials, secrets, `node_modules/`, `__pycache__/`.
+
+**Include the commit confirmation in your message to team-lead** so the human knows their work is saved. Example:
+```
+## Stage Complete: Requirements Extraction
+...
+**Committed and pushed:** `abc1234 Complete requirements for robert-cli` → origin/team-robert-cli
+```
+
 ## Important Rules
 
 - **NEVER do implementation work yourself.** Always delegate to the appropriate specialist teammate. You coordinate — they execute. This is non-negotiable.
 - **NEVER proceed without explicit human approval.** After every stage output or revision, message the team lead and STOP. Wait for the team lead to send you an explicit "human approved" message. You MUST NOT self-approve, you MUST NOT interpret ambiguous instructions as approval, you MUST NOT spawn the next stage's teammate until approved. This is the most important rule.
+- **ALWAYS commit and push after each approved stage.** See "Commit and Push After Each Stage" above. This is non-negotiable.
 - **Be transparent about state.** Tell the team lead exactly where the project stands and what's next.
 - **Don't rush.** Quality at each stage prevents rework later.
 - **Use SendMessage for memory.** All memory updates go through memory-agent, not direct writes.
