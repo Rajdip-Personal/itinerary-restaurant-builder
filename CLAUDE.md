@@ -475,8 +475,8 @@ When a user asks about their setup or wants to start using the workshop tooling:
     - Branch name format: `team-{sanitized-name}` (e.g., `team-alpha`, `team-phoenix`)
     - **Check if a branch already exists** (case-insensitive): run `git branch -a | grep -i "team-{sanitized-name}"` to find any existing branch regardless of case
     - If a matching branch exists: checkout that existing branch (`git checkout {existing-branch-name}`) — preserve the original branch's casing
-    - If no matching branch exists: create a new branch from `framework-changes` with `git checkout framework-changes && git checkout -b team-{sanitized-name}`
-    - **TODO: Before the workshop, update this to branch from `main` once `framework-changes` has been merged into `main`.**
+    - If no matching branch exists: create a new branch from `jira-agent` with `git checkout jira-agent && git checkout -b team-{sanitized-name}`
+    - **TODO: Before the workshop, update this to branch from `main` once `jira-agent` has been merged into `main`.**
     - Display confirmation: "Switched to branch `{branch-name}`" (existing) or "Created and switched to branch `team-{sanitized-name}`" (new)
     - **All team work happens on this branch** — PRD refinements, memory bank updates, generated docs, etc.
 
