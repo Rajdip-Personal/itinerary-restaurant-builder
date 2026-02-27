@@ -226,7 +226,8 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
 | Validation done, human approves | Create Jira issues | jira-agent |
-| Jira sync complete (or skipped), human approves implementation | Start implementation | sprint-agent |
+| Validation done, human approves stories | **MANDATORY** — Create Jira issues | jira-agent |
+| Jira sync complete, human approves implementation | Start implementation | sprint-agent |
 | All artifacts exist (including implementation) | Message team-lead with summary | — |
 
 **UI Prototype Rule (MANDATORY):**
@@ -531,9 +532,9 @@ Before moving to the next stage, verify:
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
 | Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
 
-## Jira Sync Phase (Optional)
+## Jira Sync Phase (MANDATORY)
 
-After validation is complete and the human approves, spawn the jira-agent to create epics and stories in Jira:
+**After validation is complete and the human approves the stories, you MUST spawn the jira-agent to create epics and stories in Jira.** This is not optional — every validated story must be tracked in Jira before implementation begins.
 
 ```
 Task:
@@ -565,11 +566,11 @@ The jira-agent will:
 
 **Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
 
-If the human chooses to skip Jira sync, proceed directly to the implementation phase.
+**Do NOT skip Jira sync.** Do NOT ask the human if they want to skip it. Always create Jira stories after validation.
 
 ## Implementation Phase
 
-After Jira sync is complete (or skipped) and the human approves starting implementation, spawn the sprint-agent:
+After Jira sync is complete and the human approves starting implementation, spawn the sprint-agent:
 
 ```
 Task:

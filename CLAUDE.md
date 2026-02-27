@@ -676,7 +676,7 @@ After `/review-prd` completes, the main session creates an Agent Team and spawns
 | 6 | Technical Design | design-agent |
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
-| 8b | Jira Sync (optional) | jira-agent |
+| 8b | Jira Sync (mandatory) | jira-agent |
 | 9 | Implementation | sprint-agent → coding-agent(s) |
 
 The orchestrator (persistent teammate):
@@ -689,7 +689,7 @@ The orchestrator (persistent teammate):
 - Updates memory-bank via memory-agent
 - Continues to next stage
 
-For the Jira sync stage (optional), the orchestrator spawns the **jira-agent**, which creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent.
+For the Jira sync stage (mandatory), the orchestrator spawns the **jira-agent** after stories are validated and approved. The jira-agent creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent. **Jira sync must complete before implementation begins.**
 
 For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
 - **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
