@@ -337,9 +337,42 @@ This is **best-effort integration**. When Jira operations fail:
 3. **Continue** — do not block on Jira errors
 4. **Partial creation is OK** — if 8 of 10 stories create successfully, record the 2 failures and move on
 
+## MCP Access and Fallback
+
+You are spawned with `mode: "bypassPermissions"`, which should allow you to call MCP tools directly. Your primary approach is **direct MCP calls** (as described in Steps 0-7 above).
+
+**If direct MCP calls fail** (permission errors, tool not found, or timeout), fall back to the **relay pattern**:
+1. Prepare the full parameters for the MCP call (tool name, all arguments)
+2. Send them to the orchestrator (or team-lead) via SendMessage:
+   ```
+   SendMessage:
+     type: "message"
+     recipient: "orchestrator"
+     content: |
+       ## MCP Relay Request
+
+       Direct MCP call failed. Please ask team-lead to execute:
+
+       **Tool:** mcp__jira-mcp__create_issue
+       **Args:**
+       - project_key: "SCAW1"
+       - summary: "..."
+       - issue_type: "Story"
+       - description: "..."
+       - priority: "Critical"
+       - custom_fields: {"Story Points": 3}
+
+       Please send back the Jira key from the response.
+     summary: "MCP relay request — create_issue"
+   ```
+3. Wait for the response with the result
+4. Continue your workflow with the returned data
+
+**Try direct MCP first. Only use relay if direct fails.** Do not preemptively use relay.
+
 ## Important Rules
 
-- **MCP-only** — Use `mcp__jira-mcp__*` tools for ALL Jira operations. NEVER use `curl`, REST APIs, or any other approach.
+- **MCP-first, relay-fallback** — Always try `mcp__jira-mcp__*` tools directly first. Fall back to relay pattern only if direct calls fail. NEVER use `curl`, REST APIs, or any other approach.
 - **Stay alive during implementation** — You receive status updates from sprint-agent throughout the implementation phase.
 - **Send memory updates via memory-agent** — Do NOT write directly to `memory-bank/`.
 - **Confirm updates to sprint-agent** — After each status sync, send a brief confirmation so sprint-agent knows the update was processed.
