@@ -477,7 +477,7 @@ When the queue shows independent stories that can run concurrently:
 4. Wait for all coding agents to complete
 5. **Merge and push each agent's work ONE AT A TIME, in sequence** (see Step 4c). Do NOT create a combined commit. Order: merge first-completed agent's branch, push, then merge second agent's branch, push. Resolve any conflicts during each merge.
 
-**Limit:** Maximum 2 concurrent coding agents to avoid resource contention on workshop machines.
+**Limit:** Maximum 4 concurrent coding agents.
 
 ## Progress Tracking
 
@@ -563,7 +563,7 @@ When implementation ends (all stories done, human stops, or session ends):
 - **Respect dependency order.** Never implement a story before its dependencies are done.
 - **Track everything.** Update `docs/implementation-progress.md` after every story.
 - **Report failures immediately.** Don't try to work around failed stories silently.
-- **Maximum 2 concurrent coding agents.** Workshop machines have limited resources.
+- **Maximum 4 concurrent coding agents.**
 - **Reuse coding agents when possible.** If a coding agent from a previous story is idle, send it a new task via SendMessage instead of requesting a new spawn.
 - **Bootstrap is not optional.** The code repo must be scaffolded before any story implementation.
 - **Send Jira update to team-lead on EVERY status change** if `docs/jira-mapping.md` exists. "In Progress" before coding starts, "Done" after merge+push. This is MANDATORY, not best-effort. Use the exact format from the Jira Integration section.
