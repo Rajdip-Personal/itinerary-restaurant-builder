@@ -91,7 +91,7 @@ The system uses a **two-phase architecture**:
 ├──────────────────────────────────────────────────────────┤
 │                MCP Server Integrations                    │
 │  Jira · Confluence · GitHub · ServiceNow · Schema Repo    │
-│              Aha! · Slack (read-only)                     │
+│  Aha! · Slack (read-only) · Standards Chat · MAWM Data    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -162,8 +162,11 @@ MCP (Model Context Protocol) servers provide Claude Code with access to external
 - `GITHUB_PAT` — GitHub Personal Access Token (with SSO authorization)
 - `AHA_API_TOKEN` — Aha! API Token
 - `SERVICENOW_USERNAME` / `SERVICENOW_PASSWORD` — CI pipeline service account
+- `GITLAB_TOKEN` — GitLab Personal Access Token (git.jwn.app)
+- `MAWM_USERNAME` / `MAWM_PASSWORD` — MAWM MySQL database credentials (FC 499 warehouse data)
+- `ARTIFACTORY_USER` / `ARTIFACTORY_API_KEY` — Artifactory credentials (for ServiceNow MCP setup)
 
-See [docs/mcp-server-setup.md](docs/mcp-server-setup.md) for detailed setup instructions and troubleshooting.
+See the [setup script](scripts/setup-mcp-servers.sh) for detailed setup instructions. Run `./scripts/check-env.sh` to verify your environment variables.
 
 ---
 
@@ -180,6 +183,8 @@ See [docs/mcp-server-setup.md](docs/mcp-server-setup.md) for detailed setup inst
   - [ ] Schema Repo MCP — can browse Kafka schemas
   - [ ] Aha! MCP — can access roadmap
   - [ ] Slack MCP — can read messages (read-only)
+  - [ ] Standards Chat MCP — can query Nordstrom engineering standards
+  - [ ] MAWM Data MCP — can query FC 499 warehouse database (read-only)
 
 ### Content Preparation
 - [ ] Review all three project PRDs — customize for your squads if needed

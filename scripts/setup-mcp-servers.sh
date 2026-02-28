@@ -1,13 +1,14 @@
 #!/bin/bash
 #
 # Setup MCP Servers for Claude Code
-# This script configures Jira, Confluence, GitHub, ServiceNow, Nordstrom Schema Repo, Aha!, and Slack MCP servers at the project level.
+# This script configures Jira, Confluence, GitHub, ServiceNow, Nordstrom Schema Repo, Aha!, Slack, Standards Chat, and MAWM Data MCP servers at the project level.
 #
 # Prerequisites:
 #   - Claude Code CLI installed
 #   - Python 3.12+ and uv package manager (for ServiceNow MCP)
 #   - Environment variables set: JIRA_PAT, CONFLUENCE_PAT, GITHUB_PAT, AHA_API_TOKEN,
-#     SERVICENOW_USERNAME, SERVICENOW_PASSWORD, GITLAB_TOKEN
+#     SERVICENOW_USERNAME, SERVICENOW_PASSWORD, GITLAB_TOKEN, MAWM_USERNAME, MAWM_PASSWORD,
+#     ARTIFACTORY_USER, ARTIFACTORY_API_KEY
 #
 
 # Get the directory where this script is located
@@ -165,6 +166,24 @@ if [ -z "$GITLAB_TOKEN" ]; then
     echo "    5. Click \"Create personal access token\""
     echo "    6. Copy the token"
     echo "    7. Then run: export GITLAB_TOKEN={gitlab token}"
+    echo ""
+fi
+
+if [ -z "$MAWM_USERNAME" ]; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: MAWM_USERNAME is not set."
+    echo ""
+    echo "  Set the MAWM MySQL database username:"
+    echo "    export MAWM_USERNAME={mysql-username}"
+    echo ""
+fi
+
+if [ -z "$MAWM_PASSWORD" ]; then
+    missing_count=$((missing_count + 1))
+    echo "WARNING: MAWM_PASSWORD is not set."
+    echo ""
+    echo "  Set the MAWM MySQL database password:"
+    echo "    export MAWM_PASSWORD={mysql-password}"
     echo ""
 fi
 
@@ -394,6 +413,52 @@ else
     STATUS[StandardsChat]="⚠ Already exists"
 fi
 
+# --- MAWM Data ---
+echo ""
+echo "Installing MAWM Data MCP server (project scope)..."
+# MAWM Data MCP provides read-only access to the Manhattan Active Warehouse Management MySQL database
+# Requires: Python 3.10+, MySQL credentials (MAWM_USERNAME, MAWM_PASSWORD), VPN (Zscaler)
+MAWM_MCP_DIR="${REPOS_DIR}/mawm-data-mcp"
+if [ -d "$MAWM_MCP_DIR" ]; then
+    echo "  ⚠ MAWM Data MCP already cloned at $MAWM_MCP_DIR"
+    echo "    To update, run: cd $MAWM_MCP_DIR && git pull && source .venv/bin/activate && pip install -r requirements.txt"
+    MAWM_CLONED=true
+else
+    mkdir -p "${REPOS_DIR}"
+    if git clone "$(git_url Nordstrom-Sandbox mawm_data_mcp_server)" "$MAWM_MCP_DIR" && \
+       cd "$MAWM_MCP_DIR" && \
+       python3 -m venv .venv && \
+       source .venv/bin/activate && \
+       pip install -r requirements.txt && \
+       pip install -e .; then
+        cd - > /dev/null
+        MAWM_CLONED=true
+    else
+        cd - > /dev/null 2>/dev/null
+        echo "  ✗ Failed to clone/install MAWM Data MCP"
+        MAWM_CLONED=false
+    fi
+fi
+
+# Register MAWM Data MCP with Claude Code (only if clone succeeded)
+if [ "$MAWM_CLONED" = true ]; then
+    if claude mcp add --scope project mawm-data \
+        -e MYSQL_HOST=100.80.128.130 \
+        -e MYSQL_USER='${MAWM_USERNAME}' \
+        -e MYSQL_PASSWORD='${MAWM_PASSWORD}' \
+        -e MYSQL_PORT=3306 \
+        -e ENABLE_AUTO_CONTEXT=true \
+        -- "${MAWM_MCP_DIR}/.venv/bin/python" -m mawm_data_mcp_server.server 2>/dev/null; then
+        echo "  ✓ MAWM Data MCP server added (prod, read-only)"
+        STATUS[MAWMData]="✓ Installed"
+    else
+        echo "  ⚠ MAWM Data MCP server already exists (skipped)"
+        STATUS[MAWMData]="⚠ Already exists"
+    fi
+else
+    STATUS[MAWMData]="✗ Failed"
+fi
+
 # --- Skills ---
 echo ""
 echo "=== Installing Claude Code Skills ==="
@@ -425,6 +490,7 @@ printf "  %-20s %s\n" "Schema Repo" "${STATUS[SchemaRepo]}"
 printf "  %-20s %s\n" "Aha!" "${STATUS[Aha]}"
 printf "  %-20s %s\n" "Slack" "${STATUS[Slack]}"
 printf "  %-20s %s\n" "Standards Chat" "${STATUS[StandardsChat]}"
+printf "  %-20s %s\n" "MAWM Data" "${STATUS[MAWMData]}"
 printf "  %-20s %s\n" "GitLab Skill" "${STATUS[GitLabSkill]}"
 echo ""
 

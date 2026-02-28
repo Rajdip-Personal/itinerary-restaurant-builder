@@ -124,6 +124,7 @@ Orchestrator agent fails with API error
 | Slack | `mcp__nordstrom-slack__*` tools | `curl`, Slack API calls |
 | Schema Repo | `mcp__nordstrom-schema-repo__*` tools | `curl`, REST API calls |
 | Standards Chat | `mcp__nordstrom-standards-chat__*` tools | `curl`, REST API calls |
+| MAWM Data | `mcp__mawm-data__*` tools | `curl`, direct MySQL connections |
 | GitLab | `gitlab-api-access` skill | `curl`, REST API calls |
 
 **Why this is non-negotiable:**
@@ -302,6 +303,7 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **ServiceNow** | Query incidents, change requests, service requests (read-only) |
 | **Nordstrom Schema Repo** | Query Kafka event schemas (Avro/JSON) |
 | **Nordstrom Standards Chat** | Query Nordstrom engineering standards |
+| **MAWM Data** | Read-only access to FC 499 MAWM warehouse database (MySQL) |
 
 ### Verifying MCP Server Configuration
 
@@ -339,26 +341,28 @@ After checking configuration and environment variables, verify that MCP servers 
 | `nordstrom-slack` | `mcp__nordstrom-slack__get_channel_messages` | `channel_name: "general", limit: 1` |
 | `nordstrom-schema-repo` | `mcp__nordstrom-schema-repo__list_domains` | _(none)_ |
 | `nordstrom-standards-chat` | `mcp__nordstrom-standards-chat__search` | `query: "test"` |
+| `mawm-data` | `mcp__mawm-data__get_table_list` | `schema_name: "default_receiving"` |
 
 **Interpreting results:**
 - **Success** (any valid response) → server is connected and authenticated
 - **Error/timeout** → server is not running, not configured, or credentials are invalid
 - Record each result as `Connected` or `Not Connected` for the status table
 
-### Required MCP Servers
+### MCP Servers
 
-The following MCP servers **must** be configured before proceeding with the workshop:
+The following MCP servers are configured by the setup script. If any fail to connect, the workshop continues — steps that need an unavailable server will stop at that point.
 
-| Server Key | Required |
-|------------|----------|
-| `jira` | Yes |
-| `confluence-mcp` | Yes |
-| `github` | Yes |
-| `nordstrom-schema-repo` | Yes |
-| `aha-mcp` | Yes |
-| `servicenow` | Yes |
-| `nordstrom-slack` | Yes |
-| `nordstrom-standards-chat` | Yes |
+| Server Key |
+|------------|
+| `jira` |
+| `confluence-mcp` |
+| `github` |
+| `nordstrom-schema-repo` |
+| `aha-mcp` |
+| `servicenow` |
+| `nordstrom-slack` |
+| `nordstrom-standards-chat` |
+| `mawm-data` |
 
 ### Required Environment Variables
 
@@ -373,6 +377,8 @@ The following environment variables **must** be set for MCP server authenticatio
 | `SERVICENOW_USERNAME` | ServiceNow username |
 | `SERVICENOW_PASSWORD` | ServiceNow password |
 | `GITLAB_TOKEN` | GitLab API authentication (git.jwn.app) |
+| `MAWM_USERNAME` | MAWM MySQL database username (FC 499 warehouse data) |
+| `MAWM_PASSWORD` | MAWM MySQL database password |
 | `ARTIFACTORY_USER` | Artifactory username (required for ServiceNow MCP local setup) |
 | `ARTIFACTORY_API_KEY` | Artifactory API key (required for ServiceNow MCP local setup) |
 
@@ -387,6 +393,8 @@ export AHA_API_TOKEN="your-aha-token"
 export SERVICENOW_USERNAME="your-servicenow-username"
 export SERVICENOW_PASSWORD="your-servicenow-password"
 export GITLAB_TOKEN="your-gitlab-token"
+export MAWM_USERNAME="your-mawm-mysql-username"
+export MAWM_PASSWORD="your-mawm-mysql-password"
 export ARTIFACTORY_USER="your-lanid"
 export ARTIFACTORY_API_KEY="your-artifactory-api-key"
 ```

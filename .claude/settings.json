@@ -15,7 +15,8 @@
       "mcp__nordstrom-slack__*",
       "mcp__nordstrom-schema-repo__*",
       "mcp__aha-mcp__*",
-      "mcp__servicenow__*"
+      "mcp__servicenow__*",
+      "mcp__mawm-data__*"
     ]
   },
   "hooks": {
