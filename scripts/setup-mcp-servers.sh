@@ -21,6 +21,62 @@ declare -A STATUS
 echo "=== Claude Code MCP Server Setup ==="
 echo ""
 
+# --- Detect SSH vs HTTPS git preference ---
+# Check in order: 1) git config url rewrite rules, 2) this repo's remote, 3) SSH key availability
+detect_git_protocol() {
+    # 1. Check if user has a global insteadOf rewrite for github.com
+    local rewrite
+    rewrite=$(git config --global --get-regexp 'url\..*\.insteadof' 2>/dev/null | grep 'github\.com' || true)
+    if echo "$rewrite" | grep -q 'git@github\.com'; then
+        echo "ssh"
+        return
+    fi
+    if echo "$rewrite" | grep -q 'https://github\.com'; then
+        echo "https"
+        return
+    fi
+
+    # 2. Check what protocol this repo's origin uses
+    local origin_url
+    origin_url=$(git remote get-url origin 2>/dev/null || true)
+    if echo "$origin_url" | grep -q '^git@'; then
+        echo "ssh"
+        return
+    fi
+    if echo "$origin_url" | grep -q '^https://'; then
+        echo "https"
+        return
+    fi
+
+    # 3. Fall back to checking if an SSH key exists that GitHub would accept
+    if ssh -T git@github.com 2>&1 | grep -qi 'successfully authenticated'; then
+        echo "ssh"
+        return
+    fi
+
+    # Default to HTTPS (most portable)
+    echo "https"
+}
+
+GIT_PROTOCOL=$(detect_git_protocol)
+
+# Build a clone URL for github.com given org/repo
+# Usage: git_url "Nordstrom-Internal" "APP10014-servicenow-mcp"
+# For HTTPS, embeds GITHUB_PAT as the auth token (required for private repos).
+git_url() {
+    local org="$1" repo="$2"
+    if [ "$GIT_PROTOCOL" = "ssh" ]; then
+        echo "git@github.com:${org}/${repo}.git"
+    elif [ -n "$GITHUB_PAT" ]; then
+        echo "https://${GITHUB_PAT}@github.com/${org}/${repo}.git"
+    else
+        echo "https://github.com/${org}/${repo}.git"
+    fi
+}
+
+echo "Detected git protocol: ${GIT_PROTOCOL}"
+echo ""
+
 # Check for required environment variables
 missing_count=0
 
@@ -199,7 +255,7 @@ if [ -d "$SERVICENOW_MCP_DIR" ]; then
     SERVICENOW_CLONED=true
 else
     mkdir -p "${REPOS_DIR}"
-    if git clone git@github.com:Nordstrom-Internal/APP10014-servicenow-mcp.git "$SERVICENOW_MCP_DIR" && \
+    if git clone "$(git_url Nordstrom-Internal APP10014-servicenow-mcp)" "$SERVICENOW_MCP_DIR" && \
        cd "$SERVICENOW_MCP_DIR" && \
        uv venv && \
        source .venv/bin/activate && \
@@ -243,7 +299,7 @@ if [ -d "$SCHEMA_REPO_DIR" ]; then
     SCHEMA_CLONED=true
 else
     mkdir -p "${REPOS_DIR}"
-    if git clone git@github.com:Nordstrom-Sandbox/nordstrom-schema-repo-mcp.git "$SCHEMA_REPO_DIR" && \
+    if git clone "$(git_url Nordstrom-Sandbox nordstrom-schema-repo-mcp)" "$SCHEMA_REPO_DIR" && \
        cd "$SCHEMA_REPO_DIR" && \
        ./install-claude-code.sh; then
         echo "  ✓ Nordstrom Schema Repo MCP server installed (user scope by upstream script)"
@@ -281,7 +337,7 @@ if [ -d "$AHA_MCP_DIR" ]; then
     AHA_CLONED=true
 else
     mkdir -p "${REPOS_DIR}"
-    if git clone git@github.com:aha-develop/aha-mcp.git "$AHA_MCP_DIR" && \
+    if git clone "$(git_url aha-develop aha-mcp)" "$AHA_MCP_DIR" && \
        cd "$AHA_MCP_DIR" && \
        npm install && \
        npm run build; then
