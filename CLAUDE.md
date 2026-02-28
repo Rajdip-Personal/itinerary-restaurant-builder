@@ -161,66 +161,36 @@ This workshop uses **Agent Teams** (not subagents). The key difference:
 ### Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  PHASE 1: Human-Driven (Main Claude)                                 │
-│  Setup → Project Selection → /refine-prd → /review-prd               │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  PHASE 2: Agent Team (Main Claude = Team Lead)                       │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │          Team Lead: Main Claude Session                      │    │
-│  │     Creates team (TeamCreate) · Spawns orchestrator          │    │
-│  │     Relays human input/validation to orchestrator            │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                              │                                       │
-│                         SendMessage                                  │
-│                              │                                       │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │              Orchestrator (persistent teammate)              │    │
-│  │     Spawns & coordinates all other teammates                 │    │
-│  │     Reviews outputs · Messages team-lead for validation      │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                              │                                       │
-│                    Task (team_name) + SendMessage                    │
-│                              │                                       │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    Teammates (persist)                       │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │    │
-│  │  │ Memory   │←→│ Planning │←→│ Require- │←→│  Design  │    │    │
-│  │  │  Agent   │  │  Agent   │  │  ments   │  │  Agent   │    │    │
-│  │  │ (always) │  │          │  │  Agent   │  │          │    │    │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │    │
-│  │        ↑             ↑             ↑             ↑          │    │
-│  │        └─────────────┼─────────────┼─────────────┘          │    │
-│  │                  SendMessage                                 │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │    │
-│  │  │  Story   │  │   Code   │  │  Sprint  │  │   Jira   │     │    │
-│  │  │Generator │  │ Scanner  │  │  Agent   │  │  Agent   │     │    │
-│  │  └──────────┘  └──────────┘  └────┬─────┘  └──────────┘     │    │
-│  │                                    │                         │    │
-│  │                           ┌────────┼────────┐                │    │
-│  │                           │        │        │                │    │
-│  │                       ┌───┴──┐ ┌───┴──┐ ┌───┴──┐            │    │
-│  │                       │Coding│ │Coding│ │Coding│            │    │
-│  │                       │Agt 1 │ │Agt 2 │ │Agt N │            │    │
-│  │                       └──────┘ └──────┘ └──────┘            │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  Human validates at each stage before team proceeds                  │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       Shared Memory Bank                             │
-│           memory-agent writes · other teammates read                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                    MCP Server Integrations                           │
-│       Jira · Confluence · GitHub · ServiceNow · Slack                │
-│              Aha! · Schema Repo · Standards Chat                     │
-└─────────────────────────────────────────────────────────────────────┘
+PHASE 1: Human-Driven (Main Claude)
+  Setup → Project Selection → /refine-prd → /review-prd
+                          │
+                          ▼
+PHASE 2: Agent Team (Main Claude = Team Lead)
+  ┌─ Team Lead (main session) ─────────────────────────┐
+  │  Creates team · Spawns orchestrator                 │
+  │  Relays human input/validation                      │
+  └──────────────────┬──────────────────────────────────┘
+                SendMessage
+  ┌──────────────────┴──────────────────────────────────┐
+  │  Orchestrator (persistent teammate)                  │
+  │  Spawns & coordinates all teammates                  │
+  │  Reviews outputs · Messages team-lead for validation │
+  └──────────────────┬──────────────────────────────────┘
+            Task + SendMessage
+  ┌──────────────────┴──────────────────────────────────┐
+  │  Teammates (all persist, communicate via SendMessage)│
+  │  Memory · Planning · Requirements · Design           │
+  │  Story Generator · Code Scanner · Jira Agent         │
+  │  Sprint Agent → Coding Agent 1..N                    │
+  └─────────────────────────────────────────────────────┘
+  Human validates at each stage before team proceeds
+                          │
+                          ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  Shared Memory Bank (memory-agent writes, others read)│
+  │  MCP Servers: Jira·Confluence·GitHub·Slack·Aha!      │
+  │  ServiceNow·Schema Repo·Standards Chat·MAWM Data     │
+  └─────────────────────────────────────────────────────┘
 ```
 
 ### Starting Claude with Agent Teams
@@ -305,6 +275,7 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **Nordstrom Standards Chat** | Query Nordstrom engineering standards |
 | **MAWM Data** | Read-only access to FC 499 MAWM warehouse database (MySQL) |
 
+<<<<<<< Updated upstream
 ### Verifying MCP Server Configuration
 
 When the user asks about their Claude Code setup or MCP server configuration, use these commands to check:
@@ -401,99 +372,15 @@ export ARTIFACTORY_API_KEY="your-artifactory-api-key"
 
 Then reload your shell: `source ~/.zshrc` (or restart your terminal).
 
+=======
+>>>>>>> Stashed changes
 ### Setup Check Protocol
 
-When a user asks about their setup or wants to start using the workshop tooling:
+For the full setup check protocol (MCP server verification, environment variables, health checks, team setup, and branch creation), read `docs/setup-protocol.md`. That file contains Steps 1-6: config checks, env var checks, health check table, status table format, remediation steps, team name prompt, and branch creation.
 
-**Step 1 — Check MCP Server Configuration:**
+### Project Selection (Step 7)
 
-1. Run the MCP server config check command (python3 script to read `~/.claude.json`)
-2. Compare configured servers against the required list
-
-**Step 2 — Check Environment Variables:**
-
-3. Run the environment variable check command
-4. Compare against the required list
-
-**Step 3 — Check MCP Server Connection Status:**
-
-5. Run health check tools for all configured MCP servers **in parallel** (see "Verifying MCP Server Connection Status" above)
-6. Record each server as `Connected` or `Not Connected`
-
-**Step 4 — Display Combined Status Table:**
-
-7. Display a single summary table combining all three checks:
-
-```
-┌───────────────────────┬────────────┬───────────┬─────────────┐
-│ Service               │ Configured │ Env Vars  │ Connected   │
-├───────────────────────┼────────────┼───────────┼─────────────┤
-│ Jira                  │ ✓          │ ✓         │ ✓           │
-│ Confluence            │ ✓          │ ✓         │ ✗           │
-│ GitHub                │ ✓          │ ✓         │ ✓           │
-│ Aha!                  │ ✗          │ ✓         │ —           │
-│ ServiceNow            │ ✓          │ ✗         │ —           │
-│ Slack                 │ ✓          │ —         │ ✓           │
-│ Schema Repo           │ ✓          │ —         │ ✓           │
-│ Standards Chat        │ ✓          │ —         │ ✓           │
-│ GitLab                │ —          │ ✓         │ —           │
-└───────────────────────┴────────────┴───────────┴─────────────┘
-```
-   - Use `✓` for pass, `✗` for fail, `—` for not applicable (e.g., no env var needed, or can't check connection if not configured)
-   - For servers that are not configured, skip the connection check and show `—`
-
-**Step 5 — Handle Issues (MANDATORY: Ask User):**
-
-8. **If ALL checks pass** (all configured, all env vars set, all connected): proceed directly to "Ready to Start" (Step 6)
-
-9. **If ANY check fails** (missing config, missing env var, or not connected):
-   - Display the status table (Step 4) so the user sees exactly what's wrong
-   - List specific remediation steps for each issue:
-     - Missing MCP server → run `scripts/setup-mcp-servers.sh`, restart Claude Code
-     - Missing env var → add to `~/.zshrc`, run `source ~/.zshrc`, restart Claude Code
-     - Not connected → check credentials, restart Claude Code, verify network
-   - **MUST use `AskUserQuestion`** to ask the user whether to continue:
-     ```
-     AskUserQuestion:
-       questions:
-         - question: "Some MCP servers or environment variables are not ready (see above). Do you want to continue anyway? Note: any workflow step that needs a missing/disconnected service will STOP and cannot use workarounds."
-           header: "Continue?"
-           multiSelect: false
-           options:
-             - label: "Yes, continue anyway"
-               description: "Proceed to project selection — workflows will stop if they need an unavailable service"
-             - label: "No, I'll fix the issues first"
-               description: "Stop here so I can fix configuration, then restart Claude Code"
-     ```
-   - **If user chooses "No"**: STOP. Do NOT proceed. Wait for user to fix issues and restart.
-   - **If user chooses "Yes"**: proceed to "Ready to Start" (Step 6)
-
-**Step 6 — Team Setup & Branch Creation:**
-
-10. Display "Ready to Start"
-11. **Ask for team name** using `AskUserQuestion`:
-    ```
-    AskUserQuestion:
-      questions:
-        - question: "What is your team's name? This will be used to create a dedicated branch for your work."
-          header: "Team Name"
-          multiSelect: false
-          options:
-            - label: "Enter team name"
-              description: "e.g., 'alpha', 'phoenix', 'supply-chain-1' — keep it short, lowercase, no spaces"
-    ```
-    - The user will type their team name in the "Other" freeform input
-12. **Create and checkout a team branch:**
-    - Sanitize the team name: lowercase, replace spaces with hyphens, remove special characters
-    - Branch name format: `team-{sanitized-name}` (e.g., `team-alpha`, `team-phoenix`)
-    - **Check if a branch already exists** (case-insensitive): run `git branch -a | grep -i "team-{sanitized-name}"` to find any existing branch regardless of case
-    - If a matching branch exists: checkout that existing branch (`git checkout {existing-branch-name}`) — preserve the original branch's casing
-    - If no matching branch exists: create a new branch from `jira-agent` with `git checkout jira-agent && git checkout -b team-{sanitized-name}`
-    - **TODO: Before the workshop, update this to branch from `main` once `jira-agent` has been merged into `main`.**
-    - Display confirmation: "Switched to branch `{branch-name}`" (existing) or "Created and switched to branch `team-{sanitized-name}`" (new)
-    - **All team work happens on this branch** — PRD refinements, memory bank updates, generated docs, etc.
-
-**Step 7 — Project Selection:**
+After setup is complete, proceed to project selection:
 
 13. Scan `projects/` directory for subdirectories containing `prd.md` (use `Glob("projects/*/prd.md")`, NOT bash `ls` or `find`)
 14. **Use `AskUserQuestion`** to ask project selection. Dynamically build options from the projects found in step 13, plus always include a "Create my own project" option:
@@ -737,14 +624,6 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
      description: "Coordinate remaining pipeline"
 ```
 
-**Why the main session is team lead, not the orchestrator:**
-- `TeamCreate` designates its caller as team lead — only the main session can do this
-- The main session is the only process that directly interacts with the human
-- The orchestrator is spawned as a persistent teammate (via `Task` with `team_name`) so it stays alive across pipeline stages, receives messages, and can spawn other teammates
-- The orchestrator messages the team lead when it needs human validation; the team lead relays to the human
-
-The orchestrator will take over coordination from there, spawning teammates as needed and messaging the team lead to keep the human in the loop.
-
 ### Team Lead Rules (MANDATORY)
 
 **The team lead (main session) ONLY spawns the orchestrator.** All other teammates are spawned and managed by the orchestrator. This is non-negotiable.
@@ -796,41 +675,7 @@ The Nordstrom Engineering Standards below are reference material for production 
 
 ## Nordstrom Engineering Standards
 
-All generated code, designs, and stories **must** adhere to:
-
-### Security
-- Authentication and authorization via standard identity platform
-- PII masking in all logs and non-production environments
-- Secrets managed via Vault or Kubernetes secrets — never in code or config files
-- Input validation on all external boundaries
-- RBAC enforced at API and data layers
-
-### Deployment
-- Standard CI/CD pipeline on GitHub Actions
-- Kubernetes deployment on standard K8s platform
-- Container security scanning in CI pipeline
-- Blue-green or canary deployment strategy
-- Infrastructure as code (Terraform/Helm)
-
-### Logging & Observability
-- Structured JSON logging — no unstructured log lines
-- Correlation IDs propagated across all service calls
-- No PII in logs — mask SSN, email, phone, address, names
-- Standard log levels: DEBUG, INFO, WARN, ERROR
-- Health check endpoint (`/health`) and readiness endpoint (`/ready`)
-
-### Monitoring
-- SLIs defined for latency, error rate, throughput
-- SLOs documented and alerted on
-- Dashboards in standard monitoring platform
-- Alerting with clear runbook links
-
-### Code Quality
-- Code review required for all changes (minimum 1 approval)
-- 80% unit test coverage minimum
-- Integration tests for all API endpoints
-- Performance/load tests for user-facing flows
-- Linting and formatting enforced in CI
+All generated code, designs, and stories **must** adhere to Nordstrom engineering standards. Read `.claude/skills/nordstrom-engineering-standards.md` for the full reference (security, deployment, logging, monitoring, code quality). Any agent generating code, designs, or stories must read this file.
 
 ## Important Notes
 

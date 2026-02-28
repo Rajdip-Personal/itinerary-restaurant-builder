@@ -61,7 +61,9 @@ mcp__jira-mcp__get_current_user()
 ```
 Store the username for assigning stories during IN_PROGRESS transitions.
 
-## Step 1: Get Jira Project Key
+## Step 1: Get Jira Project Key and App Label
+
+### 1a. Get Jira Project Key
 
 1. Read `memory-bank/techContext.md` — check if a Jira project key is already recorded
 2. If not found, message the orchestrator to ask the human:
@@ -82,19 +84,51 @@ Store the username for assigning stories during IN_PROGRESS transitions.
 4. Validate the key: `mcp__jira-mcp__search_issues(jql: "project = {KEY} ORDER BY created DESC", max_results: 1)`
    - If valid (no error) → proceed
    - If invalid → report error to orchestrator, ask for correct key
-5. Send the confirmed key to memory-agent:
+
+### 1b. Get App Name Label
+
+Since multiple apps may share the same Jira project, every epic and story must be tagged with the app name as a Jira label. This allows filtering with `labels = "{app-label}"` in JQL.
+
+1. Read the project name from `memory-bank/projectbrief.md` (the project title/name)
+2. Sanitize it into a valid Jira label:
+   - Lowercase
+   - Replace spaces with hyphens
+   - Remove special characters (keep only `a-z`, `0-9`, `-`)
+   - Example: "RTO Compliance Viewer" → `rto-compliance-viewer`
+3. Message the orchestrator to **confirm the label with the human**:
    ```
    SendMessage:
      type: "message"
-     recipient: "memory-agent"
+     recipient: "orchestrator"
      content: |
-       MEMORY UPDATE:
-       - Agent: jira-agent
-       - Type: decision
-       - Content: Jira project key confirmed: {KEY}
-       - Context: Validated via search query. All epics and stories will be created in this project.
-     summary: "Record Jira project key"
+       ## App Label for Jira Stories
+
+       Since multiple apps may share the same Jira project, I'll tag every epic and story with an app-name label.
+       This allows filtering in Jira with: `labels = "{app-label}"`
+
+       **Proposed label:** `{sanitized-app-name}`
+
+       Please ask the human to confirm or provide a different label.
+     summary: "Confirm app label for Jira stories"
    ```
+4. **STOP and WAIT** for the orchestrator to reply with the confirmed label
+5. Store the confirmed label for use in Steps 3 and 4
+
+### 1c. Record to Memory
+
+Send the confirmed project key and app label to memory-agent:
+```
+SendMessage:
+  type: "message"
+  recipient: "memory-agent"
+  content: |
+    MEMORY UPDATE:
+    - Agent: jira-agent
+    - Type: decision
+    - Content: Jira project key confirmed: {KEY}. App label: {app-label}.
+    - Context: Validated via search query. All epics and stories will be created in project {KEY} with label "{app-label}" for filtering.
+  summary: "Record Jira project key and app label"
+```
 
 ## Step 2: Read Story Files
 
@@ -109,13 +143,14 @@ Store the username for assigning stories during IN_PROGRESS transitions.
 
 ## Step 3: Create Epics
 
-Create one Jira epic per phase:
+Create one Jira epic per phase, tagged with the app label:
 
 ```
 mcp__jira-mcp__create_epic(
   project_key: "{KEY}",
   summary: "Phase {N}: {Phase Name}",
-  description: "Workshop-generated epic for {Phase Name}. Contains all stories for this implementation phase."
+  description: "Workshop-generated epic for {Phase Name}. Contains all stories for this implementation phase.",
+  labels: ["{app-label}"]
 )
 ```
 
@@ -123,7 +158,7 @@ Record each epic key (e.g., SCAW1-10) for linking stories.
 
 ## Step 4: Create Stories
 
-For each story, create a Jira issue:
+For each story, create a Jira issue tagged with the app label:
 
 ```
 mcp__jira-mcp__create_issue(
@@ -132,6 +167,7 @@ mcp__jira-mcp__create_issue(
   issue_type: "Story",
   description: "{formatted body in Jira wiki markup}",
   priority: "{mapped priority}",
+  labels: ["{app-label}"],
   custom_fields: {"Story Points": {N}}
 )
 ```
@@ -187,12 +223,12 @@ This prevents Jira from auto-linking to unrelated projects.
 
 After creating all epics and stories, **verify that every expected story exists in Jira** before writing the mapping file.
 
-### 5a. Query Jira for all project stories
+### 5a. Query Jira for all project stories with the app label
 
 ```
 mcp__jira-mcp__search_issues(
-  jql: "project = {KEY} AND issuetype = Story ORDER BY created ASC",
-  fields: "summary,status,priority",
+  jql: "project = {KEY} AND issuetype = Story AND labels = \"{app-label}\" ORDER BY created ASC",
+  fields: "summary,status,priority,labels",
   max_results: 100
 )
 ```
@@ -223,6 +259,10 @@ After verifying all epics and stories, write `docs/jira-mapping.md`:
 
 ```markdown
 # Jira Issue Mapping
+
+**Project:** {KEY}
+**App Label:** `{app-label}`
+**JQL Filter:** `project = {KEY} AND labels = "{app-label}"`
 
 ## Epic Mapping
 
@@ -381,3 +421,4 @@ You are spawned with `mode: "bypassPermissions"`, which should allow you to call
 - **Escape requirement IDs** — Wrap `TR-`, `BR-`, `FR-`, `NFR-`, and workshop story IDs in `{{}}` in all Jira descriptions.
 - **Use get_current_user for assignee** — Do not hardcode usernames. Discover the PAT owner at startup.
 - **custom_fields is a dict** — Pass `{"Story Points": N}` as a native dict, never as a JSON string.
+- **Always apply the app label** — Every epic and story MUST include `labels: ["{app-label}"]`. This enables filtering by app in shared Jira projects using `labels = "{app-label}"` in JQL.
