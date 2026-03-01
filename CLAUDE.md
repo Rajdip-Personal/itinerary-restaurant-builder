@@ -4,7 +4,7 @@
 
 This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → technical design → user stories → validation → implementation in a 3-hour hands-on workshop.
 
-**This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.
+**This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.<<<img src="">
 
 ## Fundamental Principles
 
@@ -63,10 +63,12 @@ When analyzing any repository or application:
 - If you cannot clone and read the code, you cannot make technical assessments
 
 **Before any code analysis:**
-1. The repository MUST be cloned locally via SSH
-2. Analysis MUST use local file system operations (Read, Glob, Grep)
-3. If SSH clone fails, the analysis STOPS — do not attempt API-based or HTTPS workarounds
-4. All findings MUST reference specific files and line numbers in the actual code
+1. Check the user's git config - is it configured for HTTPS or SSH
+2. Clone the repo according to the git config
+3. Analysis MUST use local file system operations (Read, Glob, Grep)
+4. If SSH clone fails, the analysis STOPS — do not attempt API-based or HTTPS workarounds
+5. The same applies for HTTPS. If it fails, STOP and report to the user — do not attempt SSH or API-based workarounds
+6. All findings MUST reference specific files and line numbers in the actual code
 
 **Documentation is useful for:**
 - Understanding business context and intent
@@ -139,7 +141,7 @@ Orchestrator agent fails with API error
 3. Do NOT attempt to use `curl`, REST APIs, `gh` CLI, or any other workaround to get the same data
 4. The workflow stops for that data source — the user must fix the MCP server configuration
 
-**For all other data sources** (websites, public APIs, internal services not listed above, etc.), Claude is free to use any available tool — `curl`, `WebFetch`, `Bash`, or any other approach that works.
+**For all other data sources** (websites, public APIs, internal services not listed above, etc.), Claude is free to use any available tool — Claude skill, `curl`, `WebFetch`, `Bash`, or any other approach that works.
 
 ## Architecture
 
@@ -275,7 +277,6 @@ The following MCP servers are configured. Use the exact server name prefix when 
 | **Nordstrom Standards Chat** | Query Nordstrom engineering standards |
 | **MAWM Data** | Read-only access to FC 499 MAWM warehouse database (MySQL) |
 
-<<<<<<< Updated upstream
 ### Verifying MCP Server Configuration
 
 When the user asks about their Claude Code setup or MCP server configuration, use these commands to check:
@@ -372,8 +373,6 @@ export ARTIFACTORY_API_KEY="your-artifactory-api-key"
 
 Then reload your shell: `source ~/.zshrc` (or restart your terminal).
 
-=======
->>>>>>> Stashed changes
 ### Setup Check Protocol
 
 For the full setup check protocol (MCP server verification, environment variables, health checks, team setup, and branch creation), read `docs/setup-protocol.md`. That file contains Steps 1-6: config checks, env var checks, health check table, status table format, remediation steps, team name prompt, and branch creation.
