@@ -1,4 +1,4 @@
-# Agentic AI Workshop — From PRD to Working Code
+# Agentic AI Workshop — From Product Requirements Document (PRD) to Working Code
 
 A hands-on workshop for Nordstrom Supply Chain engineering squads. Specialized AI agents collaborate through shared memory to take a PRD through planning, design, stories, and implementation — with human review and approval at every step.
 
@@ -88,7 +88,8 @@ Step 4: Refine PRD                   Step 5: Review Questions
                                                     ▼
                               ┌──────────────────────────────────┐
                               │  HANDOFF: Claude creates an       │
-                              │  Agent Team — specialist agents    │
+                              │  Agent Team — an Orchestrator      │
+                              │  coordinates specialist agents     │
                               │  that persist and collaborate.     │
                               │  From here, agents generate;       │
                               │  you review and approve.           │
@@ -289,7 +290,8 @@ Each specialist agent is spawned by the orchestrator when its step begins and st
 
 | Agent | Steps | What It Does | Parallelism |
 |-------|-------|-------------|-------------|
-| **memory-agent** | 6-13 (always running) | Central authority for the shared memory bank. All other agents send updates to it via messaging — it is the only agent that writes to `memory-bank/`. Maintains project context, decisions, and progress across all steps. | 1 |
+| **orchestrator** | 6-13 (always running) | Coordinates the entire agent team. Spawns and despawns specialist agents, reviews output quality, compiles parallel results, routes revision feedback, tracks pipeline state, commits and pushes after each approved step. | 1 |
+| **memory-agent** | 6-13 (always running) | Central authority for the shared memory bank once the Agent Team is running. All other agents send updates to it via messaging. During Steps 1-5, the main Claude session updates the memory bank directly. | 1 |
 | **planning-agent** | 6 | Reads the PRD and generates a phased execution plan with milestones, work packages, dependency ordering, and effort estimates. | 1 |
 | **requirements-agent** | 7 | Extracts structured, traceable requirements from the PRD: Business (BR), Functional (FR), Technical (TR), Non-Functional (NFR). | 2 (split by category) |
 | **design-agent** | 8 | Produces the technical design: architecture, component inventory, data model, API specs, security model, observability, and gap analysis. | 4 (split by section) |
@@ -330,18 +332,18 @@ Each specialist agent is spawned by the orchestrator when its step begins and st
 
 Four pre-built PRDs are included. You can also create your own.
 
-| Project | Directory | Tech Stack | Complexity |
-|---------|-----------|------------|------------|
-| **RTO Compliance UI** | `projects/rto-compliance-ui/` | React, Java/Spring Boot, PostgreSQL, Kafka | High — full-stack with RBAC, dashboards |
-| **RTO Compliance CLI** | `projects/rto-compliance-cli/` | Python, CSV parsing, local config | Medium — CLI with data processing |
-| **Calculator CLI** | `projects/calculator-cli/` | Python, pytest | Low — expression parser, great for learning the flow |
-| **Infrastructure & Delivery** | `projects/infra-delivery/` | Varies | Medium — discovery, gap analysis, documentation |
+| Project | Directory | Complexity |
+|---------|-----------|------------|
+| **RTO Compliance UI** | `projects/rto-compliance-ui/` | High |
+| **RTO Compliance CLI** | `projects/rto-compliance-cli/` | Medium |
+| **Calculator CLI** | `projects/calculator-cli/` | Low — great for learning the flow |
+| **Infrastructure & Delivery** | `projects/infra-delivery/` | Medium |
 
 ---
 
 ## Memory Bank
 
-The memory bank (`memory-bank/`) is shared persistent context updated after every step. The **memory-agent** is the only agent that writes to it — all others send updates via messaging.
+The memory bank (`memory-bank/`) is shared persistent context updated after every step. During Steps 1-5, the main Claude session updates it directly. Once the Agent Team starts (Steps 6-13), the **memory-agent** takes over as the sole writer — all other agents send updates to it via messaging.
 
 | File | Purpose |
 |------|---------|
@@ -354,16 +356,22 @@ The memory bank (`memory-bank/`) is shared persistent context updated after ever
 
 ---
 
-## MCP Server Setup
+## Setup
 
-MCP (Model Context Protocol) servers give Claude access to external systems. Run the setup script to configure them:
+Run the setup script to install dependencies and configure MCP servers:
 
 ```bash
-./scripts/setup-mcp-servers.sh
+./scripts/setup.sh
 ```
 
-**Required environment variables:**
-- `JIRA_PAT` — Jira Personal Access Token
+This script does three things:
+1. **Installs tmux** — enables the multi-pane view where each agent gets its own pane so you can watch them work in parallel. Agent Teams still works without tmux, but you won't see individual agent panes.
+2. **Configures iTerm2 split-pane** — optional, for iTerm2 users.
+3. **Sets up MCP servers** — connects Claude to Jira, Confluence, GitHub, Slack, and other external systems. **Only Jira is required** for the workshop; everything else adds context but won't block the flow.
+
+**Environment variables** must be set before running setup. At minimum, set `JIRA_PAT` (Jira Personal Access Token). The full list:
+
+- `JIRA_PAT` — Jira Personal Access Token **(required)**
 - `CONFLUENCE_PAT` — Confluence Personal Access Token
 - `GITHUB_PAT` — GitHub Personal Access Token (with SSO authorization)
 - `AHA_API_TOKEN` — Aha! API Token
@@ -372,27 +380,25 @@ MCP (Model Context Protocol) servers give Claude access to external systems. Run
 - `MAWM_USERNAME` / `MAWM_PASSWORD` — MAWM MySQL database credentials
 - `ARTIFACTORY_USER` / `ARTIFACTORY_API_KEY` — Artifactory credentials (for ServiceNow MCP setup)
 
-See the [setup script](scripts/setup-mcp-servers.sh) for details. Run `./scripts/check-env.sh` to verify.
-
 ---
 
 ## Slash Commands Reference
 
-These commands are presented automatically by the guided flow. You don't need to memorize them. Listed in the order they are invoked:
+The workshop flow runs automatically — you do not need to type these commands. They exist for manual use if you want to re-run a specific step outside the guided flow.
 
-| Step | Command | What It Does |
-|------|---------|-------------|
-| 4 | `/refine-prd` | Assess PRD completeness, ask targeted questions, update PRD and memory bank |
-| 5 | `/review-prd` | Walk through open questions one by one, gather answers, update PRD |
-| 6 | `/generate-plan` | Generate phased execution plan with milestones and work packages |
-| 7 | `/extract-requirements` | Extract structured requirements (BR/TR/FR/NFR) |
-| 8 | `/generate-design` | Generate technical design (architecture, APIs, data model, security) |
-| 9 | `/prototype-ui` | Generate a working React prototype and launch at localhost:5173 |
-| 10 | `/generate-stories` | Generate sprint-ready user stories with acceptance criteria |
-| 11 | `/validate-coverage` | Cross-check stories against requirements for gaps |
-| 13 | `/implement` | Start implementation — sprint-agent coordinates coding agents |
-| any | `/scan-codebase` | Analyze existing codebase for patterns and architecture (optional) |
-| any | `/manage-memory` | View or update the shared memory bank |
+| Command | What It Does |
+|---------|-------------|
+| `/refine-prd` | Assess PRD completeness, ask targeted questions, update PRD and memory bank |
+| `/review-prd` | Walk through open questions one by one, gather answers, update PRD |
+| `/generate-plan` | Generate phased execution plan with milestones and work packages |
+| `/extract-requirements` | Extract structured requirements (BR/TR/FR/NFR) |
+| `/generate-design` | Generate technical design (architecture, APIs, data model, security) |
+| `/prototype-ui` | Generate a working React prototype and launch at localhost:5173 |
+| `/generate-stories` | Generate sprint-ready user stories with acceptance criteria |
+| `/validate-coverage` | Cross-check stories against requirements for gaps |
+| `/implement` | Start implementation — sprint-agent coordinates coding agents |
+| `/scan-codebase` | Analyze existing codebase for patterns and architecture (optional) |
+| `/manage-memory` | View or update the shared memory bank |
 
 ---
 
@@ -420,13 +426,14 @@ These commands are presented automatically by the guided flow. You don't need to
 ### Environment
 - [ ] Repository cloned and accessible to all teams
 - [ ] Claude Code installed and authenticated for all participants
-- [ ] MCP servers configured via `./scripts/setup-mcp-servers.sh`
-- [ ] Environment variables set and verified via `./scripts/check-env.sh`
+- [ ] `./scripts/setup.sh` has been run (installs tmux, configures iTerm2 split-pane, sets up MCP servers)
+- [ ] Environment variables set (see "MCP Server Setup" above)
 
 ### Content
 - [ ] Review project PRDs — customize for your teams if needed
 - [ ] Assign teams to projects (or let them choose)
 - [ ] Verify engineering standards in `.claude/skills/nordstrom-engineering-standards.md` are current
+- [ ] Printed or shared quick-reference cards ([Workshop](docs/quick-ref-participants.md), [Facilitator](docs/quick-ref-facilitators.md))
 
 ### Dry Run
 - [ ] Run through the full flow on at least one project (Calculator CLI is quickest)
