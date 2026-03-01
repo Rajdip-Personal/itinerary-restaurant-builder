@@ -10,7 +10,7 @@ A hands-on workshop for Nordstrom Supply Chain engineering squads. Specialized A
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url>
+git clone git@github.com:Nordstrom-Sandbox/agentic-ai-workshop.git
 cd agentic-ai-workshop
 
 # 2. First-time setup — configure MCP servers and install tmux
@@ -63,7 +63,7 @@ Step 1: Setup                        Step 2: Project              Step 3: Read P
                          ┌────────────────────────────────────────────────────┘
                          │
                          ▼
-Step 4: Refine PRD                   Step 5: Review Open Questions
+Step 4: Refine PRD                   Step 5: Review Questions
 ┌──────────────────────┐             ┌──────────────────────────┐
 │ Agent: Claude         │             │ Agent: Claude             │
 │ Input: prd.md,        │             │ Input: PRD open questions │
@@ -244,7 +244,7 @@ Step 12: Jira Sync                            Step 13: Implementation
 | 2 | Project Selection | Choose which project the team will build | Claude | Team (consensus) | choose project | — | selected project | — | no |
 | 3 | Read PRD | Ensure the whole team understands the project before refinement begins | — | Team (everyone reads) | type "ready" | **gate** — blocked until "ready" | — | — | no |
 | 4 | Refine PRD | Assess PRD completeness and fill gaps through guided Q&A | Claude | Product owner / domain expert | answer questions, provide business context, make scope decisions | readiness check | updated `prd.md`, updated memory bank | **commit + push** PRD + memory bank | **yes** — loop until ready |
-| 5 | Open Questions | Resolve every remaining open question in the PRD | Claude | Product owner / domain expert | answer each question or accept default | all questions resolved | updated `prd.md` (finalized) | **commit + push** PRD + memory bank | **yes** — per question |
+| 5 | Review Questions | Resolve every remaining open question in the PRD | Claude | Product owner / domain expert | answer each question or accept default | all questions resolved | updated `prd.md` (finalized) | **commit + push** PRD + memory bank | **yes** — per question |
 | 6 | Execution Plan | Break the PRD into phased milestones and work packages | planning-agent | Tech lead / architect | — | **approve / revise / re-run** | `docs/execution-plan.md` | **commit + push** on approve | **yes** — revise loop |
 | 7 | Requirements | Extract structured, traceable requirements from the PRD | requirements-agent | Tech lead / product owner | — | **approve / revise / re-run** | `docs/requirements-*.md` | **commit + push** on approve | **yes** — revise loop |
 | 8 | Technical Design | Define architecture, APIs, data model, security, and component design | design-agent (x4) | Architect / senior engineer | — | **approve / revise / re-run** | `docs/design-*.md` | **commit + push** on approve | **yes** — revise loop |
@@ -396,6 +396,13 @@ These commands are presented automatically by the guided flow. You don't need to
 
 ---
 
+## Quick Reference Cards
+
+- **[Workshop Quick Reference](docs/quick-ref-participants.md)** — One-page card for workshop participants: superpowers, 13 steps, data sources, MCP servers, don't-panic guide
+- **[Facilitator Quick Reference](docs/quick-ref-facilitators.md)** — For Sr 2s helping teams: pre-workshop checklist, troubleshooting, timing benchmark, known gaps
+
+---
+
 ## Workshop Goals
 
 **Ideal outcome:** Each team produces a working app or POC — code in GitHub, stories in Jira, all generated from a PRD in one session.
@@ -404,7 +411,7 @@ These commands are presented automatically by the guided flow. You don't need to
 
 ## Workshop Logistics
 
-- **Rotate the driver.** The person best suited to review each step's output should be at the keyboard. Product owners drive PRD refinement (Steps 4-5); architects and senior engineers drive design and requirements review (Steps 6-8); the whole team previews the prototype (Step 9); engineers drive implementation (Step 13).
+- **Rotate the driver.** The person best suited to review each step's output should be at the keyboard. Product owners drive Refine and Review PRD; architects and senior engineers drive Execution Plan, Requirements, and Technical Design; the whole team previews the UI Prototype; engineers drive Implementation.
 - **Identify data sources early.** If the project depends on external data (APIs, databases, CSV exports), assign team members to determine sources and access methods as soon as possible. The sooner data sources are known, the better the requirements and design will incorporate them.
 - **Each team should include an engineer familiar with the flow.** Where that's not possible, teams should have a way to reach one of the senior engineers who have run the flow before (Slack channel, same room, etc.).
 
