@@ -533,6 +533,15 @@ Track pipeline state in `memory-bank/progress.md`:
 
 **The orchestrator and its teammates should also commit+push** after each stage they complete. Include this instruction when spawning the orchestrator.
 
+**Final commit+push after team shutdown (MANDATORY):**
+
+After all agents have shut down and the team is being deleted, the team lead MUST do one final check:
+1. Run `git status` to check for any uncommitted changes (agents may have written files between the last commit and shutdown)
+2. If there are changes: stage, commit, and push them
+3. Only declare the project complete after confirming the working tree is clean and pushed
+
+This catches late writes from agents that finish after the team lead's last commit (e.g., memory-agent recording final state, jira-agent writing final status updates).
+
 ## Slash Commands
 
 These commands trigger agent pipelines. **Users don't need to memorize these** — the guided workflow presents them automatically via navigation prompts.
