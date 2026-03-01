@@ -141,6 +141,20 @@ If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYM
 - All functional feature stories
 - All test stories
 
+### README Story (Always Include)
+
+Every project **must** include a README story as the **final story** in the last sprint/phase. This ensures the README is written after all features are implemented, so it accurately reflects the actual tool.
+
+**US: Create project README with installation and usage instructions**
+- **Priority:** P1
+- **Points:** 2
+- **Sprint:** Last sprint (after all feature stories)
+- **Acceptance Criteria:**
+  - README.md exists at project root
+  - Includes: project description, installation instructions, usage examples, development setup (build, test, lint commands)
+  - Usage examples are accurate and match actual CLI/API behavior
+  - No placeholder text or TODOs
+
 ## Output Structure
 
 Write all stories to `docs/user-stories.md`:
