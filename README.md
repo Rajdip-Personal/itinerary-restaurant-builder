@@ -1,19 +1,8 @@
-# Agentic AI Workshop — From Requirements to Implementation
+# Agentic AI Workshop — From PRD to Working Code
 
-A hands-on workshop repository for Nordstrom Supply Chain engineering squads. Go from PRD to user stories to technical design using agentic AI workflows powered by Claude Code.
+A hands-on workshop for Nordstrom Supply Chain engineering squads. Specialized AI agents collaborate through shared memory to take a PRD through planning, design, stories, and implementation — with human review and approval at every step.
 
-## What This Is
-
-This repo provides a pre-built system of specialized AI agents that collaborate through shared memory to help engineering squads:
-
-1. **Plan** — Break down a PRD into phased execution plans
-2. **Extract Requirements** — Generate structured, traceable requirements (BR/TR/FR/NFR)
-3. **Write Stories** — Produce sprint-ready user stories with acceptance criteria
-4. **Scan Code** — Analyze existing repos for patterns, tech debt, and standards compliance
-5. **Design** — Create detailed technical design documents
-6. **Validate** — Cross-check stories against requirements for gaps
-
-**This is human-in-the-loop.** Agents assist — engineers decide. Every output is reviewed and validated by the squad before moving to the next stage.
+**This is human-in-the-loop, not autopilot.** Agents assist — engineers decide.
 
 ---
 
@@ -24,8 +13,8 @@ This repo provides a pre-built system of specialized AI agents that collaborate 
 git clone <repo-url>
 cd agentic-ai-workshop
 
-# 2. First-time setup only — run once to configure MCP servers and install tmux
-#    (You'll need to set the appropriate tokens in env vars first — see "MCP Server Setup" below)
+# 2. First-time setup — configure MCP servers and install tmux
+#    (Set environment variables first — see "MCP Server Setup" below)
 ./scripts/setup.sh
 
 # 3. Start the workshop
@@ -36,83 +25,323 @@ cd agentic-ai-workshop
 
 ---
 
-## Slash Commands
+## The Flow
 
-| Command | What It Does |
-|---------|-------------|
-| `/refine-prd <path>` | **Start here.** Assesses PRD completeness, asks targeted questions to fill gaps, updates the PRD and memory bank as you refine. Tells you when the PRD is ready for the next stage. |
-| `/review-prd <path>` | Walks through every open question in the PRD one by one, gathers your answers, suggests defaults where possible, and updates the PRD and memory bank. Tells you when no blocking questions remain. |
-| `/prototype-ui <path>` | Generates a working React prototype from PRD workflows with mock data, role switcher, and interactive pages. Launches in browser at localhost:5173. |
-| `/generate-plan` | Reads the PRD and generates a phased execution plan with milestones, work packages, dependencies, and effort estimates |
-| `/extract-requirements` | Processes the PRD into structured requirements: Business (BR), Technical (TR), Functional (FR), Non-Functional (NFR) — including mandatory Nordstrom engineering standards |
-| `/generate-stories` | Translates requirements into sprint-ready user stories with Given/When/Then acceptance criteria, technical notes, and story point estimates |
-| `/scan-codebase <path>` | Analyzes an existing codebase for tech stack, architecture, API patterns, security, tech debt, and Nordstrom standards compliance |
-| `/manage-memory` | Views or updates the shared memory bank that persists context across all agents |
-| `/generate-design` | Generates a detailed technical design covering architecture, APIs, data model, security, observability, and deployment |
-| `/validate-coverage` | Cross-checks user stories against requirements — finds gaps, orphan stories, weak acceptance criteria, and unaddressed NFRs |
+The workshop has 13 steps. Claude presents each step automatically — you don't memorize commands. Nothing moves forward without your approval.
 
-All commands accept additional arguments for context. Example: `/generate-plan focus on security and auth first`
+```
+  YOU START WITH                              YOU END WITH
+  ──────────────────────                      ──────────────────────────
+  A rough PRD (1-2 pages is fine)       --->  Refined PRD
+                                              Execution plan
+                                              Structured requirements
+                                              Technical design document
+                                              Sprint-ready user stories
+                                              Jira epics and stories
+                                              Working tested code in GitHub
+```
+
+### Flow Diagram
+
+```
+Step 1: Setup                        Step 2: Project              Step 3: Read PRD
+┌──────────────────────┐             ┌─────────────────────┐      ┌─────────────────────┐
+│ Agent: Claude         │             │ Agent: Claude        │      │ Agent: —             │
+│ Input: environment    │             │ Input: projects/     │      │ Input: prd.md        │
+│ Output: status table  │────────────>│ Output: selected     │─────>│ Output: —            │
+│                       │             │         project      │      │                      │
+│ Human: verify status, │             │ Human: choose project│      │ Human: read PRD with │
+│   provide team name   │             │   or create custom   │      │   squad, type "ready"│
+│                       │             │                      │      │                      │
+│ Git: create branch    │             │ Iterate: no          │      │ GATE: waits for      │
+│   team-{name}         │             └─────────────────────┘      │   "ready"            │
+│   commit + push       │                                          └──────────┬──────────┘
+│                       │                                                     │
+│ Iterate: no           │                                                     │
+└──────────────────────┘                                                      │
+                                                                              │
+                         ┌────────────────────────────────────────────────────┘
+                         │
+                         ▼
+Step 4: Refine PRD                   Step 5: Review Open Questions
+┌──────────────────────┐             ┌──────────────────────────┐
+│ Agent: Claude         │             │ Agent: Claude             │
+│ Input: prd.md,        │             │ Input: PRD open questions │
+│        memory bank    │             │ Output: updated prd.md    │
+│ Output: updated       │             │   (all questions answered)│
+│   prd.md, updated     │────────────>│                           │
+│   memory bank,        │             │ Human: answer each        │
+│   readiness score     │             │   question or accept      │
+│                       │             │   suggested default       │
+│ Human: answer         │             │                           │
+│   questions, provide  │             │ Git: commit + push        │
+│   context, decide     │             │   (PRD + memory bank)     │
+│                       │             │                           │
+│ Git: commit + push    │             │ Iterate: yes — per        │
+│   (PRD + memory bank) │             │   question, re-run if new │
+│                       │             │   questions surface       │
+│ Iterate: YES —        │             └─────────────┬────────────┘
+│   repeats until       │                           │
+│   readiness check     │◄──── loop                 │
+│   passes              │     until ready           │
+└──────────────────────┘                            │
+                                                    ▼
+                              ┌──────────────────────────────────┐
+                              │  HANDOFF: Claude creates an       │
+                              │  Agent Team — specialist agents    │
+                              │  that persist and collaborate.     │
+                              │  From here, agents generate;       │
+                              │  you review and approve.           │
+                              └──────────────────┬───────────────┘
+                                                 │
+          ┌──────────────────────────────────────┘
+          │
+          ▼
+Step 6: Execution Plan                        Step 7: Requirements
+┌─────────────────────────────┐               ┌─────────────────────────────┐
+│ Agent: planning-agent        │               │ Agent: requirements-agent    │
+│ Input: prd.md, memory bank   │               │ Input: prd.md, plan,         │
+│ Output: docs/execution-      │               │        memory bank           │
+│   plan.md (phases,           │──── approve──>│ Output: docs/requirements-   │
+│   milestones, work packages, │               │   bf.md (business+functional)│
+│   dependencies, estimates)   │               │   docs/requirements-tn.md    │
+│                              │               │   (technical+non-functional) │
+│ Human: review plan           │               │                              │
+│   [approve] -> next step     │               │ Human: review requirements   │
+│   [revise]  -> agent updates,│               │   [approve] -> next step     │
+│               presents again │               │   [revise]  -> agent updates │
+│   [re-run]  -> regenerate    │               │   [re-run]  -> regenerate    │
+│                              │               │                              │
+│ Git: commit + push on        │               │ Git: commit + push on        │
+│   approve (docs/ +           │               │   approve (docs/ +           │
+│   memory-bank/)              │               │   memory-bank/)              │
+│                              │               │                              │
+│ Iterate: YES — revise loop   │               │ Iterate: YES — revise loop   │
+└──────────────────────────────┘               └──────────────┬──────────────┘
+          ▲          │                                        │
+          └── revise─┘                         ┌──────────────┘
+                                               │
+          ┌────────────────────────────────────┘
+          │
+          ▼
+Step 8: Technical Design
+┌─────────────────────────────┐
+│ Agent: design-agent (x4      │
+│   parallel for speed)        │
+│ Input: prd.md, requirements, │
+│   plan, memory bank          │
+│ Output: docs/design-*.md     │
+│   (architecture, components, │
+│   data model, security,      │
+│   APIs, gap analysis)        │
+│                              │
+│ Human: review design         │
+│   [approve] -> next step     │
+│   [revise]  -> agent updates │
+│   [re-run]  -> regenerate    │
+│                              │
+│ Git: commit + push on        │
+│   approve (docs/ +           │
+│   memory-bank/)              │
+│                              │
+│ Iterate: YES — revise loop   │
+└──────────────┬───────────────┘
+          ▲    │
+          └────┘ revise
+               │ approve
+               ▼
+Step 9: UI Prototype
+┌─────────────────────────────┐
+│ Agent: Claude (direct)       │
+│ Input: prd.md, design docs   │
+│ Output: working React app    │
+│   at localhost:5173          │
+│                              │
+│ Human: click through app     │
+│   with squad, give UX        │
+│   feedback                   │
+│                              │
+│ Git: commit + push on        │
+│   approve (prototype/)       │
+│                              │
+│ Iterate: YES — feedback loop │
+│                              │
+│ SKIP: if project has no UI   │
+└──────────────┬───────────────┘
+               │
+               ▼
+Step 10: User Stories                         Step 11: Validation
+┌─────────────────────────────┐               ┌─────────────────────────────┐
+│ Agent: story-generator (x4   │               │ Agent: orchestrator (x4      │
+│   parallel, one per story phase)   │               │   validators in parallel)    │
+│ Input: requirements, design, │               │ Input: stories, requirements,│
+│   plan, memory bank          │               │   design, plan               │
+│ Output: docs/stories-        │──── approve──>│ Output: docs/validation-     │
+│   phase*.md (Given/When/Then │               │   phase*.md (coverage matrix,│
+│   acceptance criteria, story │               │   gap analysis, quality      │
+│   points, tech notes,        │               │   assessment)                │
+│   requirement traceability)  │               │                              │
+│                              │               │ Human: review gap report     │
+│ Human: review stories        │               │   [approve] -> next step     │
+│   [approve] -> next step     │               │   [fix gaps] -> agents       │
+│   [revise]  -> agent updates │               │     iterate, re-validate     │
+│   [re-run]  -> regenerate    │               │                              │
+│                              │               │ Git: commit + push on        │
+│ Git: commit + push on        │               │   approve (docs/ +           │
+│   approve (docs/ +           │               │   memory-bank/)              │
+│   memory-bank/)              │               │                              │
+│                              │               │ Iterate: YES — fix + recheck │
+│ Iterate: YES — revise loop   │               └──────────────┬──────────────┘
+└──────────────────────────────┘                              │
+          ▲          │                         ┌──────────────┘
+          └── revise─┘                         │
+                                               ▼
+Step 12: Jira Sync                            Step 13: Implementation
+┌─────────────────────────────┐               ┌─────────────────────────────┐
+│ Agent: jira-agent            │               │ Agents: sprint-agent +       │
+│ Input: validated stories     │               │   coding-agent(s) +          │
+│ Output: Jira epics (1 per    │               │   jira-agent (status sync)   │
+│   story phase) + stories,    │──── done ────>│ Input: stories, design,      │
+│   docs/jira-mapping.md       │               │   plan, jira mapping         │
+│                              │               │ Output: working code repo    │
+│ Human: provide Jira project  │               │   with tests                 │
+│   key (e.g., MYPROJ),        │               │                              │
+│   verify stories in Jira     │               │ Human (repeated per story):  │
+│                              │               │   1. approve queue order     │
+│ Git: commit + push           │               │   2. provide GitHub repo name│
+│   (docs/jira-mapping.md)     │               │   3. approve each story      │
+│                              │               │      before coding starts    │
+│ Iterate: no                  │               │   4. review code after each  │
+└──────────────────────────────┘               │      story completes         │
+                                               │   5. test app locally at end │
+                                               │                              │
+                                               │ GitHub: human creates repo   │
+                                               │   (sprint-agent asks team-   │
+                                               │   lead, team-lead asks you,  │
+                                               │   you create it, type ready) │
+                                               │                              │
+                                               │ Git (per story):             │
+                                               │   coding-agent: commit on    │
+                                               │     feature/{story-id}       │
+                                               │   sprint-agent: merge to     │
+                                               │     main + push to GitHub    │
+                                               │                              │
+                                               │ Jira: auto-transitions       │
+                                               │   In Progress -> Done        │
+                                               │                              │
+                                               │ Iterate: YES — per story.    │
+                                               │   approve / skip / re-order  │
+                                               │   Up to 2 coding agents      │
+                                               │   run in parallel.           │
+                                               └──────────────────────────────┘
+```
+
+### Step Reference
+
+| # | Step | Description | Agent(s) | Human Role | Human Input | Human Approval | Output | Git/GitHub | Iterate? |
+|---|------|-------------|----------|------------|-------------|---------------|--------|------------|----------|
+| 1 | Setup | Verify environment is ready for the workshop | Claude | Engineer (driver) | team name | verify status | status table | **create `team-{name}` branch, commit + push** | no |
+| 2 | Project Selection | Choose which project the team will build | Claude | Team (consensus) | choose project | — | selected project | — | no |
+| 3 | Read PRD | Ensure the whole team understands the project before refinement begins | — | Team (everyone reads) | type "ready" | **gate** — blocked until "ready" | — | — | no |
+| 4 | Refine PRD | Assess PRD completeness and fill gaps through guided Q&A | Claude | Product owner / domain expert | answer questions, provide business context, make scope decisions | readiness check | updated `prd.md`, updated memory bank | **commit + push** PRD + memory bank | **yes** — loop until ready |
+| 5 | Open Questions | Resolve every remaining open question in the PRD | Claude | Product owner / domain expert | answer each question or accept default | all questions resolved | updated `prd.md` (finalized) | **commit + push** PRD + memory bank | **yes** — per question |
+| 6 | Execution Plan | Break the PRD into phased milestones and work packages | planning-agent | Tech lead / architect | — | **approve / revise / re-run** | `docs/execution-plan.md` | **commit + push** on approve | **yes** — revise loop |
+| 7 | Requirements | Extract structured, traceable requirements from the PRD | requirements-agent | Tech lead / product owner | — | **approve / revise / re-run** | `docs/requirements-*.md` | **commit + push** on approve | **yes** — revise loop |
+| 8 | Technical Design | Define architecture, APIs, data model, security, and component design | design-agent (x4) | Architect / senior engineer | — | **approve / revise / re-run** | `docs/design-*.md` | **commit + push** on approve | **yes** — revise loop |
+| 9 | UI Prototype | Generate an interactive prototype for the team to validate UX *(UI projects only)* | Claude | Team (everyone clicks through) | UX feedback | **approve / iterate** | React app at localhost:5173 | **commit + push** on approve | **yes** — feedback loop |
+| 10 | User Stories | Generate sprint-ready stories with acceptance criteria mapped to requirements | story-generator (x4) | Product owner / tech lead | — | **approve / revise / re-run** | `docs/stories-phase*.md` | **commit + push** on approve | **yes** — revise loop |
+| 11 | Validation | Cross-check stories against requirements for coverage gaps and quality | orchestrator (x4) | Tech lead | — | **approve / fix gaps** | `docs/validation-phase*.md` | **commit + push** on approve | **yes** — fix + recheck |
+| 12 | Jira Sync | Create epics and stories in Jira from validated story files | jira-agent | Any team member | Jira project key | verify in Jira | Jira epics + stories, `docs/jira-mapping.md` | **commit + push** mapping file | no |
+| 13 | Implementation | Implement each story as working, tested code | sprint-agent, coding-agent(s) | Engineer (driver) + team (review) | approve queue, **create GitHub repo manually**, approve each story | **per-story approval** | code repo with tests | **human creates GitHub repo**; per story: commit on feature branch, **merge + push to main** | **yes** — per story |
+
+**Key:**
+- Every step that produces artifacts commits and pushes to the `team-{name}` branch. Step 13 creates a *separate* GitHub repo for the application code.
+- Nothing moves to the next step without human approval.
+- **Switch the driver** as steps change — the person best suited to review and approve each step's output should be at the keyboard.
 
 ---
 
-## Agent Architecture
+## AI Roles
 
-The system uses a **two-phase architecture**:
+The flow is powered by a main Claude session and a team of specialist agents. You interact with one session — the agents are managed behind the scenes.
 
-### Phase 1: Human-Driven (Main Claude)
+### Team Lead (main Claude session)
+
+This is the Claude session you talk to directly. It handles Steps 1-5 itself (setup, project selection, PRD refinement). After Step 5, it becomes the **team lead** — it creates the agent team, spawns the orchestrator, and from that point acts as the relay between you and the agents. When an agent produces output that needs your approval, the team lead presents it to you. When you give feedback, the team lead relays it back.
+
+**The team lead never writes implementation code.** All code goes through agents.
+
+### Orchestrator
+
+The orchestrator is the first agent spawned. It manages the agent team for Steps 6-13:
+- **Spawns and despawns** specialist agents as each step requires them
+- **Reviews agent output** for quality before presenting it to the team lead
+- **Compiles outputs** from parallel agents (e.g., 4 design agents writing separate sections)
+- **Tracks pipeline state** — knows which step is current, what's been approved, what's next
+- **Routes revision feedback** — when you say "revise," the orchestrator sends your feedback to the right agent
+- **Commits and pushes** artifacts to the team branch after each approved step
+
+The orchestrator coordinates — it does not write documents, code, or designs itself.
+
+### Specialist Agents
+
+Each specialist agent is spawned by the orchestrator when its step begins and stays alive to handle revisions. Multiple agents of the same type can run in parallel for speed.
+
+| Agent | Steps | What It Does | Parallelism |
+|-------|-------|-------------|-------------|
+| **memory-agent** | 6-13 (always running) | Central authority for the shared memory bank. All other agents send updates to it via messaging — it is the only agent that writes to `memory-bank/`. Maintains project context, decisions, and progress across all steps. | 1 |
+| **planning-agent** | 6 | Reads the PRD and generates a phased execution plan with milestones, work packages, dependency ordering, and effort estimates. | 1 |
+| **requirements-agent** | 7 | Extracts structured, traceable requirements from the PRD: Business (BR), Functional (FR), Technical (TR), Non-Functional (NFR). | 2 (split by category) |
+| **design-agent** | 8 | Produces the technical design: architecture, component inventory, data model, API specs, security model, observability, and gap analysis. | 4 (split by section) |
+| **story-generator** | 10 | Creates sprint-ready user stories with Given/When/Then acceptance criteria, story points, technical notes, and traceability to requirements and work packages. | 4 (split by phase) |
+| **jira-agent** | 12-13 | Creates Jira epics (one per story phase) and stories from validated story files. Stays alive during implementation to receive status transitions (In Progress, Done) from the sprint-agent. | 1 |
+| **sprint-agent** | 13 | Implementation coordinator. Builds an ordered queue from stories and the execution plan, presents each story to you for approval, requests coding-agent spawns from the orchestrator, merges completed feature branches to main, and pushes to GitHub. | 1 |
+| **coding-agent** | 13 | Takes a single user story and produces working, tested code. Creates a `feature/{story-id}` branch, implements the code, writes tests, builds, and commits. Tech-stack agnostic — reads the stack from the design doc. | up to 2 in parallel |
+| **code-scanner** | any (optional) | Analyzes an existing codebase for tech stack, architecture patterns, API conventions, security posture, tech debt, and Nordstrom standards compliance. Used when the project involves existing code. | 1 |
+
+### How They Communicate
+
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    Main Claude                            │
-│  Setup · Project Selection · /refine-prd · /review-prd    │
-└──────────────────────────────────────────────────────────┘
+┌─────────┐        ┌──────────────┐        ┌───────────────────────────┐
+│         │ review │              │ spawn  │                           │
+│   YOU   │◄──────│  Team Lead   │───────►│  Orchestrator             │
+│         │──────►│  (main       │◄───────│  - spawns/despawns agents │
+│         │approve│   session)   │ output │  - reviews & compiles     │
+│         │       │              │        │  - routes feedback        │
+└─────────┘        └──────┬───────┘        └─────────┬─────────────────┘
+                          │                          │ spawn + message
+                          │                  ┌───────┴────────┐
+                          │                  ▼                ▼
+                   (asks human to    ┌─────────────┐  ┌─────────────┐
+                    create repo)     │  Specialist  │  │  memory-    │
+                                     │  Agents      │  │  agent      │
+                                     │  (planning,  │  │  (always    │
+                                     │  design,     │  │   running)  │
+                                     │  stories,    │  └─────────────┘
+                                     │  sprint,     │        ▲
+                                     │  coding,     │        │
+                                     │  jira, etc.) │────────┘
+                                     └──────────────┘  memory updates
 ```
 
-### Phase 2: Agent Team (After PRD is ready)
-```
-┌──────────────────────────────────────────────────────────┐
-│            Team Lead: Main Claude Session                  │
-│  Creates team (TeamCreate) · Spawns orchestrator           │
-│       Relays human input/validation to orchestrator        │
-├──────────────────────────────────────────────────────────┤
-│         Orchestrator (persistent teammate)                 │
-│  Spawns & coordinates all other teammates                  │
-│  Reviews outputs · Messages team-lead for validation       │
-├──────────┬───────────┬──────────┬──────────┬────────────┤
-│ Planning │Requirements│  Story   │   Code   │  Memory    │
-│  Agent   │   Agent   │Generator │ Scanner  │  Agent     │
-│          │           │          │          │            │
-│ PRD →    │ PRD →     │ Reqs →   │ Code →   │ Central    │
-│ Phases & │ BR/TR/    │ Epics &  │ Analysis │ memory     │
-│ Milestones│ FR/NFR   │ Stories  │ & Gaps   │ authority  │
-├──────────┴───────────┴──────────┴──────────┴────────────┤
-│                  Shared Memory Bank                       │
-│   projectbrief · productContext · techContext              │
-│   systemPatterns · activeContext · progress                │
-├──────────────────────────────────────────────────────────┤
-│                MCP Server Integrations                    │
-│  Jira · Confluence · GitHub · ServiceNow · Schema Repo    │
-│  Aha! · Slack (read-only) · Standards Chat · MAWM Data    │
-└──────────────────────────────────────────────────────────┘
-```
+---
 
-After `/refine-prd` and `/review-prd` complete, the main Claude session creates an **Agent Team** and spawns the **orchestrator as a persistent teammate**. The orchestrator:
-- Reads state from memory-bank and docs/
-- Spawns specialized teammates (planning-agent, requirements-agent, etc.) using the Task tool with `team_name`
-- Reviews teammate output for quality
-- Messages the team lead when human validation is needed; the team lead relays to the human
-- Updates memory-bank via the memory-agent (the only agent that writes to memory-bank directly)
+## Workshop Projects
 
-Each teammate is a persistent Claude Code agent that:
-- Has a defined purpose and set of tools
-- Communicates with other teammates via `SendMessage`
-- Stays alive to receive follow-up instructions or feedback
-- Shares a task list with the team for coordination
+Four pre-built PRDs are included. You can also create your own.
+
+| Project | Directory | Tech Stack | Complexity |
+|---------|-----------|------------|------------|
+| **RTO Compliance UI** | `projects/rto-compliance-ui/` | React, Java/Spring Boot, PostgreSQL, Kafka | High — full-stack with RBAC, dashboards |
+| **RTO Compliance CLI** | `projects/rto-compliance-cli/` | Python, CSV parsing, local config | Medium — CLI with data processing |
+| **Calculator CLI** | `projects/calculator-cli/` | Python, pytest | Low — expression parser, great for learning the flow |
+| **Infrastructure & Delivery** | `projects/infra-delivery/` | Varies | Medium — discovery, gap analysis, documentation |
 
 ---
 
 ## Memory Bank
 
-The memory bank (`memory-bank/`) is shared persistent context. The **memory-agent** is the only agent that writes to it — all other teammates send updates via `SendMessage`:
+The memory bank (`memory-bank/`) is shared persistent context updated after every step. The **memory-agent** is the only agent that writes to it — all others send updates via messaging.
 
 | File | Purpose |
 |------|---------|
@@ -123,39 +352,11 @@ The memory bank (`memory-bank/`) is shared persistent context. The **memory-agen
 | `activeContext.md` | Current focus, recent decisions, open questions, blockers |
 | `progress.md` | What's completed, in progress, blocked, and up next |
 
-The memory bank is updated after every pipeline stage. Use `/memory` to view or manually update it.
-
----
-
-## Workshop Projects
-
-Four pre-built PRDs are included for squads to work with:
-
-### 1. RTO Compliance UI (`projects/rto-compliance-ui/`)
-A Return-to-Office compliance tracking application. Employees submit daily status, managers approve/reject, leadership views dashboards.
-- **Tech:** React, Java/Spring Boot, PostgreSQL, Kafka
-- **Focus:** Full-stack application with RBAC, org hierarchy integration, reporting
-
-### 2. RTO Compliance CLI (`projects/rto-compliance-cli/`)
-A command-line tool for managers to analyze RTO compliance data from CSV exports. Filter by org, view summaries, look up individual employees.
-- **Tech:** Python CLI, CSV parsing, local config storage
-- **Focus:** CLI design, data processing, user-friendly output formatting
-
-### 3. Calculator CLI (`projects/calculator-cli/`)
-A simple, fast CLI calculator that accepts a mathematical expression and returns the result. Supports standard arithmetic, parentheses, exponentiation, and stdin piping.
-- **Tech:** Python, pytest
-- **Focus:** Expression parsing, operator precedence, error handling, CLI design
-
-### 4. Infrastructure & Delivery (`projects/infra-delivery/`)
-A documentation and gap analysis project. Connect Kafka schemas, Splunk queries, GitHub repos, Confluence docs, and Jira stories to produce a complete infrastructure view.
-- **Tech:** Varies by target application
-- **Focus:** Discovery, gap analysis against standards, documentation, story generation
-
 ---
 
 ## MCP Server Setup
 
-MCP (Model Context Protocol) servers provide Claude Code with access to external systems. Run the setup script to configure all servers:
+MCP (Model Context Protocol) servers give Claude access to external systems. Run the setup script to configure them:
 
 ```bash
 ./scripts/setup-mcp-servers.sh
@@ -168,112 +369,62 @@ MCP (Model Context Protocol) servers provide Claude Code with access to external
 - `AHA_API_TOKEN` — Aha! API Token
 - `SERVICENOW_USERNAME` / `SERVICENOW_PASSWORD` — CI pipeline service account
 - `GITLAB_TOKEN` — GitLab Personal Access Token (git.jwn.app)
-- `MAWM_USERNAME` / `MAWM_PASSWORD` — MAWM MySQL database credentials (FC 499 warehouse data)
+- `MAWM_USERNAME` / `MAWM_PASSWORD` — MAWM MySQL database credentials
 - `ARTIFACTORY_USER` / `ARTIFACTORY_API_KEY` — Artifactory credentials (for ServiceNow MCP setup)
 
-See the [setup script](scripts/setup-mcp-servers.sh) for detailed setup instructions. Run `./scripts/check-env.sh` to verify your environment variables.
+See the [setup script](scripts/setup-mcp-servers.sh) for details. Run `./scripts/check-env.sh` to verify.
 
 ---
+
+## Slash Commands Reference
+
+These commands are presented automatically by the guided flow. You don't need to memorize them. Listed in the order they are invoked:
+
+| Step | Command | What It Does |
+|------|---------|-------------|
+| 4 | `/refine-prd` | Assess PRD completeness, ask targeted questions, update PRD and memory bank |
+| 5 | `/review-prd` | Walk through open questions one by one, gather answers, update PRD |
+| 6 | `/generate-plan` | Generate phased execution plan with milestones and work packages |
+| 7 | `/extract-requirements` | Extract structured requirements (BR/TR/FR/NFR) |
+| 8 | `/generate-design` | Generate technical design (architecture, APIs, data model, security) |
+| 9 | `/prototype-ui` | Generate a working React prototype and launch at localhost:5173 |
+| 10 | `/generate-stories` | Generate sprint-ready user stories with acceptance criteria |
+| 11 | `/validate-coverage` | Cross-check stories against requirements for gaps |
+| 13 | `/implement` | Start implementation — sprint-agent coordinates coding agents |
+| any | `/scan-codebase` | Analyze existing codebase for patterns and architecture (optional) |
+| any | `/manage-memory` | View or update the shared memory bank |
+
+---
+
+## Workshop Goals
+
+**Ideal outcome:** Each team produces a working app or POC — code in GitHub, stories in Jira, all generated from a PRD in one session.
+
+**Minimum outcome:** Each team completes through Step 12 — validated user stories synced to Jira, with a technical design and execution plan ready for implementation.
+
+## Workshop Logistics
+
+- **Rotate the driver.** The person best suited to review each step's output should be at the keyboard. Product owners drive PRD refinement (Steps 4-5); architects and senior engineers drive design and requirements review (Steps 6-8); the whole team previews the prototype (Step 9); engineers drive implementation (Step 13).
+- **Identify data sources early.** If the project depends on external data (APIs, databases, CSV exports), assign team members to determine sources and access methods as soon as possible. The sooner data sources are known, the better the requirements and design will incorporate them.
+- **Each team should include an engineer familiar with the flow.** Where that's not possible, teams should have a way to reach one of the senior engineers who have run the flow before (Slack channel, same room, etc.).
 
 ## Pre-Workshop Checklist (Facilitators)
 
-### Environment Setup
-- [ ] Repository cloned and accessible to all squads
+### Environment
+- [ ] Repository cloned and accessible to all teams
 - [ ] Claude Code installed and authenticated for all participants
-- [ ] MCP servers configured via `./scripts/setup-mcp-servers.sh`:
-  - [ ] Jira MCP — can create/read stories and epics
-  - [ ] Confluence MCP — can read/write pages
-  - [ ] GitHub MCP — can read/write repositories
-  - [ ] ServiceNow MCP — can query incidents/changes (read-only)
-  - [ ] Schema Repo MCP — can browse Kafka schemas
-  - [ ] Aha! MCP — can access roadmap
-  - [ ] Slack MCP — can read messages (read-only)
-  - [ ] Standards Chat MCP — can query Nordstrom engineering standards
-  - [ ] MAWM Data MCP — can query FC 499 warehouse database (read-only)
+- [ ] MCP servers configured via `./scripts/setup-mcp-servers.sh`
+- [ ] Environment variables set and verified via `./scripts/check-env.sh`
 
-### Content Preparation
-- [ ] Review all three project PRDs — customize for your squads if needed
-- [ ] Assign squads to projects (or let them choose)
-- [ ] Pre-fill `memory-bank/projectbrief.md` if squads have existing context
+### Content
+- [ ] Review project PRDs — customize for your teams if needed
+- [ ] Assign teams to projects (or let them choose)
 - [ ] Verify engineering standards in `.claude/skills/nordstrom-engineering-standards.md` are current
 
-### Logistics
-- [ ] 3-hour block reserved with no hard stop
-- [ ] Screen sharing available for demos
-- [ ] Slack channel for squad communication and facilitator support
-- [ ] Printed or shared quick-reference card with slash commands
-
 ### Dry Run
-- [ ] Run through `/refine-prd` → `/generate-plan` → `/extract-requirements` → `/generate-stories` → `/validate-coverage` on one project
-- [ ] Verify agents produce reasonable output
-- [ ] Note any common issues or questions to address upfront
-
----
-
-## Squad Workflow
-
-```
-                    ┌─────────────────────────┐
-                    │    Choose Project PRD    │
-                    │  (or bring your own!)    │
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │   /refine-prd <path>     │
-                    │  Assess, refine, iterate │◄──── Human answers questions,
-                    │  Memory bank auto-updated│      provides context, decides
-                    └───────────┬─────────────┘
-                                │ (repeat until ready)
-                    ┌───────────▼─────────────┐
-                    │   /review-prd <path>     │
-                    │  Walk through open Qs    │◄──── Human answers or assumes
-                    │  Update PRD + memory     │
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │   /prototype-ui          │
-                    │  Generate React proto    │◄──── Squad previews in browser,
-                    │  Launch at localhost     │      feeds UX insights back
-                    └───────────┬─────────────┘
-                                │ (optional, for UI apps)
-                    ┌───────────▼─────────────┐
-                    │   /generate-plan         │
-                    │  Generate execution plan │───── Human validates phases
-                    └───────────┬─────────────┘
-                                │
-             ┌──────────────────┼──────────────────┐
-             │ (optional)       │                   │
-    ┌────────▼────────┐        │                   │
-    │ /scan-codebase  │        │                   │
-    │  Analyze code   │────────┘                   │
-    └─────────────────┘                            │
-                    ┌───────────▼─────────────┐    │
-                    │  /extract-requirements   │    │
-                    │  Extract BR/TR/FR/NFR    │───── Human reviews requirements
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │  /generate-stories       │
-                    │  Generate user stories   │───── Human reviews stories
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │  /generate-design        │
-                    │  Technical design doc    │───── Human reviews design
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │  /validate-coverage      │
-                    │  Cross-check everything  │───── Human reviews gaps
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │   Iterate as needed      │
-                    │  Fix gaps, refine, done! │
-                    └─────────────────────────┘
-```
-
-At every step: **review the output, provide feedback, iterate.** The agents are assistants, not decision-makers.
+- [ ] Run through the full flow on at least one project (Calculator CLI is quickest)
+- [ ] Verify agents produce reasonable output at each step
+- [ ] Note common issues or questions to address upfront
 
 ---
 
@@ -281,49 +432,34 @@ At every step: **review the output, provide feedback, iterate.** The agents are 
 
 ```
 agentic-ai-workshop/
-├── CLAUDE.md                          # Project instructions for Claude Code
-├── README.md                          # This file
-├── .gitignore
+├── CLAUDE.md                           # Project instructions for Claude Code
+├── README.md                           # This file
 ├── .claude/
-│   ├── settings.json                  # Model, hooks, and Agent Teams configuration
-│   ├── agents/                        # Agent teammate definitions
-│   │   ├── orchestrator.md            # Pipeline coordinator (persistent teammate, spawns other teammates)
-│   │   ├── planning-agent.md          # PRD → execution plan
-│   │   ├── requirements-agent.md      # PRD → structured requirements
-│   │   ├── story-generator.md         # Requirements → user stories
-│   │   ├── code-scanner.md            # Codebase → analysis report
-│   │   └── memory-agent.md            # Memory bank maintenance
-│   ├── commands/                      # Slash commands
-│   │   ├── refine-prd.md             # /refine-prd (start here)
-│   │   ├── review-prd.md             # /review-prd (open questions)
-│   │   ├── prototype-ui.md           # /prototype-ui (browser preview)
-│   │   ├── generate-plan.md          # /generate-plan
-│   │   ├── extract-requirements.md   # /extract-requirements
-│   │   ├── generate-stories.md       # /generate-stories
-│   │   ├── scan-codebase.md          # /scan-codebase
-│   │   ├── manage-memory.md          # /manage-memory
-│   │   ├── generate-design.md        # /generate-design
-│   │   └── validate-coverage.md      # /validate-coverage
-│   └── skills/                        # Reusable knowledge
+│   ├── settings.json                   # Model, hooks, Agent Teams config
+│   ├── agents/                         # Agent teammate definitions
+│   │   ├── orchestrator.md             # Pipeline coordinator
+│   │   ├── planning-agent.md           # PRD → execution plan
+│   │   ├── requirements-agent.md       # PRD → structured requirements
+│   │   ├── design-agent.md             # Requirements → technical design
+│   │   ├── story-generator.md          # Requirements + design → user stories
+│   │   ├── sprint-agent.md             # Stories → implementation queue
+│   │   ├── coding-agent.md             # Story → working tested code
+│   │   ├── jira-agent.md               # Stories → Jira epics & issues
+│   │   ├── code-scanner.md             # Codebase → analysis report
+│   │   ├── merge-agent.md              # Combine parallel outputs
+│   │   └── memory-agent.md             # Memory bank maintenance
+│   ├── commands/                       # Slash command definitions
+│   └── skills/                         # Reusable knowledge
 │       ├── nordstrom-engineering-standards.md
-│       └── requirements-writing.md
-├── memory-bank/                       # Shared persistent context
-│   ├── projectbrief.md
-│   ├── productContext.md
-│   ├── techContext.md
-│   ├── systemPatterns.md
-│   ├── activeContext.md
-│   └── progress.md
+│       ├── requirements-writing.md
+│       └── rapid-prototyping.md
+├── memory-bank/                        # Shared persistent context (6 files)
 ├── templates/
-│   └── prd-template.md                # Blank PRD template
-├── docs/                              # Generated outputs (initially empty)
-└── projects/
-    ├── rto-compliance-ui/
-    │   └── prd.md                     # RTO Compliance UI PRD
-    ├── rto-compliance-cli/
-    │   └── prd.md                     # RTO Compliance CLI PRD
-    ├── calculator-cli/
-    │   └── prd.md                     # Calculator CLI PRD
-    └── infra-delivery/
-        └── prd.md                     # Infrastructure & Delivery PRD
+│   └── prd-template.md                 # Blank PRD template
+├── docs/                               # Generated outputs (initially empty)
+└── projects/                           # Pre-built project PRDs
+    ├── rto-compliance-ui/prd.md
+    ├── rto-compliance-cli/prd.md
+    ├── calculator-cli/prd.md
+    └── infra-delivery/prd.md
 ```
