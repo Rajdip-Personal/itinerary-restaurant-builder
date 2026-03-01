@@ -1,6 +1,6 @@
 # Facilitator Quick Reference
 
-**Read the [README](../README.md) and [Workshop Quick Reference](quick-ref-participants.md) first.** This card covers only what facilitators need beyond that.
+**Read the [README](../README.md), [Workshop Quick Reference](quick-ref-participants.md), and [CLAUDE.md](../CLAUDE.md) first.** This card covers only what facilitators need beyond that.
 
 **Your job:** Keep teams moving. Unblock problems. Don't drive — let the team drive.
 
