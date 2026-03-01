@@ -26,8 +26,9 @@ You are running the **PRD refinement pipeline**. This is the starting point of t
 
 > Which project were you assigned for this workshop?
 >
-> 1. **RTO Compliance** (`projects/rto-compliance/prd.md`)
-> 2. **Scan Compliance** (`projects/scan-compliance/prd.md`)
+> 1. **RTO Compliance UI** (`projects/rto-compliance-ui/prd.md`)
+> 2. **RTO Compliance CLI** (`projects/rto-compliance-cli/prd.md`)
+> 3. **Calculator CLI** (`projects/calculator-cli/prd.md`)
 > 3. **Infrastructure & Delivery** (`projects/infra-delivery/prd.md`)
 
 Wait for the team to respond before proceeding. Do NOT guess or assume a project.

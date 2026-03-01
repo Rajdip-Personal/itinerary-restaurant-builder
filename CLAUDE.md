@@ -391,10 +391,12 @@ After setup is complete, proceed to project selection:
           header: "Project"
           multiSelect: false
           options:
-            - label: "RTO Compliance"
-              description: "Track employee return-to-office compliance"
-            - label: "Scan Compliance"
-              description: "Monitor security scan compliance across repos"
+            - label: "RTO Compliance UI"
+              description: "Full-stack RTO compliance tracking app with dashboards"
+            - label: "RTO Compliance CLI"
+              description: "CLI tool for managers to analyze RTO compliance CSV data"
+            - label: "Calculator CLI"
+              description: "Simple CLI calculator — parse and evaluate math expressions"
             - label: "Infrastructure & Delivery"
               description: "Document infrastructure and generate compliance stories"
             - label: "Create my own project"
@@ -403,7 +405,7 @@ After setup is complete, proceed to project selection:
 15. **CRITICAL — Handling the user's response:**
     - If the user selects one of the **pre-built project options by label** (exact match) → use that project
     - If the user selects **"Create my own project"** OR types **any freeform text in "Other"** → treat it as a **custom project**. Do NOT map freeform text to an existing project. If the user typed a name, that is their custom project name.
-    - **Never assume freeform input refers to an existing project.** "RTO POC" ≠ "RTO Compliance". "Scan Tool" ≠ "Scan Compliance". Only exact label matches select pre-built projects.
+    - **Never assume freeform input refers to an existing project.** "RTO POC" ≠ "RTO Compliance UI". "RTO Tool" ≠ "RTO Compliance CLI". Only exact label matches select pre-built projects.
 
 **Handling Custom Projects:**
 

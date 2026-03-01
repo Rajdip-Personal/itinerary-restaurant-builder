@@ -129,19 +129,24 @@ The memory bank is updated after every pipeline stage. Use `/memory` to view or 
 
 ## Workshop Projects
 
-Three pre-built PRDs are included for squads to work with:
+Four pre-built PRDs are included for squads to work with:
 
-### 1. RTO Compliance (`projects/rto-compliance/`)
+### 1. RTO Compliance UI (`projects/rto-compliance-ui/`)
 A Return-to-Office compliance tracking application. Employees submit daily status, managers approve/reject, leadership views dashboards.
 - **Tech:** React, Java/Spring Boot, PostgreSQL, Kafka
 - **Focus:** Full-stack application with RBAC, org hierarchy integration, reporting
 
-### 2. Scan Compliance (`projects/scan-compliance/`)
-An outbound scan compliance tracker for fulfillment centers. Real-time visibility into whether pallets/LPNs were scanned during trailer loading.
-- **Tech:** React, Node.js, PostgreSQL, Redis, Kafka, WebSocket
-- **Focus:** Event-driven architecture, real-time dashboards, remediation workflows
+### 2. RTO Compliance CLI (`projects/rto-compliance-cli/`)
+A command-line tool for managers to analyze RTO compliance data from CSV exports. Filter by org, view summaries, look up individual employees.
+- **Tech:** Python CLI, CSV parsing, local config storage
+- **Focus:** CLI design, data processing, user-friendly output formatting
 
-### 3. Infrastructure & Delivery (`projects/infra-delivery/`)
+### 3. Calculator CLI (`projects/calculator-cli/`)
+A simple, fast CLI calculator that accepts a mathematical expression and returns the result. Supports standard arithmetic, parentheses, exponentiation, and stdin piping.
+- **Tech:** Python, pytest
+- **Focus:** Expression parsing, operator precedence, error handling, CLI design
+
+### 4. Infrastructure & Delivery (`projects/infra-delivery/`)
 A documentation and gap analysis project. Connect Kafka schemas, Splunk queries, GitHub repos, Confluence docs, and Jira stories to produce a complete infrastructure view.
 - **Tech:** Varies by target application
 - **Focus:** Discovery, gap analysis against standards, documentation, story generation
@@ -313,10 +318,12 @@ agentic-ai-workshop/
 │   └── prd-template.md                # Blank PRD template
 ├── docs/                              # Generated outputs (initially empty)
 └── projects/
-    ├── rto-compliance/
-    │   └── prd.md                     # RTO Compliance App PRD
-    ├── scan-compliance/
-    │   └── prd.md                     # Outbound Scan Compliance PRD
+    ├── rto-compliance-ui/
+    │   └── prd.md                     # RTO Compliance UI PRD
+    ├── rto-compliance-cli/
+    │   └── prd.md                     # RTO Compliance CLI PRD
+    ├── calculator-cli/
+    │   └── prd.md                     # Calculator CLI PRD
     └── infra-delivery/
         └── prd.md                     # Infrastructure & Delivery PRD
 ```

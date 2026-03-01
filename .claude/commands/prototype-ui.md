@@ -10,8 +10,9 @@ You are running the **rapid prototyping pipeline**. Your job is to generate a wo
 1. Read all files in `memory-bank/` for project context.
 2. Read the PRD specified in the arguments, or search for one:
    - $ARGUMENTS (if a path is provided)
-   - `projects/rto-compliance/prd.md`
-   - `projects/scan-compliance/prd.md`
+   - `projects/rto-compliance-ui/prd.md`
+   - `projects/rto-compliance-cli/prd.md`
+   - `projects/calculator-cli/prd.md`
    - `projects/infra-delivery/prd.md`
 3. Read `.claude/skills/rapid-prototyping.md` for prototyping guidelines.
 4. Identify from the PRD:

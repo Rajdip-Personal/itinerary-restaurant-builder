@@ -1,6 +1,6 @@
 # Product Requirements Document
 
-> **Project Name:** robert-cli
+> **Project Name:** rto-compliance-cli
 > **Author:** Robert Chang
 > **Date:** 2026-02-27
 > **Status:** Draft
@@ -44,7 +44,7 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 ### In Scope
 - Parse weekly RTO badge scan CSV files (format: ET Org, ELG Org, Supervisory Org, Worker, Worker Type, Work Location Type, Location, On Leave, Week Range, Meets 4-Day Requirement, Total Badge Swipe, Total PTO Requested)
 - **First-run org selection:** On first use, the CLI presents a list of Supervisory Orgs found in the CSV and lets the user select theirs. The selection is saved to a local config file so subsequent runs are automatically scoped.
-- **Config management:** `robert-cli config` to view or change the saved Supervisory Org
+- **Config management:** `rto-compliance-cli config` to view or change the saved Supervisory Org
 - Summary report command — compliance rate, total employees, compliant vs non-compliant counts, scoped to the manager's saved org only
 - Non-compliant list command — list employees in the manager's org who do not meet the 4-day requirement
 - Individual employee lookup command — search by name, show their compliance status
@@ -90,34 +90,34 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 ### Workflows
 
 **Workflow 1: First-Run Org Setup**
-1. Manager runs any command for the first time (e.g., `robert-cli summary data.csv`)
+1. Manager runs any command for the first time (e.g., `rto-compliance-cli summary data.csv`)
 2. CLI detects no saved config exists
 3. CLI reads the CSV, extracts unique Supervisory Org values, and presents them as a numbered list
 4. Manager selects their org by number
-5. CLI saves the selection to `~/.robert-cli/config.json`
+5. CLI saves the selection to `~/.rto-compliance-cli/config.json`
 6. CLI proceeds with the original command, scoped to the selected org
 
 **Workflow 2: Generate Compliance Summary**
-1. Manager runs `robert-cli summary <csv-file>`
+1. Manager runs `rto-compliance-cli summary <csv-file>`
 2. CLI loads the saved org from config and filters data to that org only
 3. CLI automatically selects the last available week in the CSV
 4. CLI displays the week range at the top of the output, then a summary table: total employees, compliant count, non-compliant count, on-leave count, compliance rate (%)
 
 **Workflow 3: List Non-Compliant Employees**
-1. Manager runs `robert-cli non-compliant <csv-file>`
+1. Manager runs `rto-compliance-cli non-compliant <csv-file>`
 2. CLI automatically selects the last available week in the CSV
 3. CLI displays the week range at the top, then a table of employees in the saved org where "Meets 4-Day Requirement" = No, showing: Worker name, Work Location Type, Total Badge Swipe, On Leave status
 4. Optional: `--export results.csv` writes the list to a CSV file
 
 **Workflow 4: Look Up Individual Employee**
-1. Manager runs `robert-cli lookup <csv-file> "Employee Name"`
+1. Manager runs `rto-compliance-cli lookup <csv-file> "Employee Name"`
 2. CLI searches across all orgs (case-insensitive partial match) — lookup is not scoped to saved org
 3. CLI automatically selects the last available week in the CSV
 4. Displays the week range at the top, then all records for that employee: Supervisory Org, badge swipes, compliance status, PTO, on-leave flag
 
 **Workflow 5: Manage Config**
-1. `robert-cli config` — displays the currently saved Supervisory Org
-2. `robert-cli config --reset` — clears the saved org, triggering re-selection on next run
+1. `rto-compliance-cli config` — displays the currently saved Supervisory Org
+2. `rto-compliance-cli config --reset` — clears the saved org, triggering re-selection on next run
 
 ### Business Rules
 - **4-Day Requirement:** An employee "meets" the requirement if `Meets 4-Day Requirement` = "Yes" in the CSV. The CLI does not recalculate this — it uses the value from the CSV.
@@ -126,14 +126,14 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 - **Compliance Rate Calculation:** `(Compliant employees / Total eligible employees) * 100`. Eligible = Total - On Leave.
 - **Last Available Week:** All commands automatically use the most recent week found in the CSV (determined by the latest `Week Range` value). The week is displayed in every output so the user always knows what period they're viewing.
 - **Org Scoping:** The `summary` and `non-compliant` commands always use the saved Supervisory Org. There is no option to view other orgs.
-- **Config Persistence:** The saved org config persists at `~/.robert-cli/config.json`. If the config file is missing or corrupted, the CLI triggers the org selection flow.
+- **Config Persistence:** The saved org config persists at `~/.rto-compliance-cli/config.json`. If the config file is missing or corrupted, the CLI triggers the org selection flow.
 - **Lookup is global:** The `lookup` command searches across all orgs regardless of saved config, since a manager may need to look up someone outside their team.
 
 ### Data Requirements
 - **Input:** CSV file in the exact format described above (12 columns)
 - **Source:** Emailed to managers weekly, saved locally
 - **Validation:** CLI must validate the CSV has the expected columns and report errors if the format is unexpected
-- **Config:** Saved to `~/.robert-cli/config.json` — contains the selected Supervisory Org name
+- **Config:** Saved to `~/.rto-compliance-cli/config.json` — contains the selected Supervisory Org name
 - **No persistent storage beyond config:** All data processing is done in-memory from the CSV each time
 
 ---
@@ -143,7 +143,7 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 ### Security
 - **PII Handling:** The CSV contains employee names (PII). The CLI processes data locally — no data is transmitted over the network. No PII is logged to files.
 - **No Authentication Required:** This is a local CLI tool — no network authentication needed.
-- **File Access:** CLI only reads the CSV file specified by the user and the config file at `~/.robert-cli/config.json`.
+- **File Access:** CLI only reads the CSV file specified by the user and the config file at `~/.rto-compliance-cli/config.json`.
 
 ### Performance
 - CLI must process a 600-row CSV and display results in under 2 seconds
@@ -152,7 +152,7 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 ### Observability
 - CLI displays clear error messages for invalid CSV files, missing columns, or bad input
 - `--verbose` flag for debug output showing how many rows were parsed, filtered, etc.
-- Version command: `robert-cli --version`
+- Version command: `rto-compliance-cli --version`
 
 ---
 
@@ -168,7 +168,7 @@ Engineering Managers in SC Tech receive weekly CSV files via email containing em
 - **Data Processing:** pandas
 - **Table Output:** rich (for terminal tables)
 - **CSV Export:** pandas to_csv
-- **Config Storage:** JSON file at `~/.robert-cli/config.json`
+- **Config Storage:** JSON file at `~/.rto-compliance-cli/config.json`
 - **Packaging:** pip-installable package (pyproject.toml)
 - **Testing:** pytest
 

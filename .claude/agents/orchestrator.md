@@ -702,7 +702,7 @@ git push -u origin [branch-name]
 ```
 ## Stage Complete: Requirements Extraction
 ...
-**Committed and pushed:** `abc1234 Complete requirements for robert-cli` → origin/team-robert-cli
+**Committed and pushed:** `abc1234 Complete requirements for rto-compliance-cli` → origin/team-rto
 ```
 
 ## Important Rules
