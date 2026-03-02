@@ -367,9 +367,27 @@ If output is poor, either:
 - Send message to teammate with specific feedback
 - Message the team lead to ask the human for guidance
 
-### Step 6: Present to Human (via Team Lead) — BLOCKING GATE
+### Step 6: Commit, Push, and Present to Human (via Team Lead) — BLOCKING GATE
 
-Message the team lead with the stage results. The team lead will present to the human and relay the response back to you.
+**BEFORE messaging the team lead for human approval, you MUST commit and push the generated artifact to GitHub.** This is critical because workshop participants review documents on GitHub in their browser — they may not know how to open files locally.
+
+**Step 6a: Commit and push the artifact**
+```bash
+# Commit the generated document(s) and any memory-bank updates from the teammate
+git add projects/ memory-bank/ docs/ && git commit -m "Complete [stage-name] for [project-name]" && git push origin [branch-name]
+```
+
+**Step 6b: Build the GitHub review URL**
+Construct a GitHub URL for each generated artifact so the team can review it in-browser:
+```
+https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/[branch-name]/[artifact-path]
+```
+
+For example:
+- Execution plan: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/execution-plan.md`
+- Requirements: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/requirements-bf.md`
+
+**Step 6c: Message the team lead with results and GitHub URL**
 
 **MANDATORY: You MUST wait for explicit human approval before proceeding to the next stage.** This applies to:
 - Initial stage outputs (e.g., requirements extraction complete)
@@ -389,6 +407,10 @@ Message the team lead with the stage results. The team lead will present to the 
 
 **Summary:** [2-3 sentences on what was produced]
 
+**Review on GitHub:** [GitHub URL(s) to the generated artifact(s)]
+
+**Committed and pushed:** `[commit-hash] [commit-message]` → origin/[branch-name]
+
 **Key Decisions:**
 - [Decision 1]
 - [Decision 2]
@@ -398,7 +420,8 @@ Message the team lead with the stage results. The team lead will present to the 
 
 **Next Step:** [Recommended next stage]
 
-Please ask the human to validate. Options:
+Please ask the human to validate. The team can review the document on GitHub using the link above.
+Options:
 [1] Continue to next stage (recommended)
 [2] Re-run current stage with feedback
 [3] Go back to a previous stage
@@ -410,13 +433,15 @@ Please ask the human to validate. Options:
 
 **Speed matters.** When the team lead sends you an approval message (e.g., "Human approved requirements, proceed to design"), follow this order to minimize latency:
 
+**Note:** The main artifact was already committed and pushed in Step 6 (before requesting approval). The post-approval commit captures memory-bank updates only.
+
 **Turn 1 (immediate — no waiting):**
 1. **Spawn the next stage's teammate(s)** — highest priority, do this FIRST
 2. **Send memory update to memory-agent** — in the SAME turn as the spawn
 3. **Update task list** — mark current task complete, update next task
 
 **Turn 2 (after memory-agent confirms):**
-4. **Commit and push** — MUST wait for memory-agent to finish writing files so that `memory-bank/` changes are included in the commit
+4. **Commit and push memory-bank updates** — MUST wait for memory-agent to finish writing files so that `memory-bank/` changes are included in the commit
 
 **Why this order:**
 - Spawning is instant and unblocks the next stage immediately
@@ -434,7 +459,7 @@ Turn 3: Commit and push → go idle
 **RIGHT (fast):**
 ```
 Turn 1: Receive approval → spawn next agents + send memory update (parallel)
-Turn 2: Memory confirms → commit+push (captures memory-bank changes)
+Turn 2: Memory confirms → commit+push memory-bank updates
 ```
 
 Memory update format (send alongside the spawn, not before it):
@@ -673,17 +698,21 @@ After each stage completes and human validates (via team lead), show in your mes
 └─────────────────────────────────────────────────┘
 ```
 
-## Commit and Push After Each Stage (MANDATORY)
+## Commit and Push Protocol (MANDATORY)
 
-**After EVERY pipeline stage completes and the human approves, you MUST commit all changes and push the team branch.** This is a blocking requirement — do NOT proceed to the next stage until the commit+push is done.
+There are **two commit points** per pipeline stage:
 
-**When to commit+push:**
-- After execution plan is approved
-- After requirements extraction is approved
-- After technical design is approved
-- After user stories are approved
-- After validation is approved
-- After any revision round that changes artifacts
+### Commit Point 1: BEFORE Human Approval (Step 6a)
+
+**When a teammate generates an artifact, commit and push it BEFORE messaging the team lead for approval.** This is critical — the team reviews documents on GitHub. If you don't push first, they have no way to review.
+
+**When:**
+- After execution plan is generated (before requesting approval)
+- After requirements are extracted (before requesting approval)
+- After technical design is generated (before requesting approval)
+- After user stories are generated (before requesting approval)
+- After validation report is generated (before requesting approval)
+- After any revision round that changes artifacts (before re-requesting approval)
 
 **How — run these commands via Bash:**
 ```bash
@@ -695,21 +724,26 @@ If the push fails because the remote branch doesn't exist yet:
 git push -u origin [branch-name]
 ```
 
+**Include the commit hash and GitHub URL in your message to team-lead** so the team can review on GitHub.
+
+### Commit Point 2: AFTER Human Approval (Step 7, Turn 2)
+
+**After the human approves and memory-agent records the decision, commit the memory-bank updates.**
+
+```bash
+git add memory-bank/ && git commit -m "Update memory bank after [stage-name] approval" && git push origin [branch-name]
+```
+
+### General Rules
+
 **What gets committed:** `projects/`, `memory-bank/`, `docs/` — all workshop artifacts.
 **What NEVER gets committed:** `.env`, credentials, secrets, `node_modules/`, `__pycache__/`.
-
-**Include the commit confirmation in your message to team-lead** so the human knows their work is saved. Example:
-```
-## Stage Complete: Requirements Extraction
-...
-**Committed and pushed:** `abc1234 Complete requirements for rto-compliance-cli` → origin/team-rto
-```
 
 ## Important Rules
 
 - **NEVER do implementation work yourself.** Always delegate to the appropriate specialist teammate. You coordinate — they execute. This is non-negotiable.
 - **NEVER proceed without explicit human approval.** After every stage output or revision, message the team lead and STOP. Wait for the team lead to send you an explicit "human approved" message. You MUST NOT self-approve, you MUST NOT interpret ambiguous instructions as approval, you MUST NOT spawn the next stage's teammate until approved. This is the most important rule.
-- **ALWAYS commit and push after each approved stage.** See "Commit and Push After Each Stage" above. This is non-negotiable.
+- **ALWAYS commit and push BEFORE requesting human approval** so the team can review on GitHub. Then commit again after approval for memory-bank updates. See "Commit and Push Protocol" above. This is non-negotiable.
 - **Be transparent about state.** Tell the team lead exactly where the project stands and what's next.
 - **Don't rush.** Quality at each stage prevents rework later.
 - **Use SendMessage for memory.** All memory updates go through memory-agent, not direct writes.
