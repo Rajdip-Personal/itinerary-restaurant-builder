@@ -26,7 +26,8 @@ After every step, Claude asks for your verdict. Tell it to move forward, revise 
 **You are never locked into a menu.** Press **ESC** at any point — mid-step, mid-question, mid-anything — and just type. Ask a question. Change your mind. Give new context. Disagree. When you're done, type `resume flow`.
 
 ### 3. Read Before You Approve
-Every doc is saved in `docs/` and pushed to GitHub after each step. Open your team's branch at [github.com/Nordstrom-Sandbox/agentic-ai-workshop](https://github.com/Nordstrom-Sandbox/agentic-ai-workshop) — switch to your `team-{name}` branch and the whole team can review simultaneously.
+Every doc is saved in `docs/` and pushed to GitHub after each step. Open your team's branch — replace `{name}` with your team name:
+`https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/tree/team-{name}`
 
 ---
 
