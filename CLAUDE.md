@@ -398,6 +398,8 @@ After setup is complete, proceed to project selection:
               description: "Simple CLI calculator — parse and evaluate math expressions"
             - label: "Infrastructure & Delivery"
               description: "Document infrastructure and generate compliance stories"
+            - label: "Scan Compliance"
+              description: "Outbound scan compliance tracker for warehouse operations"
             - label: "Create my own project"
               description: "Start a new custom project with your own PRD"
     ```

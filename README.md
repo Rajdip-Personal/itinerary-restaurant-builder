@@ -330,7 +330,7 @@ Each specialist agent is spawned by the orchestrator when its step begins and st
 
 ## Workshop Projects
 
-Four pre-built PRDs are included. You can also create your own.
+Five pre-built PRDs are included. You can also create your own.
 
 | Project | Directory | Complexity |
 |---------|-----------|------------|
@@ -338,6 +338,7 @@ Four pre-built PRDs are included. You can also create your own.
 | **RTO Compliance CLI** | `projects/rto-compliance-cli/` | Medium |
 | **Calculator CLI** | `projects/calculator-cli/` | Low — great for learning the flow |
 | **Infrastructure & Delivery** | `projects/infra-delivery/` | Medium |
+| **Scan Compliance** | `projects/scan-compliance/` | Medium |
 
 ---
 
@@ -475,5 +476,6 @@ agentic-ai-workshop/
     ├── rto-compliance-ui/prd.md
     ├── rto-compliance-cli/prd.md
     ├── calculator-cli/prd.md
-    └── infra-delivery/prd.md
+    ├── infra-delivery/prd.md
+    └── scan-compliance/prd.md
 ```

@@ -14,6 +14,7 @@ You are running the **rapid prototyping pipeline**. Your job is to generate a wo
    - `projects/rto-compliance-cli/prd.md`
    - `projects/calculator-cli/prd.md`
    - `projects/infra-delivery/prd.md`
+   - `projects/scan-compliance/prd.md`
 3. Read `.claude/skills/rapid-prototyping.md` for prototyping guidelines.
 4. Identify from the PRD:
    - **User personas** — Each persona gets a role in the role switcher

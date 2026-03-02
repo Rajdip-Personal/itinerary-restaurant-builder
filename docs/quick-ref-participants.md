@@ -113,5 +113,6 @@ You have the following MCP servers pre-configured to connect to external systems
 | **RTO Compliance CLI** — Python CLI for CSV analysis | Medium |
 | **Calculator CLI** — expression parser (great for learning) | Low |
 | **Infrastructure & Delivery** — docs and compliance stories | Medium |
+| **Scan Compliance** — outbound scan compliance tracker for warehouses | Medium |
 
 Or choose **"Create my own project"** and describe your idea.

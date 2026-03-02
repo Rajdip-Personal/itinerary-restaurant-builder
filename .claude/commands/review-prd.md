@@ -14,6 +14,7 @@ You are running the **open questions review pipeline**. Your job is to walk the 
    - `projects/rto-compliance-cli/prd.md`
    - `projects/calculator-cli/prd.md`
    - `projects/infra-delivery/prd.md`
+   - `projects/scan-compliance/prd.md`
 3. Read `.claude/skills/nordstrom-engineering-standards.md` — some open questions may relate to standards.
 
 ## Step 2: Extract and Present Open Questions
