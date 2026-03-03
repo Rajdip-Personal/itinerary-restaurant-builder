@@ -402,6 +402,7 @@ The workshop flow runs automatically — you do not need to type these commands.
 | `/implement` | Start implementation — sprint-agent coordinates coding agents |
 | `/scan-codebase` | Analyze existing codebase for patterns and architecture (optional) |
 | `/manage-memory` | View or update the shared memory bank |
+| `/setup-mcp-datasource` | Set up a FastMCP server for a custom data source (database or S3) |
 
 ---
 
