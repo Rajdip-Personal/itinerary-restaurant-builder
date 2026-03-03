@@ -10,10 +10,10 @@ You are starting the **implementation phase** of the workshop pipeline. This pha
 
 Before starting, verify these artifacts exist:
 
-1. **Stories:** Glob for `docs/stories-*.md` — at least one file must exist
-2. **Design:** Glob for `docs/detailed-design.md` or `docs/design-*.md`
-3. **Execution plan:** Check for `docs/execution-plan.md`
-4. **Requirements:** Glob for `docs/requirements-*.md` or `docs/requirements.md`
+1. **Stories:** Glob for `docs/outputs/stories-*.md` — at least one file must exist
+2. **Design:** Glob for `docs/outputs/detailed-design.md` or `docs/outputs/design-*.md`
+3. **Execution plan:** Check for `docs/outputs/execution-plan.md`
+4. **Requirements:** Glob for `docs/outputs/requirements-*.md` or `docs/outputs/requirements.md`
 
 **If any are missing:** Tell the user which prerequisites are missing and which command to run:
 - No stories → run `/generate-stories` first

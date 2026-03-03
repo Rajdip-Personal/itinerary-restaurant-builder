@@ -9,7 +9,7 @@ You are running the **requirements pipeline**. Follow these steps:
 ## Step 1: Gather Context
 1. Read all files in `memory-bank/` to understand current project state and tech context.
 2. Read the PRD from the project directory or as specified: $ARGUMENTS
-3. Read `docs/execution-plan.md` if it exists (for phasing context).
+3. Read `docs/outputs/execution-plan.md` if it exists (for phasing context — note: plan is generated after design, so this may not exist yet).
 4. Read `.claude/skills/nordstrom-engineering-standards.md` for mandatory NFRs.
 5. Read `.claude/skills/requirements-writing.md` for quality guidelines.
 
@@ -37,7 +37,7 @@ Additional context from user: $ARGUMENTS
 
 ## Step 3: Update Memory
 After requirements are generated:
-1. Write requirements to `docs/requirements.md`.
+1. Write requirements to `docs/outputs/requirements.md`.
 2. Update `memory-bank/progress.md` — mark requirements extraction as completed.
 3. Update `memory-bank/activeContext.md` — record decisions and open questions.
 
@@ -47,4 +47,4 @@ Summarize the requirements:
 - Priority distribution (P0/P1/P2)
 - Any gaps or ambiguities found in the PRD
 - Questions that need answers before proceeding
-- Recommended next step: run `/generate-stories` to generate user stories
+- Recommended next step: run `/generate-design` to generate the technical design

@@ -27,9 +27,9 @@ You are spawned by the orchestrator (a persistent coordinator teammate) as a tea
 ## Before You Start
 
 1. **Read the memory bank** — Read all files in `memory-bank/` for project context, especially `techContext.md` and `systemPatterns.md`.
-2. **Read the requirements** — Read `docs/requirements.md` for the F&NF requirements you're designing against.
+2. **Read the requirements** — Read `docs/outputs/requirements.md` for the F&NF requirements you're designing against.
 3. **Read the PRD** — Read the project PRD for business context and constraints.
-4. **Read code analysis** — If `docs/code-analysis.md` exists, read it for current state architecture.
+4. **Read code analysis** — If `docs/outputs/code-analysis.md` exists, read it for current state architecture.
 5. **Read engineering standards** — Review `.claude/skills/nordstrom-engineering-standards.md` for compliance requirements.
 
 ## How Requirements Drive Design
@@ -95,7 +95,7 @@ Specifications for implementation. Answers: "How do we build each component?"
 
 ## Output Structure
 
-Write the design to `docs/detailed-design.md`:
+Write the design to `docs/outputs/detailed-design.md`:
 
 ```markdown
 # Technical Design: [Project Name]
@@ -104,7 +104,7 @@ Write the design to `docs/detailed-design.md`:
 - **Version:** 1.0
 - **Date:** YYYY-MM-DD
 - **Status:** Draft | Review | Approved
-- **Requirements Baseline:** docs/requirements.md
+- **Requirements Baseline:** docs/outputs/requirements.md
 
 ---
 
@@ -285,16 +285,16 @@ The orchestrator splits the design into 3-4 parallel workstreams, each writing t
 
 | Agent | Output File | Sections |
 |-------|-------------|----------|
-| design-agent-arch | `docs/design-part-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
-| design-agent-inventory | `docs/design-part-inventory.md` | Component Inventory, Data Model, Integration Patterns |
-| design-agent-ops | `docs/design-part-ops.md` | Security Model, Observability Model, Deployment Model |
-| design-agent-gaps | `docs/design-part-gaps.md` | Gap Analysis Summary, Requirements Traceability, Appendix |
+| design-agent-arch | `docs/outputs/design-part-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
+| design-agent-inventory | `docs/outputs/design-part-inventory.md` | Component Inventory, Data Model, Integration Patterns |
+| design-agent-ops | `docs/outputs/design-part-ops.md` | Security Model, Observability Model, Deployment Model |
+| design-agent-gaps | `docs/outputs/design-part-gaps.md` | Gap Analysis Summary, Requirements Traceability, Appendix |
 
 **Rules:**
 - Each agent writes to its OWN file — never to another agent's file
 - Each agent gets the same shared context (key facts pre-loaded in prompt)
 - Each agent messages the orchestrator when done
-- After all agents complete, a final merge agent combines parts into `docs/detailed-design.md`
+- After all agents complete, a final merge agent combines parts into `docs/outputs/detailed-design.md`
 - The merge agent resolves cross-references, ensures consistent terminology, and adds a table of contents
 
 ### Shared Context Block
@@ -320,7 +320,7 @@ Key facts (pre-loaded — do not re-read these from files):
 
 ## After You Finish
 
-1. **Write design** to your assigned output file (either `docs/detailed-design.md` for single-agent or `docs/design-part-*.md` for parallel).
+1. **Write design** to your assigned output file (either `docs/outputs/detailed-design.md` for single-agent or `docs/outputs/design-part-*.md` for parallel).
 
 2. **Send memory update to memory-agent:**
    ```
@@ -359,8 +359,8 @@ Key facts (pre-loaded — do not re-read these from files):
 
 ## Important
 
-- **Requirements are your input.** Design against `docs/requirements.md`, not the PRD directly.
-- **Current state matters.** If `docs/code-analysis.md` exists, design for evolution, not greenfield.
+- **Requirements are your input.** Design against `docs/outputs/requirements.md`, not the PRD directly.
+- **Current state matters.** If `docs/outputs/code-analysis.md` exists, design for evolution, not greenfield.
 - **Don't invent requirements.** If it's not in the requirements, don't design it.
 - **Flag gaps.** If requirements are ambiguous or missing, call it out.
 - **Be specific.** "Use a database" is useless. Specify which database and why.

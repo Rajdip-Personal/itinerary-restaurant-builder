@@ -51,9 +51,9 @@ Every doc is saved in `docs/` and pushed to GitHub after each step. Open your te
 | 3 | Read PRD | **Everyone** | Read the PRD together. Type `ready` when done |
 | 4 | Refine PRD | **Product Manager** | Answer Claude's questions about scope, users, goals |
 | 5 | Review Questions | **Product Manager** | Resolve every open question in the PRD |
-| 6 | Execution Plan | **Tech Lead** | Review phased plan — approve, revise, or re-run |
-| 7 | Requirements | **Tech Lead + PM** | Review structured requirements — approve or revise |
-| 8 | Technical Design | **Architect / Sr Eng** | Review architecture, APIs, data model — approve or revise |
+| 6 | Requirements | **Tech Lead + PM** | Review structured requirements — approve or revise |
+| 7 | Technical Design | **Architect / Sr Eng** | Review architecture, APIs, data model — approve or revise |
+| 8 | Execution Plan | **Tech Lead** | Review phased plan — approve, revise, or re-run |
 | 9 | UI Prototype | Whole team | Click through the prototype, give UX feedback |
 | 10 | User Stories | **PM + Tech Lead** | Review stories and acceptance criteria — approve or revise |
 | 11 | Validation | **Tech Lead** | Review coverage report — approve or fix gaps |

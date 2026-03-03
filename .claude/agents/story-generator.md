@@ -2,7 +2,7 @@
 name: story-generator
 description: |
   Use this agent to translate structured requirements into sprint-ready user stories with acceptance criteria, technical notes, and effort estimates.
-  Invoke when the user wants to generate user stories from docs/requirements.md or needs to create stories for specific requirements.
+  Invoke when the user wants to generate user stories from docs/outputs/requirements.md or needs to create stories for specific requirements.
 tools:
   - Read
   - Write
@@ -27,9 +27,10 @@ You are spawned by the orchestrator (a persistent coordinator teammate) as a tea
 ## Before You Start
 
 1. **Read the memory bank** — Read all files in `memory-bank/` to understand current project context, tech stack, and architecture decisions.
-2. **Read the requirements** — Read `docs/requirements.md` for the structured requirements to translate into stories.
-3. **Read existing artifacts** — Check `docs/execution-plan.md` for phasing and sprint assignments.
-4. **Read tech context** — Review `memory-bank/techContext.md` and `memory-bank/systemPatterns.md` for API conventions and data model decisions.
+2. **Read the requirements** — Read `docs/outputs/requirements-bf.md` (business + functional) and `docs/outputs/requirements-tn.md` (technical + non-functional) for the structured requirements to translate into stories. If these don't exist, try `docs/outputs/requirements.md`.
+3. **Read the design documents** — Read all design docs in `docs/outputs/` (e.g., `design-architecture.md`, `design-inventory.md`, `design-ops.md`, `design-gaps.md`) for architecture decisions, file structure, function signatures, testing strategy, and component specifications. These are critical for writing accurate technical notes on each story.
+4. **Read the execution plan** — Check `docs/outputs/execution-plan.md` for phasing, work packages, and sprint assignments.
+5. **Read tech context** — Review `memory-bank/techContext.md` and `memory-bank/systemPatterns.md` for API conventions and data model decisions.
 
 ## Story Format
 
@@ -157,7 +158,7 @@ Every project **must** include a README story as the **final story** in the last
 
 ## Output Structure
 
-Write all stories to `docs/user-stories.md`:
+Write all stories to `docs/outputs/user-stories.md`:
 
 ```markdown
 # User Stories: [Project Name]
@@ -187,7 +188,7 @@ Write all stories to `docs/user-stories.md`:
 
 ## After You Finish
 
-1. **Write stories** to `docs/user-stories.md`.
+1. **Write stories** to `docs/outputs/user-stories.md`.
 
 2. **Send memory update to memory-agent:**
    ```
@@ -207,7 +208,7 @@ Write all stories to `docs/user-stories.md`:
      to: "orchestrator"
      message: |
        TASK COMPLETE: User stories generated.
-       Output: docs/user-stories.md
+       Output: docs/outputs/user-stories.md
        Summary:
        - Total stories: X
        - Total points: Y

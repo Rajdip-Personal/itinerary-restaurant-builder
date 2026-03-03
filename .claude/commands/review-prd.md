@@ -35,7 +35,19 @@ Open Questions for [Project Name]:
 3. Identify which open questions are **blocking** — they prevent downstream work (requirements, stories, design) from being accurate. Mark these clearly.
 
 ## Step 3: Work Through Questions
-For each open question (starting with blocking ones first):
+
+**IMPORTANT: Skip technical implementation questions.** The following are decided during the technical design phase (`/generate-design`), NOT during PRD review:
+- Programming language or CLI framework
+- Database technology or ORM choice
+- Frontend framework or UI library
+- API protocol (REST, gRPC, GraphQL)
+- Testing frameworks or tools
+- Package managers or build tools
+- Any "how should we build it?" questions
+
+If an open question is about tech stack, language, or framework, automatically mark it as **"Deferred to technical design"** in the PRD and move on. Do NOT ask the squad about it.
+
+For each **non-technical** open question (starting with blocking ones first):
 
 1. **Present the question** with context — explain why it matters and what downstream impact the answer has.
 2. **Suggest a default or recommendation** if you have enough context to form an opinion. Be explicit: "If you're unsure, a reasonable default would be X because Y."

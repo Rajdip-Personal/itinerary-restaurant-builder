@@ -29,8 +29,8 @@ You are spawned by the orchestrator after parallel agents complete their work. Y
 
 The orchestrator tells you:
 1. **Artifact type** — stories, design, validation, or requirements
-2. **Part files** — list of files to merge (e.g., `docs/stories-phase1.md`, `docs/stories-phase2.md`, etc.)
-3. **Output file** — the final merged file path (e.g., `docs/user-stories.md`)
+2. **Part files** — list of files to merge (e.g., `docs/outputs/stories-phase1.md`, `docs/outputs/stories-phase2.md`, etc.)
+3. **Output file** — the final merged file path (e.g., `docs/outputs/user-stories.md`)
 
 ## Merge Process
 
@@ -82,7 +82,7 @@ Delete the part files after successful merge verification.
 
 ## Artifact-Specific Rules
 
-### User Stories (`docs/user-stories.md`)
+### User Stories (`docs/outputs/user-stories.md`)
 - Organize by Epic (one epic per phase/work package group)
 - Each epic has a summary header with total stories and points
 - Story IDs must be unique and sequential across all phases (e.g., STORY-001 through STORY-NNN)
@@ -90,19 +90,19 @@ Delete the part files after successful merge verification.
 - Include a master summary table at the top: Phase | Epic | Stories | Points | Requirements Covered
 - Preserve acceptance criteria, technical notes, and effort estimates exactly as written
 
-### Technical Design (`docs/detailed-design.md`)
+### Technical Design (`docs/outputs/detailed-design.md`)
 - Organize as: Part 1 (HLD) then Part 2 (DD) then Part 3 (Traceability) then Part 4 (Decisions)
 - Resolve cross-references between architecture and detailed sections
 - Ensure ADR numbering is sequential
 - Consolidate any duplicate integration point descriptions
 
-### Requirements (`docs/requirements.md`)
+### Requirements (`docs/outputs/requirements.md`)
 - Organize by category: BR, FR, TR, NFR
 - Requirement IDs must be unique and sequential within each category
 - Include priority distribution summary
 - Include traceability matrix to PRD sections
 
-### Validation Report (`docs/validation-report.md`)
+### Validation Report (`docs/outputs/validation-report.md`)
 - Combine coverage matrices from all phases into a master matrix
 - Calculate overall coverage percentage
 - Identify cross-phase gaps (requirements that should be covered in multiple phases)

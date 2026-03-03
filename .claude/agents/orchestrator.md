@@ -53,8 +53,8 @@ You (the orchestrator) are spawned **by the main session** as a persistent teamm
 │  OTHER TEAMMATES (persist throughout session):                           │
 │                                                                          │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                │
-│  │memory-agent │ ←─→ │planning-agent│ ←─→ │requirements-│                │
-│  │  (always)   │     │             │     │    agent    │                │
+│  │memory-agent │ ←─→ │requirements-│ ←─→ │planning-    │                │
+│  │  (always)   │     │    agent    │     │    agent    │                │
 │  └─────────────┘     └─────────────┘     └─────────────┘                │
 │         ↑                   ↑                   ↑                        │
 │         │                   │                   │                        │
@@ -120,7 +120,7 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 │  PHASE 2: Orchestrator Coordinates (via Agent Teams)                     │
 │                                                                          │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐              │
-│  │1.Proto-  │──▶│2.Planning│──▶│ 3. Reqs  │──▶│4. Design │              │
+│  │1.Proto-  │──▶│ 2. Reqs  │──▶│3. Design │──▶│4.Planning│              │
 │  │  type-ui │   │  Agent   │   │  Agent   │   │  Agent   │              │
 │  │(optional)│   │          │   │          │   │          │              │
 │  └──────────┘   └──────────┘   └──────────┘   └──────────┘              │
@@ -205,11 +205,11 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 2. Read `memory-bank/activeContext.md` — What are we working on? What project?
 3. Check `docs/` for existing artifacts:
    - `prototype/` — Prototype generated? (at repo root, NOT under docs/)
-   - `docs/execution-plan.md` — Planning done?
-   - `docs/requirements.md` — Requirements extracted?
-   - `docs/detailed-design.md` — Design created?
-   - `docs/user-stories.md` — Stories generated?
-   - `docs/validation-report.md` — Validation done?
+   - `docs/outputs/execution-plan.md` — Planning done?
+   - `docs/outputs/requirements.md` — Requirements extracted?
+   - `docs/outputs/detailed-design.md` — Design created?
+   - `docs/outputs/user-stories.md` — Stories generated?
+   - `docs/outputs/validation-report.md` — Validation done?
 4. Read the project PRD from `projects/{project-name}/prd.md`
 
 ### Step 2: Determine Next Action
@@ -219,11 +219,11 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | PRD not refined | **STOP** — Message team-lead to run /refine-prd first | — |
 | PRD refined, open questions remain | **STOP** — Message team-lead to run /review-prd first | — |
 | PRD ready, no prototype, **project has a UI** | **REQUIRED** — Generate interactive prototype | (direct or Task) |
-| PRD ready, no plan | Generate execution plan | planning-agent |
-| Plan exists, no requirements | Extract requirements | requirements-agent |
+| PRD ready, no requirements | Extract requirements | requirements-agent |
 | Requirements exist, no design | Generate technical design | design-agent |
-| Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before stories | (direct or Task) |
-| Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
+| Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before plan | (direct or Task) |
+| Design exists (+ prototype if UI project), no plan | Generate execution plan | planning-agent |
+| Plan exists, no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
 | Validation done, human approves | Create Jira issues | jira-agent |
 | Validation done, human approves stories | **MANDATORY** — Create Jira issues | jira-agent |
@@ -233,12 +233,7 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 **UI Prototype Rule (MANDATORY):**
 To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
 
-The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
-
-**UI Prototype Rule (MANDATORY):**
-To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
-
-The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
+The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback. The prototype must complete before the execution plan so the plan can account for UX decisions.
 
 ### Step 3: Reuse or Spawn Teammate
 
@@ -384,8 +379,8 @@ https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/[branch-name]/[art
 ```
 
 For example:
-- Execution plan: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/execution-plan.md`
-- Requirements: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/requirements-bf.md`
+- Execution plan: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/outputs/execution-plan.md`
+- Requirements: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/outputs/requirements-bf.md`
 
 **Step 6c: Message the team lead with results and GitHub URL**
 
@@ -480,7 +475,7 @@ SendMessage:
 
 Always split work across multiple agents running in parallel. Each agent reads the FULL source files and writes to its own SEPARATE output file. **Files stay split — no merge step.**
 
-**CRITICAL: No pre-loading summaries in prompts.** Each agent MUST read the actual source files (`docs/requirements.md`, `docs/detailed-design.md`, etc.) directly. Pre-loading key facts in the prompt risks missing important details. The only information to include in the prompt is the agent's assignment (which sections/categories/phases to work on) and the file paths to read.
+**CRITICAL: No pre-loading summaries in prompts.** Each agent MUST read the actual source files (`docs/outputs/requirements.md`, `docs/outputs/detailed-design.md`, etc.) directly. Pre-loading key facts in the prompt risks missing important details. The only information to include in the prompt is the agent's assignment (which sections/categories/phases to work on) and the file paths to read.
 
 **CRITICAL: No merge step.** Output files remain split by however the agents were divided. Do NOT spawn a merge agent. Do NOT combine into a single file. The phase-based split maps naturally to sprint work.
 
@@ -488,31 +483,31 @@ Always split work across multiple agents running in parallel. Each agent reads t
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| requirements-agent-bf | `docs/requirements-bf.md` | Business Requirements (BR-) + Functional Requirements (FR-) |
-| requirements-agent-tn | `docs/requirements-tn.md` | Technical Requirements (TR-) + Non-Functional Requirements (NFR-) |
+| requirements-agent-bf | `docs/outputs/requirements-bf.md` | Business Requirements (BR-) + Functional Requirements (FR-) |
+| requirements-agent-tn | `docs/outputs/requirements-tn.md` | Technical Requirements (TR-) + Non-Functional Requirements (NFR-) |
 
 ### Design Doc — Split by Section (4 agents)
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| design-agent-arch | `docs/design-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
-| design-agent-inventory | `docs/design-inventory.md` | Component Inventory, Data Model, Integration Patterns |
-| design-agent-ops | `docs/design-ops.md` | Security Model, Observability Model, Deployment Model |
-| design-agent-gaps | `docs/design-gaps.md` | Gap Analysis, Requirements Traceability, Appendix |
+| design-agent-arch | `docs/outputs/design-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
+| design-agent-inventory | `docs/outputs/design-inventory.md` | Component Inventory, Data Model, Integration Patterns |
+| design-agent-ops | `docs/outputs/design-ops.md` | Security Model, Observability Model, Deployment Model |
+| design-agent-gaps | `docs/outputs/design-gaps.md` | Gap Analysis, Requirements Traceability, Appendix |
 
 ### User Stories — Split by Phase (4 agents)
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| story-gen-phase1 | `docs/stories-phase1.md` | Phase 1 work packages (WP-1.1 through WP-1.4) |
-| story-gen-phase2 | `docs/stories-phase2.md` | Phase 2 work packages (WP-2.1 through WP-2.4) |
-| story-gen-phase3a | `docs/stories-phase3a.md` | Phase 3A work packages (WP-3.1 through WP-3.4) |
-| story-gen-phase3b | `docs/stories-phase3b.md` | Phase 3B work packages (WP-3.5 through WP-3.9) |
+| story-gen-phase1 | `docs/outputs/stories-phase1.md` | Phase 1 work packages (WP-1.1 through WP-1.4) |
+| story-gen-phase2 | `docs/outputs/stories-phase2.md` | Phase 2 work packages (WP-2.1 through WP-2.4) |
+| story-gen-phase3a | `docs/outputs/stories-phase3a.md` | Phase 3A work packages (WP-3.1 through WP-3.4) |
+| story-gen-phase3b | `docs/outputs/stories-phase3b.md` | Phase 3B work packages (WP-3.5 through WP-3.9) |
 
 Each agent reads the FULL source files:
-- `docs/requirements.md` — for requirement IDs and acceptance criteria
-- `docs/detailed-design.md` — for design specs and file references
-- `docs/execution-plan.md` — for work package details and sprint assignments
+- `docs/outputs/requirements.md` — for requirement IDs and acceptance criteria
+- `docs/outputs/detailed-design.md` — for design specs and file references
+- `docs/outputs/execution-plan.md` — for work package details and sprint assignments
 
 Each agent writes stories ONLY for its assigned phase/work packages.
 
@@ -520,16 +515,16 @@ Each agent writes stories ONLY for its assigned phase/work packages.
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| validator-phase1 | `docs/validation-phase1.md` | Validate Phase 1 stories against requirements |
-| validator-phase2 | `docs/validation-phase2.md` | Validate Phase 2 stories against requirements |
-| validator-phase3a | `docs/validation-phase3a.md` | Validate Phase 3A stories against requirements |
-| validator-phase3b | `docs/validation-phase3b.md` | Validate Phase 3B stories against requirements |
+| validator-phase1 | `docs/outputs/validation-phase1.md` | Validate Phase 1 stories against requirements |
+| validator-phase2 | `docs/outputs/validation-phase2.md` | Validate Phase 2 stories against requirements |
+| validator-phase3a | `docs/outputs/validation-phase3a.md` | Validate Phase 3A stories against requirements |
+| validator-phase3b | `docs/outputs/validation-phase3b.md` | Validate Phase 3B stories against requirements |
 
 Each agent reads the FULL source files:
-- `docs/stories-phase{N}.md` — the stories for its assigned phase
-- `docs/requirements.md` — full requirements to check coverage
-- `docs/detailed-design.md` — for design alignment
-- `docs/execution-plan.md` — for work package mapping
+- `docs/outputs/stories-phase{N}.md` — the stories for its assigned phase
+- `docs/outputs/requirements.md` — full requirements to check coverage
+- `docs/outputs/detailed-design.md` — for design alignment
+- `docs/outputs/execution-plan.md` — for work package mapping
 
 Each agent produces:
 - Coverage matrix (requirement → story mapping) for its phase
@@ -549,11 +544,11 @@ Before moving to the next stage, verify:
 
 | Gate | From → To | Check |
 |------|-----------|-------|
-| PRD Readiness | PRD → Prototype/Planning | All PRD sections filled, scope defined, users identified, open questions addressed |
-| Prototype Quality | Prototype → Planning | Key workflows demonstrable, user feedback captured |
-| Plan Quality | Planning → Requirements | Phases are realistic, dependencies mapped, risks identified |
+| PRD Readiness | PRD → Prototype/Requirements | All PRD sections filled, scope defined, users identified, open questions addressed |
+| Prototype Quality | Prototype → Requirements | Key workflows demonstrable, user feedback captured |
 | Requirements Quality | Requirements → Design | All categories covered, mandatory NFRs included, all testable |
-| Design Quality | Design → Stories | Architecture defined, APIs specified, security addressed |
+| Design Quality | Design → Planning | Architecture defined, APIs specified, security addressed |
+| Plan Quality | Planning → Stories | Phases are realistic, dependencies mapped, risks identified, informed by requirements and design |
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
 | Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
 
@@ -574,8 +569,8 @@ Task:
     Workshop repo: {absolute path to workshop repo}
     Team name: {team_name}
 
-    Create Jira epics and stories from the validated story files in docs/stories-*.md.
-    Write the mapping to docs/jira-mapping.md.
+    Create Jira epics and stories from the validated story files in docs/outputs/stories-*.md.
+    Write the mapping to docs/outputs/jira-mapping.md.
 
     After bulk creation, stay alive for status sync during implementation.
     The sprint-agent will send you JIRA UPDATE messages for status transitions.
@@ -586,10 +581,10 @@ The jira-agent will:
 1. Ask for the Jira project key (via orchestrator → team lead → human)
 2. Create one epic per phase
 3. Create stories with proper priority mapping and description formatting
-4. Write the mapping file at `docs/jira-mapping.md`
+4. Write the mapping file at `docs/outputs/jira-mapping.md`
 5. Stay alive during implementation for status sync
 
-**Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
+**Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/outputs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
 
 **Do NOT skip Jira sync.** Do NOT ask the human if they want to skip it. Always create Jira stories after validation.
 
@@ -610,7 +605,7 @@ Task:
     Workshop repo: {absolute path to workshop repo}
     Team name: {team_name}
 
-    Read the stories (docs/stories-*.md), execution plan (docs/execution-plan.md),
+    Read the stories (docs/outputs/stories-*.md), execution plan (docs/outputs/execution-plan.md),
     and design docs to build the implementation queue.
 
     IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.
@@ -684,9 +679,9 @@ After each stage completes and human validates (via team lead), show in your mes
 │  [✓] /refine-prd                                │
 │  [✓] /review-prd                                │
 │  [✓] prototype-ui (if applicable)               │
-│  [✓] execution-plan                             │
-│  [ ] requirements        ← YOU ARE HERE         │
-│  [ ] detailed-design                            │
+│  [✓] requirements                               │
+│  [ ] detailed-design     ← YOU ARE HERE         │
+│  [ ] execution-plan                             │
 │  [ ] user-stories                               │
 │  [ ] validation                                 │
 │  [ ] jira-sync                                  │
@@ -707,9 +702,9 @@ There are **two commit points** per pipeline stage:
 **When a teammate generates an artifact, commit and push it BEFORE messaging the team lead for approval.** This is critical — the team reviews documents on GitHub. If you don't push first, they have no way to review.
 
 **When:**
-- After execution plan is generated (before requesting approval)
 - After requirements are extracted (before requesting approval)
 - After technical design is generated (before requesting approval)
+- After execution plan is generated (before requesting approval)
 - After user stories are generated (before requesting approval)
 - After validation report is generated (before requesting approval)
 - After any revision round that changes artifacts (before re-requesting approval)

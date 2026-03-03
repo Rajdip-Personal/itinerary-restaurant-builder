@@ -7,10 +7,10 @@ description: Cross-check user stories against requirements for gaps
 You are running the **validation pipeline**. Follow these steps:
 
 ## Step 1: Gather Inputs
-1. Read `docs/requirements.md` — required. If missing, **stop and tell the user** to run `/extract-requirements` first.
-2. Read `docs/user-stories.md` — required. If missing, **stop and tell the user** to run `/generate-stories` first.
-3. Read `docs/detailed-design.md` if it exists (for design-level validation).
-4. Read `docs/execution-plan.md` if it exists (for phasing validation).
+1. Read `docs/outputs/requirements.md` — required. If missing, **stop and tell the user** to run `/extract-requirements` first.
+2. Read `docs/outputs/user-stories.md` — required. If missing, **stop and tell the user** to run `/generate-stories` first.
+3. Read `docs/outputs/detailed-design.md` if it exists (for design-level validation).
+4. Read `docs/outputs/execution-plan.md` if it exists (for phasing validation).
 5. Read `.claude/skills/nordstrom-engineering-standards.md` for standards compliance check.
 6. Read all files in `memory-bank/` for context.
 
@@ -80,7 +80,7 @@ Check for:
 - Is there a story for each integration point?
 
 ## Step 3: Generate Report
-Write the validation report to `docs/validation-report.md`:
+Write the validation report to `docs/outputs/validation-report.md`:
 
 ```markdown
 # Validation Report: [Project Name]
@@ -113,7 +113,7 @@ Numbered list of specific actions to resolve findings.
 ```
 
 ## Step 4: Update Memory
-1. Write report to `docs/validation-report.md`.
+1. Write report to `docs/outputs/validation-report.md`.
 2. Update `memory-bank/progress.md` — mark validation as completed.
 3. Update `memory-bank/activeContext.md` — record findings and recommended actions.
 

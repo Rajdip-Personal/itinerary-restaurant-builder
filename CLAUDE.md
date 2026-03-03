@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → technical design → user stories → validation → implementation in a 3-hour hands-on workshop.
+This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → design → plan → user stories → validation → implementation in a 3-hour hands-on workshop.
 
 **This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.
 
@@ -514,7 +514,7 @@ Track pipeline state in `memory-bank/progress.md`:
 **When to commit+push:**
 - After `/refine-prd` completes (readiness check passes)
 - After `/review-prd` completes (all questions addressed)
-- After each orchestrator stage completes (plan, requirements, design, stories, validation)
+- After each orchestrator stage completes (requirements, design, plan, stories, validation)
 - After implementation milestones (sprint-agent manages its own pushes to the implementation repo)
 
 **How:**
@@ -583,9 +583,9 @@ After `/review-prd` completes, the main session creates an Agent Team and spawns
 | Step | Stage | Teammate Spawned by Orchestrator |
 |------|-------|----------------------------------|
 | 3 | Prototype UI (optional) | (direct or planning-agent) |
-| 4 | Execution Plan | planning-agent |
-| 5 | Requirements | requirements-agent |
-| 6 | Technical Design | design-agent |
+| 4 | Requirements | requirements-agent |
+| 5 | Technical Design | design-agent |
+| 6 | Execution Plan | planning-agent |
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
 | 8b | Jira Sync (mandatory) | jira-agent |
@@ -604,7 +604,7 @@ The orchestrator (persistent teammate):
 For the Jira sync stage (mandatory), the orchestrator spawns the **jira-agent** after stories are validated and approved. The jira-agent creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent. **Jira sync must complete before implementation begins.**
 
 For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
-- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
+- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/outputs/jira-mapping.md` exists, sends status updates to jira-agent.
 - **Coding Agent(s)** — each takes one story, creates a `feature/{story-id}` branch, implements code, writes tests, builds, and commits on the feature branch. Does NOT merge to main or push — the sprint-agent handles that. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
 
 **Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
@@ -629,7 +629,7 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
      prompt: "You are the orchestrator teammate for team <team_name>.
               The PRD for {project-name} has been refined and reviewed.
               Assess the current state and coordinate the remaining pipeline
-              (prototype → plan → requirements → design → stories → validation).
+              (prototype → requirements → design → plan → stories → validation).
               The project PRD is at: projects/{project-name}/prd.md
               Use this team_name for all Task tool calls: <team_name>
               IMPORTANT: Always use mode: bypassPermissions when spawning teammates."
@@ -655,7 +655,7 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
 
 **If a teammate needs to be respawned** (e.g., to fix permissions), the team lead MUST message the orchestrator and ask it to handle the respawn. The team lead must NOT spawn teammates directly — doing so creates naming conflicts, breaks the orchestrator's coordination, and causes confusion about who manages whom.
 
-**The team lead communicates with the orchestrator and the sprint-agent.** The orchestrator handles the pipeline stages (plan → requirements → design → stories → validation). The sprint-agent handles the implementation phase and messages the team lead directly for human approvals, repo creation, and progress updates. All other teammates coordinate through the orchestrator.
+**The team lead communicates with the orchestrator and the sprint-agent.** The orchestrator handles the pipeline stages (requirements → design → plan → stories → validation). The sprint-agent handles the implementation phase and messages the team lead directly for human approvals, repo creation, and progress updates. All other teammates coordinate through the orchestrator.
 
 **Do NOT pre-fill decisions that agents are supposed to ask the human.** When relaying approval messages to teammates, only relay what the human actually said. Do not add details the human hasn't confirmed (e.g., repo names, file paths, technology choices). If an agent has a dedicated gate to ask the human for input, let that gate run — do not bypass it by providing the answer in advance.
 
@@ -670,7 +670,8 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
 | `.claude/skills/` | Reusable knowledge (engineering standards, requirements writing) |
 | `memory-bank/` | Persistent shared context across all agents and sessions |
 | `templates/` | PRD template and other starting documents |
-| `docs/` | Generated outputs (plans, requirements, stories, designs, reports) |
+| `docs/` | Static documentation (quick-ref cards, setup protocol, facilitator guide) |
+| `docs/outputs/` | Generated pipeline outputs (plans, requirements, stories, designs, reports) |
 | `prototype/` | UI prototype (Vite + React app) — standard location for `/prototype-ui` output |
 | `projects/` | Project-specific PRDs and artifacts |
 

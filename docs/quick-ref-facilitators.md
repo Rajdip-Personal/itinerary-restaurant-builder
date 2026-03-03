@@ -75,7 +75,7 @@ The Calculator CLI project is the fastest end-to-end run. Use it to calibrate ex
 |-------|---------------|
 | Setup + Project + Read PRD | ~10 min |
 | Refine PRD + Review Questions | ~15 min |
-| Plan + Requirements + Design | ~20 min |
+| Requirements + Design + Plan | ~20 min |
 | Stories + Validation + Jira | ~15 min |
 | Implementation | ~30 min |
 | **Total** | **~90 min** |

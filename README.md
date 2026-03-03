@@ -1,6 +1,6 @@
 # Agentic AI Workshop — From Product Requirements Document (PRD) to Working Code
 
-A hands-on workshop for Nordstrom Supply Chain engineering squads. Specialized AI agents collaborate through shared memory to take a PRD through planning, design, stories, and implementation — with human review and approval at every step.
+A hands-on workshop for Nordstrom Supply Chain engineering squads. Specialized AI agents collaborate through shared memory to take a PRD through requirements, design, planning, stories, and implementation — with human review and approval at every step.
 
 **This is human-in-the-loop, not autopilot.** Agents assist — engineers decide.
 
@@ -33,9 +33,9 @@ The workshop has 13 steps. Claude presents each step automatically — you don't
   YOU START WITH                              YOU END WITH
   ──────────────────────                      ──────────────────────────
   A rough PRD (1-2 pages is fine)       --->  Refined PRD
-                                              Execution plan
                                               Structured requirements
                                               Technical design document
+                                              Execution plan
                                               Sprint-ready user stories
                                               Jira epics and stories
                                               Working tested code in GitHub
@@ -98,40 +98,42 @@ Step 4: Refine PRD                   Step 5: Review Questions
           ┌──────────────────────────────────────┘
           │
           ▼
-Step 6: Execution Plan                        Step 7: Requirements
+Step 6: Requirements                          Step 7: Technical Design
 ┌─────────────────────────────┐               ┌─────────────────────────────┐
-│ Agent: planning-agent        │               │ Agent: requirements-agent    │
-│ Input: prd.md, memory bank   │               │ Input: prd.md, plan,         │
-│ Output: docs/execution-      │               │        memory bank           │
-│   plan.md (phases,           │──── approve──>│ Output: docs/requirements-   │
-│   milestones, work packages, │               │   bf.md (business+functional)│
-│   dependencies, estimates)   │               │   docs/requirements-tn.md    │
-│                              │               │   (technical+non-functional) │
-│ Human: review plan           │               │                              │
-│   [approve] -> next step     │               │ Human: review requirements   │
-│   [revise]  -> agent updates,│               │   [approve] -> next step     │
-│               presents again │               │   [revise]  -> agent updates │
-│   [re-run]  -> regenerate    │               │   [re-run]  -> regenerate    │
-│                              │               │                              │
-│ Git: commit + push on        │               │ Git: commit + push on        │
-│   approve (docs/ +           │               │   approve (docs/ +           │
-│   memory-bank/)              │               │   memory-bank/)              │
-│                              │               │                              │
-│ Iterate: YES — revise loop   │               │ Iterate: YES — revise loop   │
-└──────────────────────────────┘               └──────────────┬──────────────┘
-          ▲          │                                        │
-          └── revise─┘                         ┌──────────────┘
-                                               │
+│ Agent: requirements-agent    │               │ Agent: design-agent (x4      │
+│ Input: prd.md,               │               │   parallel for speed)        │
+│        memory bank           │               │ Input: prd.md, requirements, │
+│ Output: docs/outputs/requirements-   │──── approve──>│   memory bank                │
+│   bf.md (business+functional)│               │ Output: docs/outputs/design-*.md     │
+│   docs/outputs/requirements-tn.md    │               │   (architecture, components, │
+│   (technical+non-functional) │               │   data model, security,      │
+│                              │               │   APIs, gap analysis)        │
+│ Human: review requirements   │               │                              │
+│   [approve] -> next step     │               │ Human: review design         │
+│   [revise]  -> agent updates │               │   [approve] -> next step     │
+│   [re-run]  -> regenerate    │               │   [revise]  -> agent updates │
+│                              │               │   [re-run]  -> regenerate    │
+│ Git: commit + push on        │               │                              │
+│   approve (docs/ +           │               │ Git: commit + push on        │
+│   memory-bank/)              │               │   approve (docs/ +           │
+│                              │               │   memory-bank/)              │
+│ Iterate: YES — revise loop   │               │                              │
+└──────────────────────────────┘               │ Iterate: YES — revise loop   │
+          ▲          │                         └──────────────┬───────────────┘
+          └── revise─┘                                   ▲    │
+                                                         └────┘ revise
+                                               ┌──────────────┘
+                                               │ approve
           ┌────────────────────────────────────┘
           │
           ▼
-Step 8: Technical Design
+Step 8: Execution Plan
 ┌─────────────────────────────┐
 │ Agent: design-agent (x4      │
 │   parallel for speed)        │
 │ Input: prd.md, requirements, │
 │   plan, memory bank          │
-│ Output: docs/design-*.md     │
+│ Output: docs/outputs/design-*.md     │
 │   (architecture, components, │
 │   data model, security,      │
 │   APIs, gap analysis)        │
@@ -177,7 +179,7 @@ Step 10: User Stories                         Step 11: Validation
 │   parallel, one per story phase)   │               │   validators in parallel)    │
 │ Input: requirements, design, │               │ Input: stories, requirements,│
 │   plan, memory bank          │               │   design, plan               │
-│ Output: docs/stories-        │──── approve──>│ Output: docs/validation-     │
+│ Output: docs/outputs/stories-        │──── approve──>│ Output: docs/outputs/validation-     │
 │   phase*.md (Given/When/Then │               │   phase*.md (coverage matrix,│
 │   acceptance criteria, story │               │   gap analysis, quality      │
 │   points, tech notes,        │               │   assessment)                │
@@ -203,14 +205,14 @@ Step 12: Jira Sync                            Step 13: Implementation
 │ Input: validated stories     │               │   coding-agent(s) +          │
 │ Output: Jira epics (1 per    │               │   jira-agent (status sync)   │
 │   story phase) + stories,    │──── done ────>│ Input: stories, design,      │
-│   docs/jira-mapping.md       │               │   plan, jira mapping         │
+│   docs/outputs/jira-mapping.md       │               │   plan, jira mapping         │
 │                              │               │ Output: working code repo    │
 │ Human: provide Jira project  │               │   with tests                 │
 │   key (e.g., MYPROJ),        │               │                              │
 │   verify stories in Jira     │               │ Human (repeated per story):  │
 │                              │               │   1. approve queue order     │
 │ Git: commit + push           │               │   2. provide GitHub repo name│
-│   (docs/jira-mapping.md)     │               │   3. approve each story      │
+│   (docs/outputs/jira-mapping.md)     │               │   3. approve each story      │
 │                              │               │      before coding starts    │
 │ Iterate: no                  │               │   4. review code after each  │
 └──────────────────────────────┘               │      story completes         │
@@ -246,13 +248,13 @@ Step 12: Jira Sync                            Step 13: Implementation
 | 3 | Read PRD | Ensure the whole team understands the project before refinement begins | — | Team (everyone reads) | type "ready" | **gate** — blocked until "ready" | — | — | no |
 | 4 | Refine PRD | Assess PRD completeness and fill gaps through guided Q&A | Claude | Product owner / domain expert | answer questions, provide business context, make scope decisions | readiness check | updated `prd.md`, updated memory bank | **commit + push** PRD + memory bank | **yes** — loop until ready |
 | 5 | Review Questions | Resolve every remaining open question in the PRD | Claude | Product owner / domain expert | answer each question or accept default | all questions resolved | updated `prd.md` (finalized) | **commit + push** PRD + memory bank | **yes** — per question |
-| 6 | Execution Plan | Break the PRD into phased milestones and work packages | planning-agent | Tech lead / architect | — | **approve / revise / re-run** | `docs/execution-plan.md` | **commit + push** on approve | **yes** — revise loop |
-| 7 | Requirements | Extract structured, traceable requirements from the PRD | requirements-agent | Tech lead / product owner | — | **approve / revise / re-run** | `docs/requirements-*.md` | **commit + push** on approve | **yes** — revise loop |
-| 8 | Technical Design | Define architecture, APIs, data model, security, and component design | design-agent (x4) | Architect / senior engineer | — | **approve / revise / re-run** | `docs/design-*.md` | **commit + push** on approve | **yes** — revise loop |
+| 6 | Requirements | Extract structured, traceable requirements from the PRD | requirements-agent | Tech lead / product owner | — | **approve / revise / re-run** | `docs/outputs/requirements-*.md` | **commit + push** on approve | **yes** — revise loop |
+| 7 | Technical Design | Define architecture, APIs, data model, security, and component design | design-agent (x4) | Architect / senior engineer | — | **approve / revise / re-run** | `docs/outputs/design-*.md` | **commit + push** on approve | **yes** — revise loop |
+| 8 | Execution Plan | Break requirements and design into phased milestones and work packages | planning-agent | Tech lead / architect | — | **approve / revise / re-run** | `docs/outputs/execution-plan.md` | **commit + push** on approve | **yes** — revise loop |
 | 9 | UI Prototype | Generate an interactive prototype for the team to validate UX *(UI projects only)* | Claude | Team (everyone clicks through) | UX feedback | **approve / iterate** | React app at localhost:5173 | **commit + push** on approve | **yes** — feedback loop |
-| 10 | User Stories | Generate sprint-ready stories with acceptance criteria mapped to requirements | story-generator (x4) | Product owner / tech lead | — | **approve / revise / re-run** | `docs/stories-phase*.md` | **commit + push** on approve | **yes** — revise loop |
-| 11 | Validation | Cross-check stories against requirements for coverage gaps and quality | orchestrator (x4) | Tech lead | — | **approve / fix gaps** | `docs/validation-phase*.md` | **commit + push** on approve | **yes** — fix + recheck |
-| 12 | Jira Sync | Create epics and stories in Jira from validated story files | jira-agent | Any team member | Jira project key | verify in Jira | Jira epics + stories, `docs/jira-mapping.md` | **commit + push** mapping file | no |
+| 10 | User Stories | Generate sprint-ready stories with acceptance criteria mapped to requirements | story-generator (x4) | Product owner / tech lead | — | **approve / revise / re-run** | `docs/outputs/stories-phase*.md` | **commit + push** on approve | **yes** — revise loop |
+| 11 | Validation | Cross-check stories against requirements for coverage gaps and quality | orchestrator (x4) | Tech lead | — | **approve / fix gaps** | `docs/outputs/validation-phase*.md` | **commit + push** on approve | **yes** — fix + recheck |
+| 12 | Jira Sync | Create epics and stories in Jira from validated story files | jira-agent | Any team member | Jira project key | verify in Jira | Jira epics + stories, `docs/outputs/jira-mapping.md` | **commit + push** mapping file | no |
 | 13 | Implementation | Implement each story as working, tested code | sprint-agent, coding-agent(s) | Engineer (driver) + team (review) | approve queue, **create GitHub repo manually**, approve each story | **per-story approval** | code repo with tests | **human creates GitHub repo**; per story: commit on feature branch, **merge + push to main** | **yes** — per story |
 
 **Key:**
@@ -292,9 +294,9 @@ Each specialist agent is spawned by the orchestrator when its step begins and st
 |-------|-------|-------------|-------------|
 | **orchestrator** | 6-13 (always running) | Coordinates the entire agent team. Spawns and despawns specialist agents, reviews output quality, compiles parallel results, routes revision feedback, tracks pipeline state, commits and pushes after each approved step. | 1 |
 | **memory-agent** | 6-13 (always running) | Central authority for the shared memory bank once the Agent Team is running. All other agents send updates to it via messaging. During Steps 1-5, the main Claude session updates the memory bank directly. | 1 |
-| **planning-agent** | 6 | Reads the PRD and generates a phased execution plan with milestones, work packages, dependency ordering, and effort estimates. | 1 |
-| **requirements-agent** | 7 | Extracts structured, traceable requirements from the PRD: Business (BR), Functional (FR), Technical (TR), Non-Functional (NFR). | 2 (split by category) |
-| **design-agent** | 8 | Produces the technical design: architecture, component inventory, data model, API specs, security model, observability, and gap analysis. | 4 (split by section) |
+| **requirements-agent** | 6 | Extracts structured, traceable requirements from the PRD: Business (BR), Functional (FR), Technical (TR), Non-Functional (NFR). | 2 (split by category) |
+| **design-agent** | 7 | Produces the technical design: architecture, component inventory, data model, API specs, security model, observability, and gap analysis. | 4 (split by section) |
+| **planning-agent** | 8 | Reads the PRD, requirements, and design to generate a phased execution plan with milestones, work packages, dependency ordering, and effort estimates. | 1 |
 | **story-generator** | 10 | Creates sprint-ready user stories with Given/When/Then acceptance criteria, story points, technical notes, and traceability to requirements and work packages. | 4 (split by phase) |
 | **jira-agent** | 12-13 | Creates Jira epics (one per story phase) and stories from validated story files. Stays alive during implementation to receive status transitions (In Progress, Done) from the sprint-agent. | 1 |
 | **sprint-agent** | 13 | Implementation coordinator. Builds an ordered queue from stories and the execution plan, presents each story to you for approval, requests coding-agent spawns from the orchestrator, merges completed feature branches to main, and pushes to GitHub. | 1 |
@@ -418,7 +420,7 @@ The workshop flow runs automatically — you do not need to type these commands.
 
 ## Workshop Logistics
 
-- **Rotate the driver.** The person best suited to review each step's output should be at the keyboard. Product owners drive Refine and Review PRD; architects and senior engineers drive Execution Plan, Requirements, and Technical Design; the whole team previews the UI Prototype; engineers drive Implementation.
+- **Rotate the driver.** The person best suited to review each step's output should be at the keyboard. Product owners drive Refine and Review PRD; architects and senior engineers drive Requirements, Technical Design, and Execution Plan; the whole team previews the UI Prototype; engineers drive Implementation.
 - **Identify data sources early.** If the project depends on external data (APIs, databases, CSV exports), assign team members to determine sources and access methods as soon as possible. The sooner data sources are known, the better the requirements and design will incorporate them.
 - **Each team should include an engineer familiar with the flow.** Where that's not possible, teams should have a way to reach one of the senior engineers who have run the flow before (Slack channel, same room, etc.).
 

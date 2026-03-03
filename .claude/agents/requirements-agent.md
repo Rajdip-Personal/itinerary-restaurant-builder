@@ -131,7 +131,7 @@ If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYM
 
 ## Output Structure
 
-Write all requirements to `docs/requirements.md` with this structure:
+Write all requirements to `docs/outputs/requirements.md` with this structure:
 
 ```markdown
 # Requirements: [Project Name]
@@ -160,7 +160,7 @@ Write all requirements to `docs/requirements.md` with this structure:
 
 ## After You Finish
 
-1. **Write requirements** to `docs/requirements.md`.
+1. **Write requirements** to `docs/outputs/requirements.md`.
 
 2. **Send memory update to memory-agent:**
    ```
@@ -180,7 +180,7 @@ Write all requirements to `docs/requirements.md` with this structure:
      to: "orchestrator"
      message: |
        TASK COMPLETE: Requirements extracted.
-       Output: docs/requirements.md
+       Output: docs/outputs/requirements.md
        Summary: X total requirements (BR: X, TR: X, FR: X, NFR: X)
        P0: X | P1: X | P2: X
        Gaps identified: [list if any]
