@@ -205,11 +205,11 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 2. Read `memory-bank/activeContext.md` — What are we working on? What project?
 3. Check `docs/` for existing artifacts:
    - `prototype/` — Prototype generated? (at repo root, NOT under docs/)
-   - `docs/execution-plan.md` — Planning done?
-   - `docs/requirements.md` — Requirements extracted?
-   - `docs/detailed-design.md` — Design created?
-   - `docs/user-stories.md` — Stories generated?
-   - `docs/validation-report.md` — Validation done?
+   - `docs/outputs/execution-plan.md` — Planning done?
+   - `docs/outputs/requirements.md` — Requirements extracted?
+   - `docs/outputs/detailed-design.md` — Design created?
+   - `docs/outputs/user-stories.md` — Stories generated?
+   - `docs/outputs/validation-report.md` — Validation done?
 4. Read the project PRD from `projects/{project-name}/prd.md`
 
 ### Step 2: Determine Next Action
@@ -379,8 +379,8 @@ https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/[branch-name]/[art
 ```
 
 For example:
-- Execution plan: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/execution-plan.md`
-- Requirements: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/requirements-bf.md`
+- Execution plan: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/outputs/execution-plan.md`
+- Requirements: `https://github.com/Nordstrom-Sandbox/agentic-ai-workshop/blob/team-alpha/docs/outputs/requirements-bf.md`
 
 **Step 6c: Message the team lead with results and GitHub URL**
 
@@ -475,7 +475,7 @@ SendMessage:
 
 Always split work across multiple agents running in parallel. Each agent reads the FULL source files and writes to its own SEPARATE output file. **Files stay split — no merge step.**
 
-**CRITICAL: No pre-loading summaries in prompts.** Each agent MUST read the actual source files (`docs/requirements.md`, `docs/detailed-design.md`, etc.) directly. Pre-loading key facts in the prompt risks missing important details. The only information to include in the prompt is the agent's assignment (which sections/categories/phases to work on) and the file paths to read.
+**CRITICAL: No pre-loading summaries in prompts.** Each agent MUST read the actual source files (`docs/outputs/requirements.md`, `docs/outputs/detailed-design.md`, etc.) directly. Pre-loading key facts in the prompt risks missing important details. The only information to include in the prompt is the agent's assignment (which sections/categories/phases to work on) and the file paths to read.
 
 **CRITICAL: No merge step.** Output files remain split by however the agents were divided. Do NOT spawn a merge agent. Do NOT combine into a single file. The phase-based split maps naturally to sprint work.
 
@@ -483,31 +483,31 @@ Always split work across multiple agents running in parallel. Each agent reads t
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| requirements-agent-bf | `docs/requirements-bf.md` | Business Requirements (BR-) + Functional Requirements (FR-) |
-| requirements-agent-tn | `docs/requirements-tn.md` | Technical Requirements (TR-) + Non-Functional Requirements (NFR-) |
+| requirements-agent-bf | `docs/outputs/requirements-bf.md` | Business Requirements (BR-) + Functional Requirements (FR-) |
+| requirements-agent-tn | `docs/outputs/requirements-tn.md` | Technical Requirements (TR-) + Non-Functional Requirements (NFR-) |
 
 ### Design Doc — Split by Section (4 agents)
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| design-agent-arch | `docs/design-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
-| design-agent-inventory | `docs/design-inventory.md` | Component Inventory, Data Model, Integration Patterns |
-| design-agent-ops | `docs/design-ops.md` | Security Model, Observability Model, Deployment Model |
-| design-agent-gaps | `docs/design-gaps.md` | Gap Analysis, Requirements Traceability, Appendix |
+| design-agent-arch | `docs/outputs/design-architecture.md` | Executive Summary, Current State, Target State, Architecture Decisions |
+| design-agent-inventory | `docs/outputs/design-inventory.md` | Component Inventory, Data Model, Integration Patterns |
+| design-agent-ops | `docs/outputs/design-ops.md` | Security Model, Observability Model, Deployment Model |
+| design-agent-gaps | `docs/outputs/design-gaps.md` | Gap Analysis, Requirements Traceability, Appendix |
 
 ### User Stories — Split by Phase (4 agents)
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| story-gen-phase1 | `docs/stories-phase1.md` | Phase 1 work packages (WP-1.1 through WP-1.4) |
-| story-gen-phase2 | `docs/stories-phase2.md` | Phase 2 work packages (WP-2.1 through WP-2.4) |
-| story-gen-phase3a | `docs/stories-phase3a.md` | Phase 3A work packages (WP-3.1 through WP-3.4) |
-| story-gen-phase3b | `docs/stories-phase3b.md` | Phase 3B work packages (WP-3.5 through WP-3.9) |
+| story-gen-phase1 | `docs/outputs/stories-phase1.md` | Phase 1 work packages (WP-1.1 through WP-1.4) |
+| story-gen-phase2 | `docs/outputs/stories-phase2.md` | Phase 2 work packages (WP-2.1 through WP-2.4) |
+| story-gen-phase3a | `docs/outputs/stories-phase3a.md` | Phase 3A work packages (WP-3.1 through WP-3.4) |
+| story-gen-phase3b | `docs/outputs/stories-phase3b.md` | Phase 3B work packages (WP-3.5 through WP-3.9) |
 
 Each agent reads the FULL source files:
-- `docs/requirements.md` — for requirement IDs and acceptance criteria
-- `docs/detailed-design.md` — for design specs and file references
-- `docs/execution-plan.md` — for work package details and sprint assignments
+- `docs/outputs/requirements.md` — for requirement IDs and acceptance criteria
+- `docs/outputs/detailed-design.md` — for design specs and file references
+- `docs/outputs/execution-plan.md` — for work package details and sprint assignments
 
 Each agent writes stories ONLY for its assigned phase/work packages.
 
@@ -515,16 +515,16 @@ Each agent writes stories ONLY for its assigned phase/work packages.
 
 | Agent | Output File | Assignment |
 |-------|-------------|------------|
-| validator-phase1 | `docs/validation-phase1.md` | Validate Phase 1 stories against requirements |
-| validator-phase2 | `docs/validation-phase2.md` | Validate Phase 2 stories against requirements |
-| validator-phase3a | `docs/validation-phase3a.md` | Validate Phase 3A stories against requirements |
-| validator-phase3b | `docs/validation-phase3b.md` | Validate Phase 3B stories against requirements |
+| validator-phase1 | `docs/outputs/validation-phase1.md` | Validate Phase 1 stories against requirements |
+| validator-phase2 | `docs/outputs/validation-phase2.md` | Validate Phase 2 stories against requirements |
+| validator-phase3a | `docs/outputs/validation-phase3a.md` | Validate Phase 3A stories against requirements |
+| validator-phase3b | `docs/outputs/validation-phase3b.md` | Validate Phase 3B stories against requirements |
 
 Each agent reads the FULL source files:
-- `docs/stories-phase{N}.md` — the stories for its assigned phase
-- `docs/requirements.md` — full requirements to check coverage
-- `docs/detailed-design.md` — for design alignment
-- `docs/execution-plan.md` — for work package mapping
+- `docs/outputs/stories-phase{N}.md` — the stories for its assigned phase
+- `docs/outputs/requirements.md` — full requirements to check coverage
+- `docs/outputs/detailed-design.md` — for design alignment
+- `docs/outputs/execution-plan.md` — for work package mapping
 
 Each agent produces:
 - Coverage matrix (requirement → story mapping) for its phase
@@ -569,8 +569,8 @@ Task:
     Workshop repo: {absolute path to workshop repo}
     Team name: {team_name}
 
-    Create Jira epics and stories from the validated story files in docs/stories-*.md.
-    Write the mapping to docs/jira-mapping.md.
+    Create Jira epics and stories from the validated story files in docs/outputs/stories-*.md.
+    Write the mapping to docs/outputs/jira-mapping.md.
 
     After bulk creation, stay alive for status sync during implementation.
     The sprint-agent will send you JIRA UPDATE messages for status transitions.
@@ -581,10 +581,10 @@ The jira-agent will:
 1. Ask for the Jira project key (via orchestrator → team lead → human)
 2. Create one epic per phase
 3. Create stories with proper priority mapping and description formatting
-4. Write the mapping file at `docs/jira-mapping.md`
+4. Write the mapping file at `docs/outputs/jira-mapping.md`
 5. Stay alive during implementation for status sync
 
-**Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
+**Wait for jira-agent to complete bulk creation before spawning the sprint-agent.** The sprint-agent reads `docs/outputs/jira-mapping.md` to include Jira keys in story presentations and send status updates.
 
 **Do NOT skip Jira sync.** Do NOT ask the human if they want to skip it. Always create Jira stories after validation.
 
@@ -605,7 +605,7 @@ Task:
     Workshop repo: {absolute path to workshop repo}
     Team name: {team_name}
 
-    Read the stories (docs/stories-*.md), execution plan (docs/execution-plan.md),
+    Read the stories (docs/outputs/stories-*.md), execution plan (docs/outputs/execution-plan.md),
     and design docs to build the implementation queue.
 
     IMPORTANT: Always use mode: bypassPermissions when spawning coding agents.

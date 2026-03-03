@@ -60,7 +60,7 @@ You receive from the orchestrator:
 
 ## Jira Integration (MANDATORY when mapping exists)
 
-If `docs/jira-mapping.md` exists in the workshop repo, Jira status updates are **mandatory** for every story.
+If `docs/outputs/jira-mapping.md` exists in the workshop repo, Jira status updates are **mandatory** for every story.
 
 ### Setup
 1. **Load the mapping on startup** — Parse the Story Mapping table to build a lookup: Workshop Story ID → Jira Issue Key
@@ -111,16 +111,16 @@ JIRA UPDATE REQUEST:
 - **Recipient: jira-agent** — the jira-agent has MCP tools and executes Jira transitions directly
 - Do NOT send Jira updates to team-lead — team-lead is only for human-facing requests
 
-If `docs/jira-mapping.md` does NOT exist, skip all Jira-related notifications. Do not fail or warn — Jira sync is optional.
+If `docs/outputs/jira-mapping.md` does NOT exist, skip all Jira-related notifications. Do not fail or warn — Jira sync is optional.
 
 ## Step 0: Read Context
 
-1. Read all story files: `docs/stories-*.md` (use Glob to find them)
-2. Read execution plan: `docs/execution-plan.md` — for phase ordering and work package dependencies
-3. Read design docs: `docs/detailed-design.md` or `docs/design-*.md` — for tech stack, data model, API specs
+1. Read all story files: `docs/outputs/stories-*.md` (use Glob to find them)
+2. Read execution plan: `docs/outputs/execution-plan.md` — for phase ordering and work package dependencies
+3. Read design docs: `docs/outputs/detailed-design.md` or `docs/outputs/design-*.md` — for tech stack, data model, API specs
 4. Read `memory-bank/techContext.md` — for tech stack and deployment target
-5. Read requirements: `docs/requirements-*.md` or `docs/requirements.md`
-6. Read `docs/jira-mapping.md` — if it exists, load the Workshop Story ID → Jira Issue Key mapping for Jira notifications
+5. Read requirements: `docs/outputs/requirements-*.md` or `docs/outputs/requirements.md`
+6. Read `docs/outputs/jira-mapping.md` — if it exists, load the Workshop Story ID → Jira Issue Key mapping for Jira notifications
 
 ## Step 1: Build Implementation Queue
 
@@ -227,7 +227,7 @@ SendMessage:
       Code repo path: {absolute-path-to-sibling-directory}
       Workshop repo path: {absolute-path-to-workshop-repo}
 
-      Read the design doc at: {workshop-repo}/docs/detailed-design.md (or docs/design-*.md files)
+      Read the design doc at: {workshop-repo}/docs/outputs/detailed-design.md (or docs/outputs/design-*.md files)
       Read tech context at: {workshop-repo}/memory-bank/techContext.md
 
       Follow the BOOTSTRAP protocol in your agent instructions.
@@ -280,7 +280,7 @@ SendMessage:
    git push -u origin main
    ```
 4. **Verify:** Run `cd {code-repo} && git remote -v` to confirm the remote is set and `git log --oneline origin/main` to confirm the push succeeded.
-5. **Record the GitHub repo URL** in `docs/implementation-progress.md`.
+5. **Record the GitHub repo URL** in `docs/outputs/implementation-progress.md`.
 
 ## Step 4: Implementation Loop
 
@@ -347,8 +347,8 @@ SendMessage:
       Workshop repo path: {absolute-path-to-workshop-repo}
 
       Context files to read from the workshop repo:
-      - Design doc: {workshop-repo}/docs/detailed-design.md (or docs/design-*.md)
-      - Requirements: {workshop-repo}/docs/requirements-*.md
+      - Design doc: {workshop-repo}/docs/outputs/detailed-design.md (or docs/outputs/design-*.md)
+      - Requirements: {workshop-repo}/docs/outputs/requirements-*.md
       - Tech context: {workshop-repo}/memory-bank/techContext.md
 
       IMPORTANT: Read the existing code in {code-repo-path} first to understand
@@ -401,7 +401,7 @@ SendMessage:
 
 4. **Verify the push:** Run `git log --oneline origin/main -1` to confirm the commit is on the remote.
 
-5. **Record** story as implemented in `docs/implementation-progress.md` with the commit hash.
+5. **Record** story as implemented in `docs/outputs/implementation-progress.md` with the commit hash.
 
 6. **Memory update (MANDATORY):** Send progress update to memory-agent after EVERY story completion. This is non-negotiable — it's the only way to survive context loss.
    ```
@@ -495,7 +495,7 @@ When the queue shows independent stories that can run concurrently:
 
 ## Progress Tracking
 
-Maintain implementation progress in `docs/implementation-progress.md` in the workshop repo:
+Maintain implementation progress in `docs/outputs/implementation-progress.md` in the workshop repo:
 
 ```markdown
 # Implementation Progress
@@ -594,12 +594,12 @@ When implementation ends (all stories done, human stops, or session ends):
 - **ALWAYS show the full story content** to the human (via team-lead) before implementation. Not just the title — the full story with acceptance criteria, technical notes, everything. The human must be able to read it.
 - **ALWAYS wait for explicit human approval** before requesting a coding agent for a story.
 - **Respect dependency order.** Never implement a story before its dependencies are done.
-- **Track everything.** Update `docs/implementation-progress.md` after every story.
+- **Track everything.** Update `docs/outputs/implementation-progress.md` after every story.
 - **Report failures immediately.** Don't try to work around failed stories silently.
 - **Maximum 4 concurrent coding agents.**
 - **Reuse coding agents when possible.** If a coding agent from a previous story is idle, send it a new task via SendMessage instead of requesting a new spawn.
 - **Bootstrap is not optional.** The code repo must be scaffolded before any story implementation.
-- **Send Jira update to jira-agent on EVERY status change** if `docs/jira-mapping.md` exists. "In Progress" before coding starts, "Done" after merge+push. This is MANDATORY, not best-effort. Use the exact format from the Jira Integration section.
+- **Send Jira update to jira-agent on EVERY status change** if `docs/outputs/jira-mapping.md` exists. "In Progress" before coding starts, "Done" after merge+push. This is MANDATORY, not best-effort. Use the exact format from the Jira Integration section.
 - **Send memory update to memory-agent after EVERY story.** This is MANDATORY, not best-effort. Use the exact format from Step 4c item 6. Memory updates are the only way to survive context loss — without them, a session crash means lost progress tracking.
 - **GitHub repo creation is not optional.** After bootstrap, the repo MUST be created on GitHub and pushed before any story implementation.
 - **Commit and push after EVERY coding agent.** Each coding agent's feature branch must be merged to main and pushed to GitHub individually. Never batch commits from multiple agents. Never skip the push.

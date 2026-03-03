@@ -8,10 +8,10 @@ You are running the **technical design pipeline**. Follow these steps:
 
 ## Step 1: Gather Context
 1. Read all files in `memory-bank/` to understand project state, tech decisions, and constraints.
-2. Read `docs/requirements.md` or `docs/requirements-*.md` — required input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
-3. Read `docs/execution-plan.md` if it exists (note: plan is generated after design, so this may not exist yet).
-4. Read `docs/user-stories.md` or `docs/stories-*.md` if they exist (for revision runs where stories already exist).
-5. Read `docs/code-analysis.md` if it exists (for existing system context).
+2. Read `docs/outputs/requirements.md` or `docs/outputs/requirements-*.md` — required input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
+3. Read `docs/outputs/execution-plan.md` if it exists (note: plan is generated after design, so this may not exist yet).
+4. Read `docs/outputs/user-stories.md` or `docs/outputs/stories-*.md` if they exist (for revision runs where stories already exist).
+5. Read `docs/outputs/code-analysis.md` if it exists (for existing system context).
 6. Read `.claude/skills/nordstrom-engineering-standards.md` for compliance requirements.
 
 Focus area from user (optional): $ARGUMENTS
@@ -65,7 +65,7 @@ Create a comprehensive technical design document covering all of the following s
 
 ## Step 3: Update Memory
 After the design is generated:
-1. Write the design to `docs/detailed-design.md`.
+1. Write the design to `docs/outputs/detailed-design.md`.
 2. Update `memory-bank/systemPatterns.md` with architecture decisions and API conventions.
 3. Update `memory-bank/techContext.md` with any new technology decisions.
 4. Update `memory-bank/progress.md` — mark design as completed.

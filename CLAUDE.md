@@ -604,7 +604,7 @@ The orchestrator (persistent teammate):
 For the Jira sync stage (mandatory), the orchestrator spawns the **jira-agent** after stories are validated and approved. The jira-agent creates epics and stories in Jira from the validated story files. It stays alive during implementation to receive status updates from the sprint-agent. **Jira sync must complete before implementation begins.**
 
 For the implementation stage, the orchestrator spawns the **sprint-agent**, which then coordinates:
-- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/jira-mapping.md` exists, sends status updates to jira-agent.
+- **Sprint Agent** — reads stories and execution plan, builds implementation queue, sequences work by dependencies, presents each story to the human for approval (messages team-lead directly), requests coding agent spawns from orchestrator. After bootstrap, requests team-lead to create GitHub repo in Nordstrom-Sandbox and push. After each coding agent completes, merges the feature branch to main and pushes to GitHub individually (never batched). If `docs/outputs/jira-mapping.md` exists, sends status updates to jira-agent.
 - **Coding Agent(s)** — each takes one story, creates a `feature/{story-id}` branch, implements code, writes tests, builds, and commits on the feature branch. Does NOT merge to main or push — the sprint-agent handles that. Tech-stack agnostic — reads the stack from the design doc. Uses embedded/in-memory infrastructure (no Docker required). Up to 2 coding agents can run in parallel for independent stories.
 
 **Human is still in the loop** — the orchestrator messages the team lead with outputs, the team lead presents to the human, and relays validation before the orchestrator proceeds.
@@ -670,7 +670,8 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
 | `.claude/skills/` | Reusable knowledge (engineering standards, requirements writing) |
 | `memory-bank/` | Persistent shared context across all agents and sessions |
 | `templates/` | PRD template and other starting documents |
-| `docs/` | Generated outputs (plans, requirements, stories, designs, reports) |
+| `docs/` | Static documentation (quick-ref cards, setup protocol, facilitator guide) |
+| `docs/outputs/` | Generated pipeline outputs (plans, requirements, stories, designs, reports) |
 | `prototype/` | UI prototype (Vite + React app) — standard location for `/prototype-ui` output |
 | `projects/` | Project-specific PRDs and artifacts |
 

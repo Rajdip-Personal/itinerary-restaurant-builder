@@ -35,7 +35,7 @@ Delegate to the **code-scanner** to perform a comprehensive analysis of the targ
 
 ## Step 4: Update Memory
 After the scan is complete:
-1. Write the analysis to `docs/code-analysis.md`.
+1. Write the analysis to `docs/outputs/code-analysis.md`.
 2. Update `memory-bank/techContext.md` with discovered tech stack, infrastructure, and security details.
 3. Update `memory-bank/systemPatterns.md` with discovered architecture, API conventions, and data model.
 4. Update `memory-bank/progress.md` — mark code scan as completed.

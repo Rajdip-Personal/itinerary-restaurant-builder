@@ -8,8 +8,8 @@ You are running the **story generation pipeline**. Follow these steps:
 
 ## Step 1: Gather Context
 1. Read all files in `memory-bank/` to understand current project state, tech stack, and architecture decisions.
-2. Read `docs/requirements.md` — this is your primary input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
-3. Read `docs/execution-plan.md` if it exists (for sprint assignment context).
+2. Read `docs/outputs/requirements.md` — this is your primary input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
+3. Read `docs/outputs/execution-plan.md` if it exists (for sprint assignment context).
 4. Read `memory-bank/techContext.md` and `memory-bank/systemPatterns.md` for API conventions and data model.
 
 ## Step 2: Generate Stories
@@ -29,7 +29,7 @@ Additional context from user: $ARGUMENTS
 
 ## Step 3: Update Memory
 After stories are generated:
-1. Write stories to `docs/user-stories.md`.
+1. Write stories to `docs/outputs/user-stories.md`.
 2. Update `memory-bank/progress.md` — mark story generation as completed.
 3. Update `memory-bank/activeContext.md` — record decisions and open questions.
 

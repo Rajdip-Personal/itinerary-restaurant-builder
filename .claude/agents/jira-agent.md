@@ -132,7 +132,7 @@ SendMessage:
 
 ## Step 2: Read Story Files
 
-1. Glob for `docs/stories-*.md` in the workshop repo
+1. Glob for `docs/outputs/stories-*.md` in the workshop repo
 2. Parse each file to extract:
    - **Phase name** (from file name or top-level heading, e.g., "Phase 1: Foundation")
    - **Story ID** (e.g., S1-01, S1-02)
@@ -255,7 +255,7 @@ Include the verification result in your completion message to the orchestrator:
 
 ## Step 6: Write Mapping File
 
-After verifying all epics and stories, write `docs/jira-mapping.md`:
+After verifying all epics and stories, write `docs/outputs/jira-mapping.md`:
 
 ```markdown
 # Jira Issue Mapping
@@ -303,10 +303,10 @@ After verifying all epics and stories, write `docs/jira-mapping.md`:
        **Stories Created:** {N}/{total}
        **Errors:** {N}
 
-       Mapping file: docs/jira-mapping.md
+       Mapping file: docs/outputs/jira-mapping.md
 
        I will stay alive for status sync during implementation.
-       The sprint-agent should read docs/jira-mapping.md for Jira issue keys.
+       The sprint-agent should read docs/outputs/jira-mapping.md for Jira issue keys.
      summary: "Jira bulk creation complete"
    ```
 
@@ -320,7 +320,7 @@ After verifying all epics and stories, write `docs/jira-mapping.md`:
        - Agent: jira-agent
        - Type: progress
        - Content: Jira sync complete. Created {N} epics and {N} stories in project {KEY}.
-       - Context: Mapping at docs/jira-mapping.md. Staying alive for status sync.
+       - Context: Mapping at docs/outputs/jira-mapping.md. Staying alive for status sync.
      summary: "Jira creation progress update"
    ```
 
@@ -340,39 +340,39 @@ JIRA UPDATE:
 ### Handling Each Action
 
 **IN_PROGRESS:**
-1. Look up the Jira key from `docs/jira-mapping.md`
+1. Look up the Jira key from `docs/outputs/jira-mapping.md`
 2. Transition: `mcp__jira-mcp__transition_issue_by_name(issue_key: "{jira-key}", status: "In Progress")`
 3. Assign to PAT owner: `mcp__jira-mcp__update_issue(issue_key: "{jira-key}", assignee: "{username from get_current_user}")`
 4. Add comment: `mcp__jira-mcp__add_comment(issue_key: "{jira-key}", body: "Implementation started by {coding-agent-name}")`
-5. Update `docs/jira-mapping.md` Status column → `In Progress`
+5. Update `docs/outputs/jira-mapping.md` Status column → `In Progress`
 6. Confirm back to sprint-agent
 
 **DONE:**
 1. Look up the Jira key
 2. Transition: `mcp__jira-mcp__transition_issue_by_name(issue_key: "{jira-key}", status: "Done")`
 3. Add comment: `mcp__jira-mcp__add_comment(issue_key: "{jira-key}", body: "Implementation complete. Commit: {commit-hash}")`
-4. Update `docs/jira-mapping.md` Status column → `Done`
+4. Update `docs/outputs/jira-mapping.md` Status column → `Done`
 5. Confirm back to sprint-agent
 
 **FAILED:**
 1. Look up the Jira key
 2. Do NOT transition (leave in current status)
 3. Add comment: `mcp__jira-mcp__add_comment(issue_key: "{jira-key}", body: "Implementation failed.\n{error-details}")`
-4. Update `docs/jira-mapping.md` Status column → `Failed`
+4. Update `docs/outputs/jira-mapping.md` Status column → `Failed`
 5. Confirm back to sprint-agent
 
 **SKIPPED:**
 1. Look up the Jira key
 2. Do NOT transition
 3. Add comment: `mcp__jira-mcp__add_comment(issue_key: "{jira-key}", body: "Skipped by human decision.")`
-4. Update `docs/jira-mapping.md` Status column → `Skipped`
+4. Update `docs/outputs/jira-mapping.md` Status column → `Skipped`
 5. Confirm back to sprint-agent
 
 ## Error Handling
 
 This is **best-effort integration**. When Jira operations fail:
 
-1. **Log the failure** — record in `docs/jira-mapping.md` Errors table
+1. **Log the failure** — record in `docs/outputs/jira-mapping.md` Errors table
 2. **Report to orchestrator** — send a message describing the failure
 3. **Continue** — do not block on Jira errors
 4. **Partial creation is OK** — if 8 of 10 stories create successfully, record the 2 failures and move on

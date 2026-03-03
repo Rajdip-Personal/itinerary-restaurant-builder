@@ -28,8 +28,8 @@ You are spawned by the orchestrator (a persistent coordinator teammate) as a tea
 
 1. **Read the memory bank** — Read all files in `memory-bank/` to understand current project context, decisions, and constraints.
 2. **Read the PRD** — Look for the PRD in `templates/` or in the project-specific directory under `projects/`. The orchestrator will specify which PRD to use.
-3. **Read requirements** — Read `docs/requirements-*.md` or `docs/requirements.md`. These are required inputs — the plan must account for all requirements. If missing, **stop and tell the orchestrator** to run requirements extraction first.
-4. **Read the technical design** — Read `docs/detailed-design.md` or `docs/design-*.md`. These are required inputs — the plan must align with the architecture, APIs, data model, and component structure defined in the design. If missing, **stop and tell the orchestrator** to run design generation first.
+3. **Read requirements** — Read `docs/outputs/requirements-*.md` or `docs/outputs/requirements.md`. These are required inputs — the plan must account for all requirements. If missing, **stop and tell the orchestrator** to run requirements extraction first.
+4. **Read the technical design** — Read `docs/outputs/detailed-design.md` or `docs/outputs/design-*.md`. These are required inputs — the plan must align with the architecture, APIs, data model, and component structure defined in the design. If missing, **stop and tell the orchestrator** to run design generation first.
 5. **Read existing artifacts** — Check `docs/` for any existing analysis or code scan reports that should inform the plan.
 
 ## What You Produce
@@ -106,7 +106,7 @@ If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYM
 
 ## After You Finish
 
-1. **Write the plan** to `docs/execution-plan.md`.
+1. **Write the plan** to `docs/outputs/execution-plan.md`.
 
 2. **Send memory update to memory-agent:**
    ```
@@ -126,7 +126,7 @@ If `Deployment Target: local` is set (or if your spawn prompt specifies `DEPLOYM
      to: "orchestrator"
      message: |
        TASK COMPLETE: Execution plan generated.
-       Output: docs/execution-plan.md
+       Output: docs/outputs/execution-plan.md
        Summary: X phases, Y work packages, Z sprints estimated.
        Key decisions: [list]
        Assumptions needing validation: [list]

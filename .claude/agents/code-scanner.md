@@ -171,7 +171,7 @@ Perform the following analysis in order:
 
 ## Output Structure
 
-Write the analysis to `docs/code-analysis.md`:
+Write the analysis to `docs/outputs/code-analysis.md`:
 
 ```markdown
 # Code Analysis: [Repository/Directory Name]
@@ -241,7 +241,7 @@ Prioritized list of improvements.
 
 ## After You Finish
 
-1. **Write analysis** to `docs/code-analysis.md`.
+1. **Write analysis** to `docs/outputs/code-analysis.md`.
 
 2. **Send memory update to memory-agent:**
    ```
@@ -264,7 +264,7 @@ Prioritized list of improvements.
      to: "orchestrator"
      message: |
        TASK COMPLETE: Code analysis finished.
-       Output: docs/code-analysis.md
+       Output: docs/outputs/code-analysis.md
        Summary:
        - Tech stack: [summary]
        - Codebase size: X files

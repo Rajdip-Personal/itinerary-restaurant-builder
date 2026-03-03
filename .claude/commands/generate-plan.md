@@ -13,8 +13,8 @@ You are running the **planning pipeline**. Follow these steps:
    - `projects/` subdirectories
    - `templates/prd-template.md` (if no project-specific PRD exists)
 3. If no PRD is found, **stop and ask the user** to provide a project brief or fill out the PRD template at `templates/prd-template.md`.
-4. Read `docs/requirements-*.md` or `docs/requirements.md` — required input. If missing, **stop and tell the user** to run `/extract-requirements` first.
-5. Read `docs/detailed-design.md` or `docs/design-*.md` — required input. If missing, **stop and tell the user** to run `/generate-design` first.
+4. Read `docs/outputs/requirements-*.md` or `docs/outputs/requirements.md` — required input. If missing, **stop and tell the user** to run `/extract-requirements` first.
+5. Read `docs/outputs/detailed-design.md` or `docs/outputs/design-*.md` — required input. If missing, **stop and tell the user** to run `/generate-design` first.
 6. Read `.claude/skills/nordstrom-engineering-standards.md` for mandatory standards.
 
 ## Step 2: Generate Plan
@@ -29,7 +29,7 @@ Additional context from user: $ARGUMENTS
 
 ## Step 3: Update Memory
 After the plan is generated:
-1. Write the plan to `docs/execution-plan.md`.
+1. Write the plan to `docs/outputs/execution-plan.md`.
 2. Update `memory-bank/progress.md` — mark planning as completed.
 3. Update `memory-bank/activeContext.md` — record key decisions and open questions.
 

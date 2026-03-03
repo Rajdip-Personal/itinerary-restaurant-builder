@@ -264,6 +264,6 @@ Supply Chain engineering squads work with applications that have dependencies sp
 | 1 | Which specific application/repo will each squad analyze during the workshop? | Squad Lead | Open | — |
 | 2 | Do we have API access to the schema repository, or is it MCP-only? | Platform Team | Open | — |
 | 3 | Are Splunk queries documented somewhere, or do we need to discover them from dashboards? | SRE Team | Open | — |
-| 4 | Should generated stories go directly into Jira, or just into the docs/user-stories.md file? | Workshop Facilitator | Open | — |
+| 4 | Should generated stories go directly into Jira, or just into the docs/outputs/user-stories.md file? | Workshop Facilitator | Open | — |
 | 5 | Is there a standard Helm chart template we should reference for K8s deployment stories? | Cloud Platform | **Answered** | No Helm — use Nordstrom Standard Pipeline for deployments |
 | 6 | How much existing documentation exists in Confluence for each squad's application? | Squad Leads | Open | — |
