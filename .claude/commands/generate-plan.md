@@ -1,5 +1,5 @@
 ---
-description: Generate execution plan from PRD
+description: Generate execution plan from PRD, requirements, and design
 ---
 
 # Generate Execution Plan
@@ -13,6 +13,9 @@ You are running the **planning pipeline**. Follow these steps:
    - `projects/` subdirectories
    - `templates/prd-template.md` (if no project-specific PRD exists)
 3. If no PRD is found, **stop and ask the user** to provide a project brief or fill out the PRD template at `templates/prd-template.md`.
+4. Read `docs/requirements-*.md` or `docs/requirements.md` — required input. If missing, **stop and tell the user** to run `/extract-requirements` first.
+5. Read `docs/detailed-design.md` or `docs/design-*.md` — required input. If missing, **stop and tell the user** to run `/generate-design` first.
+6. Read `.claude/skills/nordstrom-engineering-standards.md` for mandatory standards.
 
 ## Step 2: Generate Plan
 Delegate to the **planning-agent** to produce a phased execution plan. The plan must include:
@@ -36,4 +39,4 @@ Summarize the plan:
 - Key milestones
 - Top risks
 - Assumptions that need validation
-- Recommended next step: run `/extract-requirements` to extract structured requirements
+- Recommended next step: run `/generate-stories` to generate user stories

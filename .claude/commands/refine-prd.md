@@ -4,7 +4,7 @@ description: Refine and iterate on a project PRD with automatic memory bank upda
 
 # PRD Refinement
 
-You are running the **PRD refinement pipeline**. This is the starting point of the workshop — helping the squad shape their PRD before running the downstream pipeline (/plan → /requirements → /stories → /design → /validate).
+You are running the **PRD refinement pipeline**. This is the starting point of the workshop — helping the squad shape their PRD before running the downstream pipeline (/requirements → /design → /plan → /stories → /validate).
 
 ---
 

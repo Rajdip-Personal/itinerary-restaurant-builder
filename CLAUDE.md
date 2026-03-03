@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → technical design → user stories → validation → implementation in a 3-hour hands-on workshop.
+This is an **Agentic AI Workshop** repository for **Nordstrom Supply Chain engineering**. It provides a pre-built orchestrator pattern where specialized Claude Code agents collaborate through shared memory to take engineering squads from PRD → requirements → design → plan → user stories → validation → implementation in a 3-hour hands-on workshop.
 
 **This is human-in-the-loop, NOT fully automated.** Engineers provide context, answer questions, and validate outputs at every step. Agents assist — they do not decide.
 
@@ -514,7 +514,7 @@ Track pipeline state in `memory-bank/progress.md`:
 **When to commit+push:**
 - After `/refine-prd` completes (readiness check passes)
 - After `/review-prd` completes (all questions addressed)
-- After each orchestrator stage completes (plan, requirements, design, stories, validation)
+- After each orchestrator stage completes (requirements, design, plan, stories, validation)
 - After implementation milestones (sprint-agent manages its own pushes to the implementation repo)
 
 **How:**
@@ -583,9 +583,9 @@ After `/review-prd` completes, the main session creates an Agent Team and spawns
 | Step | Stage | Teammate Spawned by Orchestrator |
 |------|-------|----------------------------------|
 | 3 | Prototype UI (optional) | (direct or planning-agent) |
-| 4 | Execution Plan | planning-agent |
-| 5 | Requirements | requirements-agent |
-| 6 | Technical Design | design-agent |
+| 4 | Requirements | requirements-agent |
+| 5 | Technical Design | design-agent |
+| 6 | Execution Plan | planning-agent |
 | 7 | User Stories | story-generator |
 | 8 | Validation | (direct) |
 | 8b | Jira Sync (mandatory) | jira-agent |
@@ -629,7 +629,7 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
      prompt: "You are the orchestrator teammate for team <team_name>.
               The PRD for {project-name} has been refined and reviewed.
               Assess the current state and coordinate the remaining pipeline
-              (prototype → plan → requirements → design → stories → validation).
+              (prototype → requirements → design → plan → stories → validation).
               The project PRD is at: projects/{project-name}/prd.md
               Use this team_name for all Task tool calls: <team_name>
               IMPORTANT: Always use mode: bypassPermissions when spawning teammates."
@@ -655,7 +655,7 @@ After `/review-prd` passes its readiness check, the main session becomes the **t
 
 **If a teammate needs to be respawned** (e.g., to fix permissions), the team lead MUST message the orchestrator and ask it to handle the respawn. The team lead must NOT spawn teammates directly — doing so creates naming conflicts, breaks the orchestrator's coordination, and causes confusion about who manages whom.
 
-**The team lead communicates with the orchestrator and the sprint-agent.** The orchestrator handles the pipeline stages (plan → requirements → design → stories → validation). The sprint-agent handles the implementation phase and messages the team lead directly for human approvals, repo creation, and progress updates. All other teammates coordinate through the orchestrator.
+**The team lead communicates with the orchestrator and the sprint-agent.** The orchestrator handles the pipeline stages (requirements → design → plan → stories → validation). The sprint-agent handles the implementation phase and messages the team lead directly for human approvals, repo creation, and progress updates. All other teammates coordinate through the orchestrator.
 
 **Do NOT pre-fill decisions that agents are supposed to ask the human.** When relaying approval messages to teammates, only relay what the human actually said. Do not add details the human hasn't confirmed (e.g., repo names, file paths, technology choices). If an agent has a dedicated gate to ask the human for input, let that gate run — do not bypass it by providing the answer in advance.
 

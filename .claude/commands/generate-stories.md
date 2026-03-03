@@ -40,4 +40,4 @@ Summarize the stories:
 - Sprint distribution (stories and points per sprint)
 - Requirements coverage — any gaps (requirements with no stories)
 - Any stories that need human clarification
-- Recommended next step: run `/generate-design` for technical design or `/validate-coverage` to check coverage
+- Recommended next step: run `/validate-coverage` to check coverage

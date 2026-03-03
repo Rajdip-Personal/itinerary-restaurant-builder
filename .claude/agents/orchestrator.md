@@ -53,8 +53,8 @@ You (the orchestrator) are spawned **by the main session** as a persistent teamm
 │  OTHER TEAMMATES (persist throughout session):                           │
 │                                                                          │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                │
-│  │memory-agent │ ←─→ │planning-agent│ ←─→ │requirements-│                │
-│  │  (always)   │     │             │     │    agent    │                │
+│  │memory-agent │ ←─→ │requirements-│ ←─→ │planning-    │                │
+│  │  (always)   │     │    agent    │     │    agent    │                │
 │  └─────────────┘     └─────────────┘     └─────────────┘                │
 │         ↑                   ↑                   ↑                        │
 │         │                   │                   │                        │
@@ -120,7 +120,7 @@ The main session creates the team via `TeamCreate`, then spawns you as a persist
 │  PHASE 2: Orchestrator Coordinates (via Agent Teams)                     │
 │                                                                          │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐              │
-│  │1.Proto-  │──▶│2.Planning│──▶│ 3. Reqs  │──▶│4. Design │              │
+│  │1.Proto-  │──▶│ 2. Reqs  │──▶│3. Design │──▶│4.Planning│              │
 │  │  type-ui │   │  Agent   │   │  Agent   │   │  Agent   │              │
 │  │(optional)│   │          │   │          │   │          │              │
 │  └──────────┘   └──────────┘   └──────────┘   └──────────┘              │
@@ -219,11 +219,11 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 | PRD not refined | **STOP** — Message team-lead to run /refine-prd first | — |
 | PRD refined, open questions remain | **STOP** — Message team-lead to run /review-prd first | — |
 | PRD ready, no prototype, **project has a UI** | **REQUIRED** — Generate interactive prototype | (direct or Task) |
-| PRD ready, no plan | Generate execution plan | planning-agent |
-| Plan exists, no requirements | Extract requirements | requirements-agent |
+| PRD ready, no requirements | Extract requirements | requirements-agent |
 | Requirements exist, no design | Generate technical design | design-agent |
-| Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before stories | (direct or Task) |
-| Design exists (+ prototype if UI project), no stories | Generate user stories | story-generator |
+| Design exists, no prototype, **project has a UI** | **REQUIRED** — Generate prototype before plan | (direct or Task) |
+| Design exists (+ prototype if UI project), no plan | Generate execution plan | planning-agent |
+| Plan exists, no stories | Generate user stories | story-generator |
 | Stories exist, no validation | Run validation | (direct) |
 | Validation done, human approves | Create Jira issues | jira-agent |
 | Validation done, human approves stories | **MANDATORY** — Create Jira issues | jira-agent |
@@ -233,12 +233,7 @@ The memory-agent persists throughout the pipeline. All other teammates use `Send
 **UI Prototype Rule (MANDATORY):**
 To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
 
-The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
-
-**UI Prototype Rule (MANDATORY):**
-To determine if a project has a UI, check the PRD for: frontend tech stack (React, Vue, etc.), user-facing workflows, UI mockups, or any mention of web/mobile interface. If the project has a UI, the prototype step is **REQUIRED** — do NOT skip it. The prototype must be generated before user stories so the team can validate the UX before writing stories.
-
-The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback.
+The prototype can be generated at any point after the PRD is ready. The recommended timing is after the technical design (so the prototype reflects design decisions), but it can also run earlier (after PRD review) if the team wants early UX feedback. The prototype must complete before the execution plan so the plan can account for UX decisions.
 
 ### Step 3: Reuse or Spawn Teammate
 
@@ -549,11 +544,11 @@ Before moving to the next stage, verify:
 
 | Gate | From → To | Check |
 |------|-----------|-------|
-| PRD Readiness | PRD → Prototype/Planning | All PRD sections filled, scope defined, users identified, open questions addressed |
-| Prototype Quality | Prototype → Planning | Key workflows demonstrable, user feedback captured |
-| Plan Quality | Planning → Requirements | Phases are realistic, dependencies mapped, risks identified |
+| PRD Readiness | PRD → Prototype/Requirements | All PRD sections filled, scope defined, users identified, open questions addressed |
+| Prototype Quality | Prototype → Requirements | Key workflows demonstrable, user feedback captured |
 | Requirements Quality | Requirements → Design | All categories covered, mandatory NFRs included, all testable |
-| Design Quality | Design → Stories | Architecture defined, APIs specified, security addressed |
+| Design Quality | Design → Planning | Architecture defined, APIs specified, security addressed |
+| Plan Quality | Planning → Stories | Phases are realistic, dependencies mapped, risks identified, informed by requirements and design |
 | Story Quality | Stories → Validation | All requirements covered, ACs are specific, estimates present |
 | Implementation Readiness | Validation → Implementation | Human approves start, stories validated, design doc exists |
 
@@ -684,9 +679,9 @@ After each stage completes and human validates (via team lead), show in your mes
 │  [✓] /refine-prd                                │
 │  [✓] /review-prd                                │
 │  [✓] prototype-ui (if applicable)               │
-│  [✓] execution-plan                             │
-│  [ ] requirements        ← YOU ARE HERE         │
-│  [ ] detailed-design                            │
+│  [✓] requirements                               │
+│  [ ] detailed-design     ← YOU ARE HERE         │
+│  [ ] execution-plan                             │
 │  [ ] user-stories                               │
 │  [ ] validation                                 │
 │  [ ] jira-sync                                  │
@@ -707,9 +702,9 @@ There are **two commit points** per pipeline stage:
 **When a teammate generates an artifact, commit and push it BEFORE messaging the team lead for approval.** This is critical — the team reviews documents on GitHub. If you don't push first, they have no way to review.
 
 **When:**
-- After execution plan is generated (before requesting approval)
 - After requirements are extracted (before requesting approval)
 - After technical design is generated (before requesting approval)
+- After execution plan is generated (before requesting approval)
 - After user stories are generated (before requesting approval)
 - After validation report is generated (before requesting approval)
 - After any revision round that changes artifacts (before re-requesting approval)

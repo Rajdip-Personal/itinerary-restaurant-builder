@@ -8,9 +8,9 @@ You are running the **technical design pipeline**. Follow these steps:
 
 ## Step 1: Gather Context
 1. Read all files in `memory-bank/` to understand project state, tech decisions, and constraints.
-2. Read `docs/requirements.md` — required input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
-3. Read `docs/user-stories.md` — required input. If it doesn't exist, **stop and tell the user** to run `/generate-stories` first.
-4. Read `docs/execution-plan.md` if it exists.
+2. Read `docs/requirements.md` or `docs/requirements-*.md` — required input. If it doesn't exist, **stop and tell the user** to run `/extract-requirements` first.
+3. Read `docs/execution-plan.md` if it exists (note: plan is generated after design, so this may not exist yet).
+4. Read `docs/user-stories.md` or `docs/stories-*.md` if they exist (for revision runs where stories already exist).
 5. Read `docs/code-analysis.md` if it exists (for existing system context).
 6. Read `.claude/skills/nordstrom-engineering-standards.md` for compliance requirements.
 
@@ -78,4 +78,4 @@ Summarize the design:
 - API endpoint count and data model entity count
 - Security approach summary
 - Open design questions that need human input
-- Recommended next step: run `/validate-coverage` to verify coverage
+- Recommended next step: run `/generate-plan` to generate the execution plan (informed by requirements and design)
