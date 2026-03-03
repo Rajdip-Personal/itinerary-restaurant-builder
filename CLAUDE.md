@@ -561,7 +561,7 @@ These commands trigger agent pipelines. **Users don't need to memorize these** â
 | `/manage-memory` | View or update the memory bank |
 | `/generate-design` | Generate detailed technical design document |
 | `/validate-coverage` | Cross-check stories against requirements for gaps |
-| `/setup-mcp-datasource` | Set up a FastMCP server for a custom data source (database or S3 bucket) |
+| `/setup-mcp-datasource` | Set up a FastMCP server for a custom data source (database, S3 bucket, or DynamoDB) |
 | `/implement` | Start the implementation phase â€” sprint agent spawns coding agents to implement stories |
 
 ## Workflow

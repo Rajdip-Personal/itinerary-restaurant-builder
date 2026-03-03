@@ -1,5 +1,5 @@
 ---
-description: Set up an MCP server for a custom data source (database or S3)
+description: Set up an MCP server for a custom data source (database, S3, or DynamoDB)
 ---
 
 # Set Up MCP Data Source
@@ -14,7 +14,7 @@ You are running the **MCP data source setup pipeline**. This creates a FastMCP P
 
 1. **NEVER accept credentials in the clear.** All passwords, tokens, and secrets MUST be referenced as environment variable names (e.g., `DB_PASSWORD`, `AWS_SECRET_ACCESS_KEY`), never as literal values.
 2. **NEVER write credentials to generated code, `.env` files, or command arguments.** Always use `os.getenv()` in Python and `${ENV_VAR}` references in `claude mcp add`.
-3. **All generated servers enforce read-only access.** Database servers validate queries with `sqlparse`. S3 servers only support read operations.
+3. **All generated servers enforce read-only access.** Database servers validate queries with `sqlparse`. S3 and DynamoDB servers only support read operations.
 
 ---
 
@@ -33,6 +33,8 @@ AskUserQuestion:
           description: "MySQL, PostgreSQL, or other SQL database — generates query, list tables, and describe tools"
         - label: "AWS S3 Bucket"
           description: "Read files from S3 — generates list objects, read file, and file info tools"
+        - label: "AWS DynamoDB"
+          description: "Read items from DynamoDB tables — generates list, describe, schema inference, scan, and query tools"
 ```
 
 ---
@@ -160,6 +162,55 @@ export AWS_SESSION_TOKEN="<from teammate>"
 **These are temporary credentials** — they expire (typically 1-12 hours). If they stop working, the teammate needs to re-authenticate and share fresh credentials.
 
 Optionally ask for a prefix/path to scope access (e.g., `data/2024/`).
+
+### If DynamoDB:
+
+```
+AskUserQuestion:
+  questions:
+    - question: "What AWS region are the DynamoDB tables in?"
+      header: "Region"
+      multiSelect: false
+      options:
+        - label: "us-west-2 (Recommended)"
+          description: "Oregon — most Nordstrom resources"
+        - label: "us-east-1"
+          description: "Virginia"
+        - label: "Other region"
+          description: "Type the AWS region in the Other field"
+    - question: "Is there a table name prefix to filter by? (e.g., 'OrderFulfillment-' to only show matching tables)"
+      header: "Prefix"
+      multiSelect: false
+      options:
+        - label: "No prefix — show all tables"
+          description: "List all DynamoDB tables in the region"
+        - label: "I'll type a prefix"
+          description: "Enter a table name prefix in the Other field to scope visible tables"
+    - question: "How should AWS credentials be provided?"
+      header: "AWS Auth"
+      multiSelect: false
+      options:
+        - label: "AWS profile 'claude_code' (Recommended)"
+          description: "Uses AWS_PROFILE=claude_code — authenticate with aws-okta or 'aws configure --profile claude_code'"
+        - label: "Shared temporary credentials"
+          description: "A teammate with access runs aws-okta and shares the temp credentials as env vars (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)"
+        - label: "IAM role (no credentials needed)"
+          description: "Instance/container role — no explicit credentials"
+```
+
+**If using AWS profile**, verify it exists:
+```bash
+aws configure list --profile claude_code 2>/dev/null && echo "Profile exists" || echo "WARNING: Profile 'claude_code' not found"
+```
+
+**If using shared temporary credentials**, verify all three env vars are set:
+```bash
+[ -n "${AWS_ACCESS_KEY_ID}" ] && echo "AWS_ACCESS_KEY_ID is set" || echo "WARNING: AWS_ACCESS_KEY_ID is NOT set"
+[ -n "${AWS_SECRET_ACCESS_KEY}" ] && echo "AWS_SECRET_ACCESS_KEY is set" || echo "WARNING: AWS_SECRET_ACCESS_KEY is NOT set"
+[ -n "${AWS_SESSION_TOKEN}" ] && echo "AWS_SESSION_TOKEN is set" || echo "WARNING: AWS_SESSION_TOKEN is NOT set"
+```
+
+If any are missing, tell the user: the teammate with DynamoDB access needs to run `aws-okta` (or equivalent), then export these three values. **These are temporary credentials** — they expire (typically 1-12 hours).
 
 ---
 
@@ -466,6 +517,215 @@ if __name__ == "__main__":
     mcp.run(transport="stdio")
 ```
 
+### For DynamoDB — Generate `server.py`
+
+```python
+#!/usr/bin/env python3
+"""
+{Server Name} MCP Server
+Read-only access to DynamoDB tables via MCP tools.
+"""
+
+import os
+import json
+import logging
+
+import boto3
+from boto3.dynamodb.types import TypeDeserializer
+from mcp.server.fastmcp import FastMCP
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+TABLE_PREFIX = os.getenv("DYNAMODB_TABLE_PREFIX", "")
+
+session = boto3.Session(profile_name=os.getenv("AWS_PROFILE"))
+dynamodb = session.client("dynamodb", region_name=os.getenv("AWS_REGION", "{region}"))
+deserializer = TypeDeserializer()
+
+mcp = FastMCP("{server-name}")
+
+
+def deserialize_item(item: dict) -> dict:
+    """Convert DynamoDB item format (e.g., {"S": "value"}) to plain Python types."""
+    return {k: deserializer.deserialize(v) for k, v in item.items()}
+
+
+def _infer_type(value) -> str:
+    """Infer a human-readable type name from a deserialized DynamoDB value."""
+    if isinstance(value, bool):
+        return "Boolean"
+    if isinstance(value, (int, float)):
+        return "Number"
+    if isinstance(value, str):
+        return "String"
+    if isinstance(value, dict):
+        return "Map"
+    if isinstance(value, list):
+        return "List"
+    if isinstance(value, set):
+        return "Set"
+    if value is None:
+        return "Null"
+    return type(value).__name__
+
+
+@mcp.tool()
+async def list_tables() -> str:
+    """List all DynamoDB tables in the region. Filtered by prefix if configured."""
+    tables = []
+    kwargs = {}
+    while True:
+        resp = dynamodb.list_tables(**kwargs)
+        tables.extend(resp.get("TableNames", []))
+        if "LastEvaluatedTableName" not in resp:
+            break
+        kwargs["ExclusiveStartTableName"] = resp["LastEvaluatedTableName"]
+    if TABLE_PREFIX:
+        tables = [t for t in tables if t.startswith(TABLE_PREFIX)]
+    if not tables:
+        return "No tables found."
+    return f"Found {len(tables)} tables:\n" + "\n".join(f"  - {t}" for t in tables)
+
+
+@mcp.tool()
+async def describe_table(table_name: str) -> str:
+    """Describe a DynamoDB table: key schema, attributes, indexes, item count, size."""
+    try:
+        resp = dynamodb.describe_table(TableName=table_name)
+        t = resp["Table"]
+        lines = [
+            f"Table: {t['TableName']}",
+            f"Status: {t['TableStatus']}",
+            f"Item Count: {t.get('ItemCount', 'N/A')}",
+            f"Size: {t.get('TableSizeBytes', 0)} bytes",
+            "",
+            "Key Schema:",
+        ]
+        for key in t.get("KeySchema", []):
+            lines.append(f"  - {key['AttributeName']} ({key['KeyType']})")
+        lines.append("\nAttribute Definitions:")
+        for attr in t.get("AttributeDefinitions", []):
+            lines.append(f"  - {attr['AttributeName']}: {attr['AttributeType']}")
+        for gsi in t.get("GlobalSecondaryIndexes", []):
+            lines.append(f"\nGSI: {gsi['IndexName']}")
+            for key in gsi.get("KeySchema", []):
+                lines.append(f"  - {key['AttributeName']} ({key['KeyType']})")
+        for lsi in t.get("LocalSecondaryIndexes", []):
+            lines.append(f"\nLSI: {lsi['IndexName']}")
+            for key in lsi.get("KeySchema", []):
+                lines.append(f"  - {key['AttributeName']} ({key['KeyType']})")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+async def get_table_schema(table_name: str, sample_size: int = 20) -> str:
+    """Infer the schema of a DynamoDB table by sampling items.
+    Call this first to understand what attributes are in the table before writing queries.
+    Scans sample_size items (default 20) and reports all observed attributes, their types,
+    and how frequently they appear."""
+    try:
+        desc = dynamodb.describe_table(TableName=table_name)
+        t = desc["Table"]
+        key_attrs = {k["AttributeName"]: k["KeyType"] for k in t.get("KeySchema", [])}
+
+        resp = dynamodb.scan(TableName=table_name, Limit=sample_size)
+        raw_items = resp.get("Items", [])
+        if not raw_items:
+            return f"Table {table_name} has no items to sample."
+
+        items = [deserialize_item(i) for i in raw_items]
+        total = len(items)
+
+        attr_stats = {}
+        for item in items:
+            for attr, value in item.items():
+                if attr not in attr_stats:
+                    attr_stats[attr] = {"types": set(), "count": 0, "sample": None}
+                attr_stats[attr]["types"].add(_infer_type(value))
+                attr_stats[attr]["count"] += 1
+                if attr_stats[attr]["sample"] is None and not isinstance(value, (dict, list, set)):
+                    attr_stats[attr]["sample"] = str(value)[:80]
+
+        lines = [
+            f"Table: {table_name}",
+            f"Sampled: {total} items",
+            f"Unique attributes: {len(attr_stats)}",
+            "",
+            "ATTRIBUTE SCHEMA (inferred from sample)",
+            "=" * 50,
+        ]
+
+        for attr in sorted(key_attrs):
+            stats = attr_stats.pop(attr, {"types": {"?"}, "count": total, "sample": None})
+            key_label = "HASH" if key_attrs[attr] == "HASH" else "RANGE"
+            types_str = "/".join(sorted(stats["types"]))
+            sample_str = f'  e.g., "{stats["sample"]}"' if stats["sample"] else ""
+            lines.append(f"  {attr}: {types_str} [{key_label} KEY] ({stats['count']}/{total}){sample_str}")
+
+        lines.append("")
+
+        for attr in sorted(attr_stats, key=lambda a: (-attr_stats[a]["count"], a)):
+            stats = attr_stats[attr]
+            types_str = "/".join(sorted(stats["types"]))
+            freq = f"{stats['count']}/{total}"
+            sample_str = f'  e.g., "{stats["sample"]}"' if stats["sample"] else ""
+            lines.append(f"  {attr}: {types_str} ({freq}){sample_str}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+async def scan_table(table_name: str, limit: int = 100, filter_expression: str = "",
+                     expression_values: str = "{}") -> str:
+    """Scan a DynamoDB table. Returns up to limit items (default 100).
+    Optional filter_expression (e.g., 'status = :s') with expression_values as JSON
+    (e.g., '{":s": {"S": "ACTIVE"}}')."""
+    try:
+        kwargs = {"TableName": table_name, "Limit": limit}
+        if filter_expression:
+            kwargs["FilterExpression"] = filter_expression
+            vals = json.loads(expression_values)
+            if vals:
+                kwargs["ExpressionAttributeValues"] = vals
+        resp = dynamodb.scan(**kwargs)
+        items = [deserialize_item(i) for i in resp.get("Items", [])]
+        return f"Items returned: {len(items)}\n\n{json.dumps(items, default=str, indent=2)}"
+    except Exception as e:
+        return f"Scan error: {e}"
+
+
+@mcp.tool()
+async def query_table(table_name: str, key_condition: str, expression_values: str = "{}",
+                      limit: int = 100, index_name: str = "") -> str:
+    """Query a DynamoDB table by key condition.
+    key_condition: e.g., 'pk = :pk AND begins_with(sk, :prefix)'
+    expression_values: JSON, e.g., '{":pk": {"S": "ORDER#123"}}'
+    index_name: optional GSI/LSI name to query."""
+    try:
+        kwargs = {
+            "TableName": table_name,
+            "KeyConditionExpression": key_condition,
+            "ExpressionAttributeValues": json.loads(expression_values),
+            "Limit": limit,
+        }
+        if index_name:
+            kwargs["IndexName"] = index_name
+        resp = dynamodb.query(**kwargs)
+        items = [deserialize_item(i) for i in resp.get("Items", [])]
+        return f"Items returned: {len(items)}\n\n{json.dumps(items, default=str, indent=2)}"
+    except Exception as e:
+        return f"Query error: {e}"
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
 ### Generate `pyproject.toml`
 
 ```toml
@@ -477,6 +737,7 @@ requires-python = ">=3.10"
 dependencies = [
     # For database: "fastmcp>=2.14", "aiomysql>=0.2" (or "asyncpg>=0.29"), "python-dotenv>=1.0", "sqlparse>=0.4"
     # For S3: "fastmcp>=2.14", "boto3>=1.34", "python-dotenv>=1.0"
+    # For DynamoDB: "fastmcp>=2.14", "boto3>=1.34", "python-dotenv>=1.0"
 ]
 ```
 
@@ -561,6 +822,32 @@ claude mcp add --scope project {server-name} \
 
 Note: Bucket name and region are not secrets — literal values are fine. AWS credentials (access key, secret key) MUST be env var references (`${...}`). When using an AWS profile, the credentials live in `~/.aws/credentials` managed by `aws configure` — only the profile name is passed.
 
+For DynamoDB servers (using AWS profile):
+```bash
+cd {project-root}
+claude mcp add --scope project {server-name} \
+  -e AWS_PROFILE="{profile}" \
+  -e AWS_REGION="{region}" \
+  -e DYNAMODB_TABLE_PREFIX="{prefix}" \
+  -- {absolute-server-path}/.venv/bin/python \
+  -m {server_name}_mcp_server.server
+```
+
+For DynamoDB servers (using shared temporary credentials):
+```bash
+cd {project-root}
+claude mcp add --scope project {server-name} \
+  -e AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}' \
+  -e AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}' \
+  -e AWS_SESSION_TOKEN='${AWS_SESSION_TOKEN}' \
+  -e AWS_REGION="{region}" \
+  -e DYNAMODB_TABLE_PREFIX="{prefix}" \
+  -- {absolute-server-path}/.venv/bin/python \
+  -m {server_name}_mcp_server.server
+```
+
+Note: Region and table prefix are not secrets — literal values are fine. AWS credentials MUST be env var references (`${...}`).
+
 **Verify registration** — after running `claude mcp add`, confirm the server appears in the project root `.mcp.json`:
 ```bash
 cat {project-root}/.mcp.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('{server-name}' in d.get('mcpServers',{}))"
@@ -583,6 +870,7 @@ Example: if the server name is `warehouse-db`, add `"mcp__warehouse-db__*"`.
 2. Call a health-check tool:
    - **Database**: Call `get_table_list` with the default schema
    - **S3**: Call `list_objects` with the default prefix
+   - **DynamoDB**: Call `list_tables`, then `get_table_schema` on the first table
 3. Report the result:
    - **Success**: Show the tables or objects found, confirm the server is working
    - **Failure**: Show the error, suggest common fixes (VPN, credentials, network)
@@ -597,7 +885,7 @@ Display a summary:
 MCP Data Source Setup Complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Server name:    {server-name}
-Type:           {Database/S3}
+Type:           {Database/S3/DynamoDB}
 Location:       {server-path}/
 Registered:     claude mcp (project scope)
 Permissions:    mcp__{server-name}__* (allowed)
