@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Focus
-PRD refinement for RTO Compliance Tracker (RTO POC) — PRD updated with goals, metrics, user stories, NFRs, risks, milestones, and open questions.
+/review-prd complete — all 5 open questions answered. PRD v1.2 ready for pipeline.
 <!-- Updated: 2026-03-07 -->
 
 ## Recent Decisions
@@ -15,18 +15,18 @@ PRD refinement for RTO Compliance Tracker (RTO POC) — PRD updated with goals, 
 | 2026-03-07 | Basic PII handling for POC | Mask in logs, HTTPS, no PII in URLs |
 | 2026-03-07 | Okta SSO for production, email-based for POC | Only authorized Okta users will access in production |
 | 2026-03-07 | 3 milestones: Employee+Upload → Manager+Drill-down → Approvals+Actions | Incremental delivery |
-| 2026-03-07 | All 4 risks acknowledged | Data quality, hierarchy accuracy, adoption, PII |
+| 2026-03-07 | Column mappings verified from sample files | RTO_Sample: 12 cols, Worker data: 35 cols (see PRD Section 10) |
+| 2026-03-07 | Unmatched employees: skip + log warning | Employees in badge data but not worker/org data are excluded, logged for admin |
+| 2026-03-07 | Add Reject action for managers | Approve (Yellow→Blue) or Reject (Yellow→Red) with optional note |
+| 2026-03-07 | No file size limit for POC | Upload limits deferred to production |
+| 2026-03-07 | Pie chart matches table view | No separate date picker, always synced with table range |
 
 ## Open Questions
-1. What is the exact Excel column mapping for the worker/org data file?
-2. How should the system handle employees in badge data but not in worker/org data?
-3. Should there be a "Reject Exception" action for managers?
-4. What is the maximum file size for Excel uploads?
-5. Should the pie chart be configurable by date range, or always match the table view?
+All 5 open questions resolved. No blocking questions remain.
 
 ## Blockers
 None.
 
 ## Next Steps
-1. Run readiness check for /refine-prd
-2. Proceed to /review-prd to address open questions
+1. Spawn orchestrator for remaining pipeline
+2. Requirements extraction → Design → Plan → Stories → Validation → Implementation

@@ -2,7 +2,7 @@
 
 ## Product Requirements Document
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** March 7, 2026
 **Status:** Draft — Requirements Refinement
 **Confidential**
@@ -113,6 +113,7 @@ Nordstrom requires employees to badge into the office a minimum of 4 days per we
   - Green = Compliant weeks
   - Blue = Excused weeks (manager-approved exceptions)
   - Red = Non-compliant weeks (includes pending exceptions in the count until approved)
+- Pie chart date range always matches the table view (13-week default or expanded range)
 
 #### 5.1.3 Employee Actions (Last 5 Weeks Only)
 For the 5 most recent weeks, the employee can:
@@ -145,9 +146,11 @@ A summary table of all direct reports showing:
 
 #### 5.2.4 Manager Actions
 - **Approve Exception:** Manager reviews the exception explanation, and if approved, the week's state changes from Yellow (pending) to Blue (excused). This is a distinct state from Green (compliant).
+- **Reject Exception:** Manager reviews the exception explanation and rejects it. The week's state changes from Yellow (pending) back to Red (non-compliant). Manager may optionally add a rejection note.
 - **Approve Badge Dispute:** Manager reviews the dispute. If approved, the week flips to Blue (excused). The badge count itself is not modified — the approval grants an excused status.
+- **Reject Badge Dispute:** Manager reviews the dispute and rejects it. The week remains Red (non-compliant). Manager may optionally add a rejection note.
 
-Managers must drill into the employee's weekly detail before approving. There is no bulk/quick approval from the summary view. This ensures the manager reviews the situation before acting.
+Managers must drill into the employee's weekly detail before approving or rejecting. There is no bulk/quick approval from the summary view. This ensures the manager reviews the situation before acting.
 
 #### 5.2.5 Recursive Drill-Down
 If a direct report is also a manager (Is Manager = "Yes"), the viewing manager can further drill into that sub-manager's direct reports, and so on down the hierarchy. This is powered by the Manager column in the worker data, which creates a parent-child adjacency tree. The Level 01–08 hierarchy columns can be used for breadcrumb navigation.
@@ -157,10 +160,11 @@ If a direct report is also a manager (Is Manager = "Yes"), the viewing manager c
 **Purpose:** Allow HR or Admin users to upload RTO compliance data into the system.
 
 #### 5.3.1 Upload Behavior
-- Admin uploads an Excel file in the same format as RTO_Sample.xlsx.
+- Admin uploads an Excel file in the same format as RTO_Sample.xlsx. No file size limit for POC.
 - Data is appended to the existing dataset. New weeks are added; existing data is preserved.
 - If the same employee + week combination appears in both the existing data and the new upload, the new upload's data replaces the old (latest wins).
 - All employee edits (exceptions, PTO additions, disputes) from prior uploads are preserved and not overwritten by new uploads.
+- If an employee appears in badge data but NOT in the worker/org data, that employee is skipped and a warning is logged for admin review.
 
 ### 5.4 Screen 4 — HR View (Deferred)
 
@@ -176,13 +180,14 @@ An HR-specific view where designated HR users can see and drill into a curated s
 5. Week status changes from Red to Yellow (Exception Pending)
 6. Manager sees the pending exception on their next login
 
-**Workflow 2: Manager Approves Exception**
+**Workflow 2: Manager Reviews Exception**
 1. Manager logs in and views their Direct Reports Dashboard
 2. Manager sees pending exceptions count for a direct report
 3. Manager clicks the direct report to drill into their weekly detail
 4. Manager clicks the Yellow (pending) week to see the exception explanation
-5. Manager approves the exception
-6. Week status changes from Yellow to Blue (Excused)
+5. Manager approves or rejects the exception (with optional note on rejection)
+6. If approved: week status changes from Yellow to Blue (Excused)
+7. If rejected: week status changes from Yellow back to Red (Non-Compliant)
 
 **Workflow 3: Admin Uploads Data**
 1. Admin navigates to the Upload screen
@@ -285,31 +290,45 @@ TBD — to be decided during technical design phase (`/generate-design`).
 
 ### 10.1 RTO Compliance Data (uploaded periodically)
 
-Source file format matches RTO_Sample.xlsx:
+Source file format matches RTO_Sample.xlsx (12 columns, verified from sample file):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| ET Org | String | Top-level org |
-| Supervisory Org | String | Direct supervisory org |
-| Worker | String | Employee name |
-| Worker Type | String | Employee or Contingent Worker |
-| Work Location Type | String | Hybrid / In Office / At Home |
-| Location | String | Physical office location |
-| On Leave | Boolean | Whether employee is on leave |
-| Week Range | String (MM/DD/YYYY - MM/DD/YYYY) | Monday–Sunday week range |
-| Meets 4-Day Requirement | Yes / No | Primary compliance flag |
-| Total Badge Swipe | Integer | Number of badge swipes in the week |
-| Total PTO Requested | Integer | PTO days recorded for the week |
+| # | Column Name | Type | Description |
+|---|-------------|------|-------------|
+| 1 | ET Org | String | Top-level org (e.g., "Technology (Jason Morris)") |
+| 2 | ELG Org | String | Eligibility org (may be null) |
+| 3 | Supervisory Org | String | Direct supervisory org |
+| 4 | Worker | String | Employee name (e.g., "Isabelle Gonn") |
+| 5 | Worker Type | String | "Employee" or "Contingent Worker" |
+| 6 | Work Location Type | String | "Hybrid" / "In Office" / "At Home" |
+| 7 | Location | String | Physical office location (e.g., "865 CORPORATE TOWER II") |
+| 8 | On Leave | String | "true" / "false" |
+| 9 | Week Range | String | "MM/DD/YYYY - MM/DD/YYYY" (Monday–Sunday) |
+| 10 | Meets 4-Day Requirement | String | "Yes" / "No" |
+| 11 | Total Badge Swipe | Integer | Number of badge swipes in the week |
+| 12 | Total PTO Requested | Integer | PTO days recorded for the week |
+
+Sample data: 4 rows for 1 employee (Isabelle Gonn), 4 weeks of data.
 
 ### 10.2 Worker / Org Data
 
-Source file: tech_workers_with_manager_email.xlsx. Key fields used:
-- **Worker, Email - Work:** Employee identification and login matching
-- **Manager, Manager E-mail Address:** Defines reporting hierarchy
-- **Is Manager, Number of Direct Reports:** Determines manager role access
-- **Worker Type:** Filters to Employees only (excludes Contingent Workers)
-- **Work Location Type:** Identifies exempt workers (At Home)
-- **Level 01–08 from the Top:** Full org hierarchy for breadcrumb navigation and recursive drill-down
+Source file: tech_workers_with_manager_email.xlsx (35 columns, 783 rows, verified from sample file).
+
+**Key fields used by the application:**
+
+| # | Column Name | Type | Usage |
+|---|-------------|------|-------|
+| 5 | Worker | String | Employee name — join key with RTO data |
+| 27 | Email - Work | String | Login matching (email-based auth for POC) |
+| 23 | Manager | String | Manager name — defines reporting hierarchy |
+| 24 | Manager E-mail Address | String | Manager identification |
+| 13 | Is Manager | String/null | "Yes" or null — determines manager role access |
+| 14 | Number of Direct Reports | Integer | Count of direct reports |
+| 11 | Worker Type | String | "Employee" or "Contingent Worker" — filters eligibility |
+| 26 | Work Location Type | String | Identifies exempt workers ("At Home") |
+| 28-35 | Level 01–08 from the Top | String | Full org hierarchy for breadcrumb navigation |
+
+**Additional fields available but not primary:**
+Sub-Organization, Supervisory Organization, Location, Department, Exempt Status, Job Profile, Business Title, Job Family, Job Family Group, Position Worker Type, Region, Business Unit, Store, Cost Center, Time Type, Pay Rate Type, Management Level, FTE, Works from Home
 
 ### 10.3 Application-Generated Data (stored in database)
 
@@ -352,8 +371,8 @@ In production, the RTO dataset will contain weekly records for all eligible empl
 
 | # | Question | Owner | Status | Answer |
 |---|----------|-------|--------|--------|
-| 1 | What is the exact Excel column mapping for the worker/org data file? | HR / Data team | Open | — |
-| 2 | How should the system handle employees who appear in badge data but not in worker/org data? | Product | Open | — |
-| 3 | Should there be a "Reject Exception" action for managers (in addition to Approve)? | Product | Open | — |
-| 4 | What is the maximum file size for Excel uploads? | Engineering | Open | — |
-| 5 | Should the pie chart be configurable by date range, or always match the table view? | Product | Open | — |
+| 1 | What is the exact Excel column mapping for the worker/org data file? | HR / Data team | Answered | Verified from sample files: RTO_Sample.xlsx has 12 columns, tech workers file has 35 columns. Exact mappings documented in Section 10. |
+| 2 | How should the system handle employees who appear in badge data but not in worker/org data? | Product | Answered | Skip and log a warning. Exclude unmatched employees from compliance tracking but log them for admin review. |
+| 3 | Should there be a "Reject Exception" action for managers (in addition to Approve)? | Product | Answered | Yes. Manager can Approve (Yellow→Blue) or Reject (Yellow→Red) with optional rejection note. Same for badge disputes. |
+| 4 | What is the maximum file size for Excel uploads? | Engineering | Answered | No file size limit for POC. Limits to be added in production. |
+| 5 | Should the pie chart be configurable by date range, or always match the table view? | Product | Answered | Always matches the table view (13-week default or expanded range). No separate date picker. |

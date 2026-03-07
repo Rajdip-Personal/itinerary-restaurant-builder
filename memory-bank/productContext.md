@@ -15,15 +15,17 @@ Nordstrom requires employees to badge into the office a minimum of 4 days per we
 - Sees their own Employee View first (same capabilities)
 - Has a Direct Reports Dashboard with compliance percentages and pending items
 - Can drill into any direct report's weekly detail (read-only)
-- Approves exceptions (Yellow → Blue) and badge disputes (→ Blue/Excused)
+- Approves or rejects exceptions (Yellow → Blue or Yellow → Red) with optional rejection note
+- Approves or rejects badge disputes (same pattern)
 - Cannot self-approve — their items escalate to their manager
-- Must drill into weekly detail before approving (no bulk approval)
+- Must drill into weekly detail before approving/rejecting (no bulk actions)
 - If a direct report is also a manager, can recursively drill into sub-reports
 
 ### Admin / HR
-- Uploads RTO compliance data via Excel files
+- Uploads RTO compliance data via Excel files (no file size limit for POC)
 - Data appends to existing dataset; same employee+week → latest upload wins
 - Employee edits (exceptions, PTO, disputes) are preserved across uploads
+- Employees in badge data but not in worker/org data are skipped with a warning log
 
 ## Business Context
 - Company RTO policy: 4 days in-office per week
@@ -32,6 +34,7 @@ Nordstrom requires employees to badge into the office a minimum of 4 days per we
 - Compliance determined by "Meets 4-Day Requirement" field in badge data
 - Excused is distinct from Compliant — tracked and reported separately
 - 3 milestones: M1 (Employee View + Upload), M2 (Manager View + Drill-down), M3 (Approvals + Actions)
+- Sample files verified: RTO_Sample.xlsx (12 columns, 4 rows), tech workers file (35 columns, 783 rows)
 
 ## Key Decisions
 
@@ -44,4 +47,9 @@ Nordstrom requires employees to badge into the office a minimum of 4 days per we
 | 2026-03-07 | Basic PII handling for POC | Mask in logs, HTTPS, no PII in URLs. Full encryption deferred to production |
 | 2026-03-07 | Okta SSO for production, email-based for POC | Only authorized Okta users can access in production |
 | 2026-03-07 | 3 milestones: Employee+Upload → Manager+Drill-down → Approvals+Actions | Incremental delivery approach |
-| 2026-03-07 | All 4 risks acknowledged | Data quality, org hierarchy accuracy, adoption resistance, PII exposure |
+| 2026-03-07 | All 4 risks acknowledged | Data quality, hierarchy accuracy, adoption, PII |
+| 2026-03-07 | Column mappings verified from sample files | RTO_Sample: 12 cols (incl. ELG Org), Worker data: 35 cols |
+| 2026-03-07 | Unmatched employees: skip + log warning | Badge data employees not in worker/org data excluded, logged |
+| 2026-03-07 | Add Reject action for managers | Approve (Yellow→Blue) or Reject (Yellow→Red) with optional note |
+| 2026-03-07 | No file size limit for POC | Limits deferred to production |
+| 2026-03-07 | Pie chart always matches table view | No separate date picker |
