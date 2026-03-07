@@ -1,15 +1,47 @@
 # Product Context
 
 ## Problem Statement
-
+Nordstrom requires employees to badge into the office a minimum of 4 days per week. Currently there is no centralized tool for employees to view their compliance status, for managers to monitor their teams and act on exceptions, or for HR to manage the compliance data workflow. Data lives in Excel files with no self-service visibility, no exception workflow, and no audit trail.
 
 ## User Personas
 
+### Employee
+- Views their own weekly RTO compliance data (last 13 weeks default)
+- Can dispute badge counts, add PTO days, and submit exception explanations
+- Actions limited to the 5 most recent weeks; older weeks are read-only
+- Cannot self-approve — all exceptions go to their manager
+
+### Manager
+- Sees their own Employee View first (same capabilities)
+- Has a Direct Reports Dashboard with compliance percentages and pending items
+- Can drill into any direct report's weekly detail (read-only)
+- Approves exceptions (Yellow → Blue) and badge disputes (→ Blue/Excused)
+- Cannot self-approve — their items escalate to their manager
+- Must drill into weekly detail before approving (no bulk approval)
+- If a direct report is also a manager, can recursively drill into sub-reports
+
+### Admin / HR
+- Uploads RTO compliance data via Excel files
+- Data appends to existing dataset; same employee+week → latest upload wins
+- Employee edits (exceptions, PTO, disputes) are preserved across uploads
 
 ## Business Context
-
+- Company RTO policy: 4 days in-office per week
+- Current data: 783 workers total, 328 employees tracked (455 CWs excluded, 280 At Home excluded)
+- 46 managers identified, 8-level org hierarchy depth
+- Compliance determined by "Meets 4-Day Requirement" field in badge data
+- Excused is distinct from Compliant — tracked and reported separately
+- 3 milestones: M1 (Employee View + Upload), M2 (Manager View + Drill-down), M3 (Approvals + Actions)
 
 ## Key Decisions
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-03-07 | Selected RTO POC as project | New project based on RTO Compliance Tracker PRD v1 |
+| 2026-03-07 | 13-week default view, 5-week edit window | User confirmed during PRD reading |
+| 2026-03-07 | Goals: reduce manual effort, improve visibility, single source of truth | User approved suggested goals |
+| 2026-03-07 | Metrics: engagement rate + review time (no upload processing time) | User removed upload processing time metric |
+| 2026-03-07 | Basic PII handling for POC | Mask in logs, HTTPS, no PII in URLs. Full encryption deferred to production |
+| 2026-03-07 | Okta SSO for production, email-based for POC | Only authorized Okta users can access in production |
+| 2026-03-07 | 3 milestones: Employee+Upload → Manager+Drill-down → Approvals+Actions | Incremental delivery approach |
+| 2026-03-07 | All 4 risks acknowledged | Data quality, org hierarchy accuracy, adoption resistance, PII exposure |
