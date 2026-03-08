@@ -14,7 +14,8 @@ An internal web application that provides a single source of truth for Return-to
 - Employee View: weekly compliance table (13-week default), pie chart, dispute/exception/PTO actions (last 5 weeks)
 - Manager View: own compliance + direct reports dashboard with recursive drill-down and approval workflows
 - Admin Upload Screen: Excel file upload with append/upsert behavior
-- 4-state compliance model (Compliant / Exception Pending / Non-Compliant / Excused)
+- 5-state compliance model (Compliant / Single Action Pending / Multiple Actions Pending / Non-Compliant / Excused)
+<!-- Updated: 2026-03-07 — expanded from 4-state to 5-state per gap #5 resolution -->
 - Role-based access (Employee, Manager, Admin/HR)
 - Email-based authentication (interim for POC)
 

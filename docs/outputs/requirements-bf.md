@@ -1,10 +1,10 @@
 # Requirements: RTO Compliance Tracker — Business & Functional
 
 ## Summary
-- **Total Requirements:** 46
+- **Total Requirements:** 49
 - **Business Requirements (BR):** 12
-- **Functional Requirements (FR):** 34
-- **P0 (Must Have):** 34 | **P1 (Should Have):** 9 | **P2 (Nice to Have):** 3
+- **Functional Requirements (FR):** 37
+- **P0 (Must Have):** 37 | **P1 (Should Have):** 9 | **P2 (Nice to Have):** 3
 
 ---
 
@@ -21,14 +21,14 @@
 | BR-007 | Exclude contingent workers from tracking | P0 | Business | 5 - Business Rules #1 |
 | BR-008 | Exclude exempt (At Home) employees | P0 | Business | 5 - Business Rules #2 |
 | BR-009 | 4-day office compliance threshold | P0 | Business | 5 - Business Rules #3 |
-| BR-010 | 4-state compliance model | P0 | Business | 3 - Scope |
+| BR-010 | 5-state compliance model | P0 | Business | 3 - Scope, Gap #5 |
 | BR-011 | Manager approval required for state changes | P0 | Business | 5 - Business Rules #4, #5 |
 | BR-012 | Managers cannot self-approve | P0 | Business | 5 - Business Rules #7 |
 | FR-001 | Employee weekly compliance table | P0 | Functional | 5.1.1 |
 | FR-002 | Default 13-week view | P0 | Functional | 5.1.1 |
 | FR-003 | Expandable to 1 year of history | P1 | Functional | 5.1.1 |
-| FR-004 | Color-coded status rows | P0 | Functional | 5.1.1 |
-| FR-005 | 3-slice compliance pie chart | P0 | Functional | 5.1.2 |
+| FR-004 | Color-coded status rows (5 states) | P0 | Functional | 5.1.1, Gap #5 |
+| FR-005 | 4-slice compliance pie chart | P0 | Functional | 5.1.2, Gap #5 |
 | FR-006 | Pie chart synced with table date range | P0 | Functional | 5.1.2 |
 | FR-007 | Dispute badge count | P0 | Functional | 5.1.3 |
 | FR-008 | Add PTO days | P0 | Functional | 5.1.3 |
@@ -57,7 +57,10 @@
 | FR-031 | Role determination from worker data | P0 | Functional | 5.2 / Section 10.2 |
 | FR-032 | Parse RTO compliance Excel (12 columns) | P0 | Functional | 10.1 |
 | FR-033 | Parse worker/org hierarchy data | P0 | Functional | 10.2 |
-| FR-034 | Persist application-generated data | P0 | Functional | 10.3 |
+| FR-034 | Persist application-generated data (day-level) | P0 | Functional | 10.3, Gap #5 |
+| FR-035 | Day selection for employee actions | P0 | Functional | Gap #5 |
+| FR-036 | Same-day action constraint | P0 | Functional | Gap #5 |
+| FR-037 | Week-level state computation from day actions | P0 | Functional | Gap #5 |
 
 ---
 
@@ -153,27 +156,34 @@
 - **Stakeholder:** HR / Policy
 - **Source:** PRD Section 5 — Business Rules #3
 
-### BR-010: 4-State Compliance Model
-- **Description:** Every employee-week record must be in exactly one of four states: Compliant (Green), Exception Pending (Yellow), Non-Compliant (Red), or Excused (Blue). State transitions follow defined rules.
+### BR-010: 5-State Compliance Model
+- **Description:** Every employee-week record must be in exactly one of five states, computed from day-level actions within the week. The states are: Compliant (Green), Excused (Blue), Single Action Pending (Yellow), Multiple Actions Pending (Orange), and Non-Compliant (Red). State is derived from the combination of all day-level actions and their approval statuses.
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
-  - Given any employee-week record, when viewed in the system, then it displays exactly one of the four states with the correct color coding
-  - State transitions: Red → Yellow (employee submits exception), Yellow → Blue (manager approves), Yellow → Red (manager rejects), Red → Blue (badge dispute approved)
+  - Given any employee-week record, when viewed in the system, then it displays exactly one of the five states with the correct color coding:
+    - **Green (Compliant):** Badge data shows Meets 4-Day Requirement = "Yes", no pending actions
+    - **Blue (Excused):** All pending actions for the week have been approved by a manager
+    - **Yellow (Single Action Pending):** The week has one type of pending action (exception OR dispute OR PTO, but not multiple types simultaneously)
+    - **Orange (Multiple Actions Pending):** The week has BOTH a dispute AND an exception/PTO pending on different days simultaneously
+    - **Red (Non-Compliant):** Meets 4-Day Requirement = "No" and no pending or approved actions
+  - State transitions at day level: Red → Yellow (employee submits exception/PTO/dispute for specific day), Yellow → Blue (manager approves), Yellow → Red (manager rejects), Red (after rejection) → Yellow (employee re-submits)
+  - Week-level state is computed from the aggregate of all day-level states (see FR-037)
   - Given a week is Green (Compliant from badge data), then no state transition is possible (already compliant)
-- **Dependencies:** BR-009, FR-009, FR-017, FR-018, FR-019, FR-020
+- **Dependencies:** BR-009, FR-009, FR-017, FR-018, FR-019, FR-020, FR-035, FR-036, FR-037
 - **Stakeholder:** Product
-- **Source:** PRD Section 3 — Scope, Section 5 — Business Rules #4, #5, #6
+- **Source:** PRD Section 3 — Scope, Section 5 — Business Rules #4, #5, #6, Design Gap #5 resolution
 
 ### BR-011: Manager Approval Required for State Changes
-- **Description:** PTO additions and exception submissions do NOT automatically change a week to compliant or excused status. Only explicit manager approval (of either an exception or a badge dispute) can change a week's state from non-compliant to excused.
+- **Description:** Exception submissions, PTO additions, and badge disputes all require explicit manager approval to move a week to Excused (Blue). Submitting any of these moves the week to Yellow (Pending), but only manager approval transitions it to Blue. PTO additions follow the same approval workflow as exceptions — they are NOT auto-excusing.
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
   - Given an employee submits an exception, when the submission is saved, then the week moves to Yellow (pending) but NOT to Blue (excused)
-  - Given an employee adds PTO, when the PTO is saved, then the week's compliance state does NOT change
-  - Given a manager approves an exception, when the approval is saved, then and only then does the week move to Blue (excused)
-- **Dependencies:** FR-009, FR-017, FR-019
+  - Given an employee adds PTO, when the PTO is saved, then the week moves to Yellow (pending) but NOT to Blue (excused) — manager approval is required
+  - Given a manager approves an exception or PTO addition, when the approval is saved, then and only then does the week move to Blue (excused)
+  - Given a manager rejects an exception or PTO addition, when the rejection is saved, then the week reverts to Red (non-compliant)
+- **Dependencies:** FR-008, FR-009, FR-017, FR-018, FR-019
 - **Stakeholder:** HR / Policy
-- **Source:** PRD Section 5 — Business Rules #4, #5
+- **Source:** PRD Section 5 — Business Rules #4, #5, Design Gap #4 resolution
 
 ### BR-012: Managers Cannot Self-Approve
 - **Description:** Managers cannot approve or reject their own exceptions or badge disputes. Their requests must be routed to their own manager in the hierarchy for review.
@@ -222,28 +232,31 @@
 - **User Persona:** Employee
 - **Source:** PRD Section 5.1.1
 
-#### FR-004: Color-Coded Status Rows
-- **Description:** Each week row in the compliance table is color-coded according to the 4-state compliance model: Green (Compliant), Yellow (Exception Pending), Red (Non-Compliant), Blue (Excused).
+#### FR-004: Color-Coded Status Rows (5 States)
+- **Description:** Each week row in the compliance table is color-coded according to the 5-state compliance model: Green (Compliant), Blue (Excused), Yellow (Single Action Pending), Orange (Multiple Actions Pending), Red (Non-Compliant).
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
   - Given a week with Meets 4-Day Requirement = "Yes" and no overriding state, when displayed, then the row is Green
-  - Given a week with a submitted but unreviewed exception, when displayed, then the row is Yellow
-  - Given a week with Meets 4-Day Requirement = "No" and no exception, when displayed, then the row is Red
-  - Given a week with an approved exception or dispute, when displayed, then the row is Blue
-- **Dependencies:** BR-010 (state model), FR-001
+  - Given a week with only exception(s) pending (no disputes), when displayed, then the row is Yellow
+  - Given a week with only dispute(s) pending (no exceptions), when displayed, then the row is Yellow
+  - Given a week with only PTO pending (no disputes or exceptions), when displayed, then the row is Yellow
+  - Given a week with BOTH a dispute AND an exception/PTO pending on different days, when displayed, then the row is Orange (Multiple Actions Pending)
+  - Given a week with Meets 4-Day Requirement = "No" and no actions, when displayed, then the row is Red
+  - Given a week with all actions approved, when displayed, then the row is Blue
+- **Dependencies:** BR-010 (5-state model), FR-001, FR-037 (week-level computation)
 - **User Persona:** Employee
-- **Source:** PRD Section 5.1.1
+- **Source:** PRD Section 5.1.1, Design Gap #5 resolution
 
-#### FR-005: 3-Slice Compliance Pie Chart
-- **Description:** Display a pie chart with three slices showing the count and percentage of weeks in each state: Green (Compliant), Blue (Excused), Red (Non-Compliant). Pending exceptions (Yellow) are counted as Non-Compliant (Red) in the pie chart.
+#### FR-005: 4-Slice Compliance Pie Chart
+- **Description:** Display a pie chart with four slices showing the count and percentage of weeks in each resolved or pending category: Green (Compliant), Blue (Excused), Yellow/Orange combined (Pending — includes both Single and Multiple Actions Pending), Red (Non-Compliant). Yellow and Orange weeks are grouped into a single "Pending" slice.
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
-  - Given an employee has compliance data, when the pie chart renders, then it shows exactly three slices: Compliant (Green), Excused (Blue), Non-Compliant (Red)
-  - Given 3 compliant weeks, 2 excused weeks, and 8 non-compliant weeks (including 1 pending), when the pie chart renders, then Green=3, Blue=2, Red=8
+  - Given an employee has compliance data, when the pie chart renders, then it shows exactly four slices: Compliant (Green), Excused (Blue), Pending (Yellow/Orange combined), Non-Compliant (Red)
+  - Given 3 compliant weeks, 2 excused weeks, 1 Yellow week, 1 Orange week, and 6 Red weeks, when the pie chart renders, then Green=3, Blue=2, Pending=2, Red=6
   - Given the table shows 13 weeks, when the pie chart renders, then the total of all slices equals 13
-- **Dependencies:** FR-001, BR-010
+- **Dependencies:** FR-001, BR-010, FR-037
 - **User Persona:** Employee
-- **Source:** PRD Section 5.1.2, Business Rule #12
+- **Source:** PRD Section 5.1.2, Business Rule #12, Design Gap #5 resolution
 
 #### FR-006: Pie Chart Synced with Table Date Range
 - **Description:** The pie chart date range always matches the compliance table's current view (13-week default or expanded range). There is no separate date picker for the pie chart.
@@ -255,39 +268,50 @@
 - **User Persona:** Employee
 - **Source:** PRD Section 5.1.2, Open Question #5
 
-#### FR-007: Dispute Badge Count
-- **Description:** For the 5 most recent weeks, an employee can dispute a badge swipe count they believe is incorrect. This flags the week for manager review. The employee does NOT directly change the badge count.
+#### FR-007: Dispute Badge Count (Day-Level)
+- **Description:** For the 5 most recent weeks, an employee can dispute a badge swipe count they believe is incorrect. The employee must select which specific day(s) within the week the dispute covers. This flags those days for manager review. The employee does NOT directly change the badge count. The same day cannot have both a dispute and an exception/PTO (see FR-036).
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
-  - Given an employee views a week within the 5 most recent weeks, when they click "Dispute Badge Count", then the week is flagged as disputed and visible to the manager
+  - Given an employee views a week within the 5 most recent weeks, when they click "Dispute Badge Count", then a day-selection form is presented
+  - Given the employee selects specific days and submits, when the dispute is saved, then those days are flagged as disputed and visible to the manager
   - Given an employee views a week older than the 5 most recent, then the dispute action is not available
   - Given an employee disputes a badge count, when the dispute is saved, then the badge swipe count value is NOT modified
-- **Dependencies:** FR-010 (5-week window), FR-034 (persist dispute)
+  - Given a day already has an exception or PTO pending, when the employee attempts to add a dispute for that day, then the system prevents it (per FR-036)
+- **Dependencies:** FR-010 (5-week window), FR-034 (persist dispute), FR-035 (day selection), FR-036 (same-day constraint)
 - **User Persona:** Employee
-- **Source:** PRD Section 5.1.3
+- **Source:** PRD Section 5.1.3, Design Gap #5 resolution
 
-#### FR-008: Add PTO Days
-- **Description:** For the 5 most recent weeks, any employee can record PTO days that may not have been captured in the system, regardless of their level in the org hierarchy.
+#### FR-008: Add PTO Days (Day-Level, Triggers Approval Workflow)
+- **Description:** For the 5 most recent weeks, any employee can record PTO days that may not have been captured in the system. The employee must select which specific day(s) the PTO covers. PTO additions follow the same approval workflow as exceptions: submitting PTO changes the week's status to Yellow (Pending) or Orange (Multiple Actions Pending, if a dispute also exists on different days) and requires manager approval to become Blue (Excused). PTO is NOT auto-excusing. The same day cannot have both PTO and a dispute (see FR-036).
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
-  - Given an employee views a week within the 5 most recent weeks, when they add PTO days, then the PTO addition is recorded with a timestamp
-  - Given PTO is added, when the week's compliance state is calculated, then the PTO addition does NOT automatically change the compliance state (per BR-011)
+  - Given an employee views a non-compliant week within the 5 most recent weeks, when they click "Add PTO", then a day-selection form is presented
+  - Given the employee selects specific days and submits, when saved, then PTO is recorded for those days with a timestamp AND the week's state is recomputed (per FR-037)
+  - Given PTO is added and no other action types are pending, when the week state is computed, then it shows Yellow (Single Action Pending)
+  - Given PTO is added and a dispute is also pending on a different day, when the week state is computed, then it shows Orange (Multiple Actions Pending)
+  - Given a manager approves the PTO, then those days become Excused; if all pending items are resolved, the week becomes Blue
+  - Given a manager rejects the PTO, then those days revert; the week state is recomputed
   - Given an employee views a week older than 5 most recent, then the Add PTO action is not available
-- **Dependencies:** FR-010 (5-week window), FR-034 (persist PTO), BR-011
+  - Given a day already has a dispute pending, when the employee attempts to add PTO for that day, then the system prevents it (per FR-036)
+- **Dependencies:** FR-010 (5-week window), FR-034 (persist PTO), BR-011, FR-017 (approve), FR-018 (reject), FR-035 (day selection), FR-036 (same-day constraint), FR-037 (week computation)
 - **User Persona:** Employee
-- **Source:** PRD Section 5.1.3
+- **Source:** PRD Section 5.1.3, Design Gap #4 and #5 resolution
 
-#### FR-009: Submit Exception with Explanation
-- **Description:** For the 5 most recent weeks, an employee can submit an exception on any non-compliant (Red) week by providing a text explanation (e.g., business travel, illness, personal emergency). Submitting changes the week's status from Red to Yellow (Exception Pending).
+#### FR-009: Submit Exception with Explanation (Day-Level, Including Re-submission)
+- **Description:** For the 5 most recent weeks, an employee can submit an exception on any non-compliant week by providing a text explanation and selecting which specific day(s) the exception covers. Submitting changes the week's status to Yellow (or Orange if a dispute also exists on different days). If a prior exception was rejected, the employee may re-submit a new exception for the same day(s). The system supports multiple versioned exception records per employee+week+day; the most recent is the active one, and prior exceptions are preserved for audit. The same day cannot have both an exception and a dispute (see FR-036).
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
-  - Given an employee views a non-compliant (Red) week within the 5 most recent, when they click "Submit Exception", then a text field appears for entering an explanation
-  - Given the employee submits the explanation, when saved, then the week's status changes from Red to Yellow
-  - Given a week is already Yellow (pending) or Blue (excused) or Green (compliant), then the Submit Exception action is not available
-  - Given an employee views a non-compliant week older than 5 most recent, then the Submit Exception action is not available
-- **Dependencies:** FR-010, FR-034, BR-010
+  - Given an employee views a non-compliant week within the 5 most recent, when they click "Submit Exception", then a day-selection form and text field appear
+  - Given the employee selects days and submits the explanation, when saved, then those days are marked as exception-pending and the week state is recomputed (per FR-037)
+  - Given a week is already Green (compliant) or Blue (excused), then the Submit Exception action is not available
+  - Given a day was previously rejected, when the employee submits a new exception for that day, then the day goes back to pending with the new explanation
+  - Given multiple exceptions exist for the same employee+week+day, when the system evaluates state, then the most recent exception is the active one
+  - Given a prior exception was rejected, when a new exception is submitted, then the old rejection record is preserved for audit
+  - Given an employee views a week older than 5 most recent, then the Submit Exception action is not available
+  - Given a day already has a dispute pending, when the employee attempts to add an exception for that day, then the system prevents it (per FR-036)
+- **Dependencies:** FR-010, FR-034, BR-010, FR-035 (day selection), FR-036 (same-day constraint), FR-037 (week computation)
 - **User Persona:** Employee
-- **Source:** PRD Section 5.1.3, Workflow 1
+- **Source:** PRD Section 5.1.3, Workflow 1, Design Gap #3 and #5 resolution
 
 #### FR-010: 5-Week Edit Window Restriction
 - **Description:** Employee actions (dispute badge count, add PTO, submit exception) are limited to the 5 most recent weeks. Weeks older than the 5 most recent are read-only.
@@ -556,27 +580,78 @@
 - **User Persona:** System (powers hierarchy, roles, and auth)
 - **Source:** PRD Section 10.2
 
-#### FR-034: Persist Application-Generated Data
-- **Description:** The system must persist all application-generated data (exceptions, PTO additions, disputes, approvals, computed compliance states) in a database that survives across data uploads and application restarts.
+#### FR-034: Persist Application-Generated Data (Day-Level)
+- **Description:** The system must persist all application-generated data at the day level within each week, including exceptions, PTO additions, disputes, approvals, and computed compliance states. Data survives across data uploads and application restarts.
 - **Priority:** P0 (Must Have)
 - **Acceptance Criteria:**
   - Given an employee submits an exception, when the application is restarted, then the exception is still present
   - Given a manager approves a dispute, when new data is uploaded, then the approval record and Excused state are preserved
-  - The database stores: employee-submitted exceptions (employee ID, week, explanation, timestamp), PTO additions (employee ID, week, days, timestamp), badge disputes (employee ID, week, flag, timestamp), manager approvals (manager ID, employee ID, week, action type, timestamp), and computed compliance state per employee-week
-- **Dependencies:** None (foundational)
+  - The database stores at day-level granularity:
+    - Employee-submitted exceptions (employee ID, week, **day(s)**, explanation, timestamp, version/sequence, status [pending/approved/rejected])
+    - PTO additions (employee ID, week, **day(s)**, days count, timestamp, status [pending/approved/rejected])
+    - Badge disputes (employee ID, week, **day(s)**, flag, timestamp, status [pending/approved/rejected])
+    - Manager actions (manager ID, employee ID, week, **day(s)**, action type [exception/PTO/dispute approved/rejected], optional note, timestamp)
+    - Computed compliance state per employee-week (derived from day-level states per FR-037)
+  - Multiple exception records per employee+week+day are supported (versioned); the most recent is active, prior records preserved for audit
+  - The same-day constraint (FR-036) is enforced at the data layer
+- **Dependencies:** FR-035 (day selection), FR-036 (same-day constraint)
 - **User Persona:** System
-- **Source:** PRD Section 10.3
+- **Source:** PRD Section 10.3, Design Gap #5 resolution
+
+### Day-Level Action Tracking (Gap #5 Resolution)
+
+#### FR-035: Day Selection for Employee Actions
+- **Description:** All employee action forms (Submit Exception, Add PTO, Dispute Badge Count) must require the employee to select which specific day(s) within the week the action covers. The form shows the days of the week (Monday–Sunday for that week range) and allows multi-day selection.
+- **Priority:** P0 (Must Have)
+- **Acceptance Criteria:**
+  - Given an employee clicks any action button (exception, PTO, or dispute) for a week, when the form opens, then it displays the 7 days of that week (Monday–Sunday) with checkboxes or similar selection UI
+  - Given the employee does not select at least one day, when they attempt to submit, then the form shows a validation error
+  - Given the employee selects multiple days, when submitted, then the action is recorded for each selected day
+  - Given a day already has a conflicting action type (per FR-036), then that day is disabled/greyed out in the selection form with an explanation
+- **Dependencies:** FR-007, FR-008, FR-009, FR-036
+- **User Persona:** Employee
+- **Source:** Design Gap #5 resolution
+
+#### FR-036: Same-Day Action Constraint
+- **Description:** Within any given week, the same day CANNOT have both a dispute and an exception/PTO. An employee can only submit one action type per day. Different days within the same week can have different action types (which triggers the Orange/Multiple Actions Pending state at the week level).
+- **Priority:** P0 (Must Have)
+- **Acceptance Criteria:**
+  - Given Monday has a pending exception, when the employee attempts to add a dispute for Monday, then the system rejects it with a clear error message
+  - Given Tuesday has a pending dispute, when the employee attempts to submit an exception for Tuesday, then the system rejects it
+  - Given Monday has a pending exception and the employee submits a dispute for Wednesday (different day), then both actions are accepted
+  - This constraint must be enforced server-side (not just UI), via validation on the API layer
+  - Given a day's action was previously rejected (resolved), then that day is available for a new action of any type
+- **Dependencies:** FR-034 (data model)
+- **User Persona:** Employee
+- **Source:** Design Gap #5 resolution
+
+#### FR-037: Week-Level State Computation from Day Actions
+- **Description:** The week's compliance state displayed in the table and pie chart is computed from the aggregate of all day-level actions and their statuses within that week. This is a derived state, not directly stored.
+- **Priority:** P0 (Must Have)
+- **Acceptance Criteria:**
+  - Given all days in a week have badge data showing compliance (from upload), and no pending actions, then the week state is **Green (Compliant)**
+  - Given all pending actions in a week have been approved, then the week state is **Blue (Excused)**
+  - Given the week has pending action(s) of only ONE type (only exceptions, only disputes, or only PTO), then the week state is **Yellow (Single Action Pending)**
+  - Given the week has pending actions of MULTIPLE types on different days (e.g., exception on Monday + dispute on Wednesday), then the week state is **Orange (Multiple Actions Pending)**
+  - Given the week has Meets 4-Day Requirement = "No" and no pending or approved actions, then the week state is **Red (Non-Compliant)**
+  - Given some actions are approved and others are still pending, then the week state reflects the pending status (Yellow or Orange, not Blue until ALL are resolved)
+  - The week state is recomputed whenever any day-level action is submitted, approved, or rejected
+- **Dependencies:** FR-034, FR-035, FR-036, BR-010
+- **User Persona:** System (powers display for all users)
+- **Source:** Design Gap #5 resolution
 
 ---
 
 ## Gaps & Notes
 
-1. **Admin role assignment:** The PRD mentions Admin/HR as a role but does not specify how Admin users are identified in the data. The worker data file does not have an "Is Admin" field. This needs to be resolved during technical design (options: config file, specific email list, or a flag).
+1. **Admin role assignment:** The PRD mentions Admin/HR as a role but does not specify how Admin users are identified in the data. The worker data file does not have an "Is Admin" field. This needs to be resolved during technical design (options: config file, specific email list, or a flag). **OPEN — deferred to design.**
 
-2. **Employee actions on already-disputed weeks:** The PRD does not clarify whether an employee can submit both a dispute AND an exception on the same week, or whether submitting one blocks the other. Recommend clarifying during design.
+2. ~~**Employee actions on already-disputed weeks:**~~ **RESOLVED (via Gap #5).** An employee CAN submit both a dispute and an exception/PTO on the same week, but on DIFFERENT days. The same day cannot have both. This triggers the 5th state (Orange = Multiple Actions Pending). (Incorporated into FR-035, FR-036, FR-037, BR-010.)
 
-3. **Re-submission after rejection:** The PRD does not specify whether an employee can re-submit an exception after it has been rejected by the manager. Recommend allowing re-submission (Red → Yellow again) during design.
+3. ~~**Re-submission after rejection:**~~ **RESOLVED.** Yes — employees can re-submit a new exception after rejection. The week goes Red → Yellow again. Multiple versioned exception records per employee+week+day are supported; the most recent is the active one, prior records preserved for audit. (Incorporated into FR-009, FR-034, BR-010.)
 
-4. **PTO display integration:** The PRD mentions employees can "Add PTO Days" but does not clarify how added PTO is visually reflected — is it added to the Total PTO Requested column, shown separately, or only used for audit?
+4. ~~**PTO display and workflow:**~~ **RESOLVED.** PTO additions follow the SAME approval workflow as exceptions. Adding PTO moves the week Red → Yellow (Pending), requiring manager approval to become Blue (Excused). PTO is NOT auto-excusing. This unifies the state machine: exceptions, PTO, and disputes all require manager approval. (Incorporated into FR-008, BR-011, BR-010.)
 
-5. **Concurrent dispute + exception:** If a week has both a badge dispute AND an exception pending, the approval workflow and state machine need clarification (which takes precedence, or are they independent actions?).
+5. ~~**Concurrent dispute + exception:**~~ **RESOLVED.** A 5th compliance state (Orange = Multiple Actions Pending) is added for weeks with both a dispute AND exception/PTO pending on different days simultaneously. Day-level tracking is required: each action must specify which day(s) it covers, and the same day cannot have both a dispute and an exception/PTO. The week-level state is computed from day-level actions. (Incorporated into BR-010, FR-004, FR-005, FR-007, FR-008, FR-009, FR-034, FR-035, FR-036, FR-037.)
+
+**All gaps resolved except Gap #1 (Admin role assignment) — deferred to technical design.**

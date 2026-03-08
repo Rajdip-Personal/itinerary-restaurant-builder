@@ -1,21 +1,23 @@
 # Requirements: RTO Compliance Tracker — Technical & Non-Functional
 
 ## Summary
-- Total Requirements: 35
-- Technical: 17 | Non-Functional: 18
-- Must Have: 24 | Should Have: 8 | Nice to Have: 3
+- Total Requirements: 36
+- Technical: 18 | Non-Functional: 18
+- Must Have: 25 | Should Have: 8 | Nice to Have: 3
 
 ---
 
 ## Technical Requirements
 
-### TR-001: Data Model — Employee-Week Compliance Record
-- **Description:** The system must store a compliance record per employee per week containing: worker name, worker type, work location type, location, on-leave status, week range (Mon–Sun), meets-4-day-requirement flag, total badge swipes, total PTO requested, and computed compliance state.
+### TR-001: Data Model — Employee-Week Compliance Record with Day-Level Tracking
+- **Description:** The system must store a compliance record per employee per week containing: worker name, worker type, work location type, location, on-leave status, week range (Mon–Sun), meets-4-day-requirement flag, total badge swipes, total PTO requested, and computed compliance state (5-state model). Additionally, the system must support day-level action tracking within each week — exceptions, PTO additions, and badge disputes must reference specific day(s) within the week (Mon–Sun). The week-level compliance state is derived by aggregating all day-level actions.
 - **Priority:** Must Have
 - **Acceptance Criteria:**
   - Given an uploaded Excel file, When badge data is processed, Then each row creates or updates an employee-week record with all 12 source columns mapped correctly.
-  - Given an employee-week record, When queried, Then all fields including computed compliance state are returned.
-- **Source:** PRD Section 10.1 (RTO Compliance Data)
+  - Given an employee-week record, When queried, Then all fields including computed compliance state (5-state) and any day-level actions are returned.
+  - Given an employee submits an exception for Tuesday and Wednesday of Week 3, When stored, Then the exception record references those specific days.
+  - Given day-level actions exist, When the week-level state is computed, Then it aggregates all day-level statuses into the correct 5-state result.
+- **Source:** PRD Section 10.1 (RTO Compliance Data), Design Gap #5 (day-level tracking for 5-state model)
 
 ### TR-002: Data Model — Worker/Org Hierarchy
 - **Description:** The system must store worker/org data including: worker name, work email, manager name, manager email, is-manager flag, number of direct reports, worker type, work location type, and 8 levels of org hierarchy (Level 01–08).
@@ -26,24 +28,41 @@
 - **Source:** PRD Section 10.2 (Worker/Org Data)
 
 ### TR-003: Data Model — Application-Generated Data
-- **Description:** The system must persist application-generated data separately from uploaded data: exceptions (employee ID, week, explanation, timestamp), PTO additions (employee ID, week, days, timestamp), badge disputes (employee ID, week, flag, timestamp), manager approvals (manager ID, employee ID, week, action type, timestamp), and computed compliance state per employee-week.
+- **Description:** The system must persist application-generated data separately from uploaded data: exceptions (employee ID, week, explanation, type [exception|pto], version, status, timestamp), badge disputes (employee ID, week, flag, status, timestamp), manager actions (manager ID, employee ID, week, action type [approve|reject], target type [exception|dispute|pto], optional note, timestamp), and computed compliance state per employee-week. Exceptions and PTO additions share a unified submission model — both are "exception" records with a type discriminator. Multiple submissions per employee+week must be supported (versioned), with the most recent being the active record and prior submissions preserved for audit.
 - **Priority:** Must Have
 - **Acceptance Criteria:**
   - Given an employee submits an exception, When a new data upload occurs for that same employee+week, Then the exception data is preserved and not overwritten.
   - Given application-generated records exist, When the database is queried, Then each record type has its own storage with timestamps and foreign keys to the employee-week record.
-- **Source:** PRD Section 10.3 (Application-Generated Data)
+  - Given an employee has a rejected exception for Week 3, When they submit a new exception explanation for Week 3, Then a new versioned exception record is created, the old rejection record is preserved, and the new record becomes the active one.
+  - Given an employee adds PTO for a week, When stored, Then it is recorded as an exception-type record with type="pto" and follows the same approval workflow as exceptions.
+  - Given multiple exception records exist for the same employee+week, When queried, Then the most recent (highest version) is returned as active, and all prior records are accessible for audit.
+  - Given an employee submits an exception or PTO addition, When the submission form is filled, Then the employee must select which specific day(s) of the week (Mon–Sun) the action covers.
+  - Given an employee submits a badge dispute, When the submission form is filled, Then the employee must select which specific day(s) of the week the dispute covers.
+- **Source:** PRD Section 10.3 (Application-Generated Data), Design Gap #3 (resubmission), Design Gap #4 (PTO as exception), Design Gap #5 (day-level tracking)
 
-### TR-004: Compliance State Machine
-- **Description:** Each employee-week must have a computed compliance state following this state machine: Compliant (Green) — from badge data "Meets 4-Day = Yes"; Non-Compliant (Red) — from badge data "Meets 4-Day = No" and no approved exception; Exception Pending (Yellow) — employee submitted exception, awaiting manager action; Excused (Blue) — manager approved exception or badge dispute.
+### TR-004: 5-State Compliance State Machine
+- **Description:** Each employee-week must have a computed compliance state following a **5-state model** derived from day-level actions:
+  - **Compliant (Green)** — badge data "Meets 4-Day = Yes", no pending actions
+  - **Non-Compliant (Red)** — badge data "Meets 4-Day = No", no active pending or approved actions
+  - **Single Action Pending (Yellow)** — employee has submitted exception(s), PTO addition(s), OR dispute(s) pending — but only ONE type of action is pending
+  - **Multiple Actions Pending (Orange)** — employee has BOTH a dispute AND an exception/PTO pending on DIFFERENT days within the same week
+  - **Excused (Blue)** — manager approved exception, PTO addition, or badge dispute
+
+  Both exceptions and PTO additions trigger the same approval flow. After a rejection (back to Red), the employee may resubmit for the same week (Red → Yellow/Orange). Week-level state is computed by aggregating all day-level action statuses.
 - **Priority:** Must Have
 - **Acceptance Criteria:**
-  - Given badge data says "Meets 4-Day = Yes", When compliance is computed, Then state = Compliant (Green).
-  - Given badge data says "Meets 4-Day = No" and no exception submitted, Then state = Non-Compliant (Red).
-  - Given an employee submits an exception on a Red week, Then state transitions to Exception Pending (Yellow).
-  - Given a manager approves an exception, Then state transitions from Yellow to Excused (Blue).
-  - Given a manager rejects an exception, Then state transitions from Yellow back to Red.
-  - Given a manager approves a badge dispute, Then state transitions to Excused (Blue) without modifying badge count.
-- **Source:** PRD Section 5, Business Rules 3-6
+  - Given badge data says "Meets 4-Day = Yes" and no pending actions, When compliance is computed, Then state = Compliant (Green).
+  - Given badge data says "Meets 4-Day = No" and no exception/PTO/dispute submitted, Then state = Non-Compliant (Red).
+  - Given an employee submits an exception on a Red week (on specific days), Then state transitions to Single Action Pending (Yellow).
+  - Given an employee adds PTO days on a Red week (on specific days), Then state transitions to Single Action Pending (Yellow) — same as exception submission.
+  - Given an employee has ONLY a pending dispute (no pending exception/PTO), Then state = Single Action Pending (Yellow).
+  - Given an employee has a pending exception on Tuesday AND a pending dispute on Thursday (different days, same week), Then state = Multiple Actions Pending (Orange).
+  - Given a manager approves an exception, PTO addition, or dispute, Then the approved day(s) transition to Excused; if all pending actions are resolved, week state recomputes accordingly.
+  - Given a manager rejects an exception or PTO addition, Then state transitions from Yellow/Orange back toward Red (recomputed from remaining day-level statuses).
+  - Given a manager approves a badge dispute, Then the disputed day(s) transition to Excused without modifying badge count.
+  - Given an employee has a rejected exception (week is Red after rejection), When the employee submits a new exception for that same week, Then the state transitions from Red to Yellow/Orange again, and the old rejection record is preserved for audit.
+  - Given an employee has a rejected PTO addition, When the employee resubmits PTO for that same week, Then the state transitions from Red to Yellow/Orange again.
+- **Source:** PRD Section 5, Business Rules 3-6, Design Gap #3 (resubmission), Design Gap #4 (PTO workflow), Design Gap #5 (5-state model with day-level tracking)
 
 ### TR-005: Excel File Parsing — RTO Badge Data
 - **Description:** The system must parse Excel files (.xlsx) matching the RTO_Sample.xlsx format (12 columns). Parsing must handle: column name matching, data type coercion (string/integer), date range parsing ("MM/DD/YYYY - MM/DD/YYYY"), and graceful handling of missing or malformed values.
@@ -123,14 +142,15 @@
   - Given any API error, When the error response is returned, Then it includes an error code, human-readable message, and correlation ID.
 - **Source:** PRD Section 5 (all screens imply API endpoints), Section 6 (Observability)
 
-### TR-014: Pie Chart Data Computation
-- **Description:** The system must compute pie chart data as a 3-slice breakdown (Compliant / Excused / Non-Compliant) matching the current table view's date range. Pending exceptions count as Non-Compliant until approved.
+### TR-014: Pie Chart Data Computation (5-State)
+- **Description:** The system must compute pie chart data matching the current table view's date range. The pie chart must account for the 5-state compliance model. Pending actions (Yellow and Orange states) count as Non-Compliant in the pie chart until approved. The pie chart has 3 slices: Compliant (Green), Excused (Blue), Non-Compliant (Red + Yellow + Orange grouped together).
 - **Priority:** Must Have
 - **Acceptance Criteria:**
   - Given an employee with 10 Compliant weeks, 2 Excused weeks, and 1 Non-Compliant week in the 13-week view, When pie chart data is requested, Then the response returns counts {compliant: 10, excused: 2, nonCompliant: 1}.
-  - Given an employee with 1 Exception Pending week, When pie chart data is computed, Then that week is counted as Non-Compliant.
+  - Given an employee with 1 Single Action Pending (Yellow) week, When pie chart data is computed, Then that week is counted in the Non-Compliant slice.
+  - Given an employee with 1 Multiple Actions Pending (Orange) week, When pie chart data is computed, Then that week is counted in the Non-Compliant slice.
   - Given the table view is expanded to 1 year, When pie chart data is requested, Then it reflects the full year's data.
-- **Source:** PRD Section 5.1.2, Business Rule 12
+- **Source:** PRD Section 5.1.2, Business Rule 12, Design Gap #5 (5-state pie chart grouping)
 
 ### TR-015: Manager Drill-Down Enforcement
 - **Description:** Managers must drill into an employee's weekly detail view before approving or rejecting exceptions/disputes. The API must not allow approval/rejection without a prior detail view access for that employee+week.
@@ -154,6 +174,15 @@
   - Given a fresh developer machine with the standard toolchain installed, When the developer follows the README setup instructions, Then the application starts locally within 5 minutes.
   - Given the running application, When the developer accesses it via localhost, Then all features work without any external service dependencies.
 - **Source:** PRD Section 7 (Infrastructure), techContext.md
+
+### TR-018: Same-Day Dispute/Exception Constraint
+- **Description:** Within a single week, the same day (Mon–Sun) cannot have both a badge dispute AND an exception/PTO submission. An employee can submit a dispute for some days and an exception for other days in the same week, but not both action types on the same day. This must be enforced server-side.
+- **Priority:** Must Have
+- **Acceptance Criteria:**
+  - Given an employee has a pending exception for Tuesday of Week 3, When they attempt to submit a badge dispute also for Tuesday of Week 3, Then the API returns a 400 error explaining that Tuesday already has an exception pending and a dispute cannot be added for the same day.
+  - Given an employee has a pending dispute for Monday of Week 3, When they submit an exception for Wednesday of Week 3, Then the submission succeeds (different days) and the week transitions to Multiple Actions Pending (Orange).
+  - Given an employee has a pending exception for Tuesday, When they attempt to submit a dispute for Tuesday AND Thursday, Then the API rejects the request because Tuesday conflicts, even though Thursday would be valid.
+- **Source:** Design Gap #5 (same-day constraint)
 
 ---
 
@@ -311,14 +340,16 @@
 - **Category:** Code Quality
 - **Source:** Nordstrom Standards Section 5 (Code Standards)
 
-### NFR-017: Data Integrity — Upload Preservation
-- **Description:** Employee-submitted data (exceptions, PTO additions, disputes, manager approvals) must never be lost or overwritten by data uploads. The system must maintain referential integrity between uploaded badge data and application-generated data.
+### NFR-017: Data Integrity — Upload and Resubmission Preservation
+- **Description:** Employee-submitted data (exceptions, PTO additions, disputes, manager approvals) must never be lost or overwritten by data uploads. The system must maintain referential integrity between uploaded badge data and application-generated data. When exceptions or PTO additions are resubmitted after rejection, all prior versions (including rejection records with manager notes) must be preserved for audit trail purposes.
 - **Priority:** Must Have
 - **Acceptance Criteria:**
   - Given Employee A has submitted an exception for Week 3, When a new data upload includes Employee A, Week 3, Then the exception record, explanation text, and approval status are fully preserved.
   - Given a sequence of 5 data uploads, When the database is queried, Then all employee-generated data from every prior period is intact.
+  - Given Employee B had an exception rejected for Week 2 (with rejection note from manager), When Employee B resubmits a new exception for Week 2, Then the original exception, the rejection record (including manager note and timestamp), and the new submission are all preserved and queryable.
+  - Given an audit query for Employee B Week 2, When all versions are retrieved, Then they are returned in chronological order with version numbers, statuses, and timestamps.
 - **Category:** Data Integrity
-- **Source:** PRD Section 5.3.1, Business Rule 10
+- **Source:** PRD Section 5.3.1, Business Rule 10, Design Gap #3 (resubmission audit trail)
 
 ### NFR-018: Accessibility — Basic Web Accessibility
 - **Description:** The web application should follow basic accessibility standards: proper semantic HTML, color-coded statuses supplemented with text labels (not color alone), keyboard navigability for primary workflows, and adequate color contrast.
@@ -336,10 +367,10 @@
 
 | Req ID | Title | Priority | Category | PRD Section |
 |--------|-------|----------|----------|-------------|
-| TR-001 | Employee-Week Compliance Record | Must Have | Technical | 10.1 |
+| TR-001 | Employee-Week Record + Day-Level Tracking | Must Have | Technical | 10.1, Gap #5 |
 | TR-002 | Worker/Org Hierarchy Data Model | Must Have | Technical | 10.2 |
-| TR-003 | Application-Generated Data | Must Have | Technical | 10.3 |
-| TR-004 | Compliance State Machine | Must Have | Technical | 5, Business Rules |
+| TR-003 | Application-Generated Data (Versioned, Day-Level) | Must Have | Technical | 10.3, Gap #3, #4, #5 |
+| TR-004 | 5-State Compliance State Machine | Must Have | Technical | 5, Rules, Gap #3, #4, #5 |
 | TR-005 | Excel Parsing — RTO Badge Data | Must Have | Technical | 5.3, 10.1 |
 | TR-006 | Excel Parsing — Worker/Org Data | Must Have | Technical | 10.2, Business Rules |
 | TR-007 | Upload Append/Upsert Behavior | Must Have | Technical | 5.3.1, Rule 10 |
@@ -349,10 +380,11 @@
 | TR-011 | Self-Approval Prevention | Must Have | Technical | Rule 7, 6 |
 | TR-012 | 5-Week Edit Window | Must Have | Technical | 5.1.3, Rule 9 |
 | TR-013 | RESTful API Design | Must Have | Technical | 5 (all), 6 |
-| TR-014 | Pie Chart Data Computation | Must Have | Technical | 5.1.2, Rule 12 |
+| TR-014 | Pie Chart Data Computation (5-State) | Must Have | Technical | 5.1.2, Rule 12, Gap #5 |
 | TR-015 | Manager Drill-Down Enforcement | Should Have | Technical | 5.2.4, Rule 8 |
 | TR-016 | Upload Processing Results | Must Have | Technical | Workflow 3, 5.3.1 |
 | TR-017 | Local Development Environment | Must Have | Technical | 7, techContext |
+| TR-018 | Same-Day Dispute/Exception Constraint | Must Have | Technical | Gap #5 |
 | NFR-001 | Authentication Security | Must Have | Security | 6 |
 | NFR-002 | Authorization Enforcement | Must Have | Security | 6 |
 | NFR-003 | PII Protection in Logs | Must Have | Security | 6 |
@@ -369,5 +401,5 @@
 | NFR-014 | Concurrent User Support | Should Have | Performance | 6 |
 | NFR-015 | Test Coverage | Must Have | Code Quality | Standards §5 |
 | NFR-016 | Code Quality Standards | Should Have | Code Quality | Standards §5 |
-| NFR-017 | Data Integrity — Upload Preservation | Must Have | Data Integrity | 5.3.1, Rule 10 |
+| NFR-017 | Data Integrity — Upload & Resubmission Preservation | Must Have | Data Integrity | 5.3.1, Rule 10, Gap #3 |
 | NFR-018 | Basic Web Accessibility | Should Have | Accessibility | Best practice |
