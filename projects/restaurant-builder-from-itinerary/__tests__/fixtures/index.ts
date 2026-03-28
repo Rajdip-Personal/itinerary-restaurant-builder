@@ -726,3 +726,92 @@ Day 1 - Paris
 2:00 PM - Notre-Dame Cathedral (1.5 hours)
 4:30 PM - Eiffel Tower (2 hours)
 `;
+
+// ---------------------------------------------------------------------------
+// Phase 5: Resilience — Error Logging, Network, Running Late, Caching Fixtures
+// ---------------------------------------------------------------------------
+
+import type { ErrorLogEntry, ErrorSeverity, NetworkStatus, UrgencyState } from 'types/index';
+
+/** Sample error log entries at various severity levels */
+export const MOCK_ERROR_ENTRIES: ErrorLogEntry[] = [
+  {
+    timestamp: FIXED_TIMESTAMPS.morning,
+    severity: 'fatal',
+    message: 'Database connection lost',
+    context: 'storageService',
+    stack: 'Error: ECONNREFUSED at connect',
+  },
+  {
+    timestamp: FIXED_TIMESTAMPS.morning + 1000,
+    severity: 'error',
+    message: 'API request failed with 500',
+    context: 'aiReviewAnalyzer',
+  },
+  {
+    timestamp: FIXED_TIMESTAMPS.noon,
+    severity: 'warning',
+    message: 'Cache miss for stale entry',
+    context: 'recommendationCache',
+  },
+  {
+    timestamp: FIXED_TIMESTAMPS.noon + 1000,
+    severity: 'info',
+    message: 'Recommendation engine initialized',
+    context: 'recommendationEngine',
+  },
+  {
+    timestamp: FIXED_TIMESTAMPS.evening,
+    severity: 'debug',
+    message: 'Score breakdown: quality=20, auth=15',
+    context: 'recommendationRanker',
+  },
+];
+
+/** Network status: online */
+export const MOCK_NETWORK_ONLINE: NetworkStatus = {
+  isOnline: true,
+  lastChecked: FIXED_TIMESTAMPS.noon,
+  connectionType: 'wifi',
+};
+
+/** Network status: offline */
+export const MOCK_NETWORK_OFFLINE: NetworkStatus = {
+  isOnline: false,
+  lastChecked: FIXED_TIMESTAMPS.noon,
+  connectionType: undefined,
+};
+
+/** Restaurant closing in 20 minutes — for Running Late tests */
+export const CLOSING_SOON_RESTAURANT: EnhancedRestaurant = {
+  ...PARIS_RESTAURANTS[0],
+  id: 'closing-soon-rest',
+  contextScore: 75,
+  scoreBreakdown: { ...baseScoreBreakdown, total: 75 },
+  mealType: 'lunch',
+  routeContext: { ...baseRouteContext },
+  weeklyHours: {
+    monday: [{ open: '12:00', close: '14:30' }],
+    tuesday: [{ open: '12:00', close: '14:30' }],
+    wednesday: [{ open: '12:00', close: '14:30' }],
+    thursday: [{ open: '12:00', close: '14:30' }],
+    friday: [{ open: '12:00', close: '14:30' }],
+    saturday: [{ open: '12:00', close: '14:30' }],
+    sunday: 'closed',
+  },
+};
+
+/** Timeline shifted by 30 minutes — for Running Late delay simulation */
+export const DELAYED_TIMELINE: TimelineEntry[] = SAMPLE_TIMELINE.map((entry) => ({
+  ...entry,
+  arrivalTime: (() => {
+    const [h, m] = entry.arrivalTime.split(':').map(Number);
+    const total = h * 60 + m + 30;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  })(),
+  departureTime: (() => {
+    const [h, m] = entry.departureTime.split(':').map(Number);
+    const total = h * 60 + m + 30;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  })(),
+}));

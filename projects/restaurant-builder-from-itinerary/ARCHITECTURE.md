@@ -14,7 +14,10 @@ restaurant-builder-from-itinerary/
 │   ├── recommendationRanker.ts # Scoring engine (quality, authenticity, convenience, timing, curation)
 │   ├── touristTrapDetector.ts # Tourist trap detection (review patterns, cuisine, price)
 │   ├── routeContextBuilder.ts # Build RouteContext for restaurant-to-itinerary positioning
-│   └── tokenTracker.ts       # AI token usage tracking against budget limits
+│   ├── tokenTracker.ts       # AI token usage tracking against budget limits
+│   ├── errorLogger.ts       # Centralized error logging with 5 severity levels
+│   ├── retryHandler.ts      # Retry, timeout, and fallback utilities
+│   └── performanceMonitor.ts # Operation timing and performance budget tracking
 ├── data/
 │   ├── landmarks/
 │   │   ├── paris.ts          # Paris landmarks (16) + Landmark type + fuzzy matching
@@ -37,7 +40,10 @@ restaurant-builder-from-itinerary/
 │   ├── recommendationCache.ts    # In-memory recommendation cache with TTL + version tracking
 │   ├── aiReviewAnalyzer.ts       # AI-powered restaurant insights via backend proxy
 │   ├── itineraryParser.ts        # Parse itinerary text (AI + local regex fallback)
-│   └── multiCityHandler.ts       # Multi-city itinerary detection and segmentation
+│   ├── multiCityHandler.ts       # Multi-city itinerary detection and segmentation
+│   ├── storageService.ts        # Unified in-memory storage with TTL
+│   ├── networkMonitor.ts        # Network connectivity monitoring
+│   └── runningLateService.ts    # Running Late / GPS re-ranking (zero API cost)
 ├── hooks/                    # Custom hooks (planned)
 ├── __tests__/
 │   ├── fixtures/
@@ -49,7 +55,10 @@ restaurant-builder-from-itinerary/
 │   │   ├── recommendationCache.test.ts   # 12 tests: set/get, TTL, stale, stats
 │   │   ├── aiReviewAnalyzer.test.ts      # 11 tests: analysis, batch, error handling
 │   │   ├── itineraryParser.test.ts       # 17 tests: AI parsing, local fallback, city detection
-│   │   └── multiCityHandler.test.ts      # 11 tests: detection, segmentation, recommendations
+│   │   ├── multiCityHandler.test.ts      # 11 tests: detection, segmentation, recommendations
+│   │   ├── storageService.test.ts       # 14 tests: get/set, TTL, prefix search, stats
+│   │   ├── networkMonitor.test.ts       # 9 tests: connectivity, status change, PRD offline rule
+│   │   └── runningLateService.test.ts   # 17 tests: delay filter, urgency, time warnings, GPS adjust
 │   ├── data/
 │   │   └── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
 │   ├── utils/
@@ -57,7 +66,10 @@ restaurant-builder-from-itinerary/
 │   │   ├── recommendationRanker.test.ts  # 30 tests: sub-scores, full scoring, ranking
 │   │   ├── touristTrapDetector.test.ts   # 13 tests: trap scoring, threshold, warnings
 │   │   ├── routeContextBuilder.test.ts   # 8 tests: position, walk time, route fit
-│   │   └── tokenTracker.test.ts          # 13 tests: tracking, budget, warning, reset
+│   │   ├── tokenTracker.test.ts          # 13 tests: tracking, budget, warning, reset
+│   │   ├── errorLogger.test.ts          # 21 tests: severity routing, FIFO buffer, stats
+│   │   ├── retryHandler.test.ts         # 10 tests: retry, timeout, fallback
+│   │   └── performanceMonitor.test.ts   # 10 tests: timing, budget tracking, stats
 │   └── types.test.ts         # Type compilation smoke tests
 ├── package.json
 ├── tsconfig.json
@@ -132,7 +144,7 @@ Phase 1 (done): Geocoding pipeline (4-tier: landmark → cache → google → ai
 Phase 2 (done): Time calculator + route path generator + corridor search
 Phase 3 (done): Restaurant search + scoring engine + tourist trap detection
 Phase 4 (done): 3-tier recommendation engine + AI review analysis + multi-city
-Phase 5: Caching, error logging, network resilience, GPS
+Phase 5 (done): Error logging, retry/timeout, performance monitoring, storage, network, running late
 Phase 6: Full validation audit
 Phase 7: React/Next.js migration
 ```
@@ -352,6 +364,68 @@ Warning at 75% (1.5M tokens), over budget at 2M tokens.
 - `MOCK_RECOMMENDATION_RESULT` — complete RecommendationResult
 - `MULTI_CITY_ITINERARY_TEXT` — Venice→Rome day text
 - `PARIS_ITINERARY_TEXT` — Paris full day text
+
+## Resilience — Error Logging, Retry, Performance, Storage, Network, GPS (Phase 5)
+
+### Error Logger (`utils/errorLogger.ts`)
+
+Centralized logging with 5 severity levels and FIFO buffer (max 1000 entries).
+
+- `log(severity, message, context?, stack?)` → void — routes to console.error/warn/log
+- `getRecentErrors(count?, severity?)` → `ErrorLogEntry[]` — last N entries, optional filter
+- `clearLog()` → void
+- `getErrorStats()` → `{ total, bySeverity: Record<ErrorSeverity, number> }`
+- Shortcuts: `logFatal()`, `logError()`, `logWarning()`, `logInfo()`, `logDebug()`
+
+### Retry Handler (`utils/retryHandler.ts`)
+
+- `withRetry(fn, options?)` → `Promise<T>` — default 1 retry with 2s delay (PRD spec)
+- `withTimeout(fn, timeoutMs)` → `Promise<T>` — throws on timeout
+- `withFallback(fn, fallback)` → `Promise<T>` — returns fallback on any error
+
+### Performance Monitor (`utils/performanceMonitor.ts`)
+
+- `startTimer(operationName)` → `() => number` — returns stop function yielding elapsed ms
+- `trackOperation(operation, durationMs)` → `{ withinBudget, budget, actual }` — checks against PERFORMANCE_BUDGETS
+- `getPerformanceStats()` → `Record<string, { count, min, max, avg, overBudget }>`
+- `resetPerformanceStats()` → void
+
+### Storage Service (`services/storageService.ts`)
+
+Unified in-memory key-value store with optional TTL.
+
+- `setItem(key, value, ttlMs?)` → void
+- `getItem<T>(key)` → `T | null` — returns null if expired or missing
+- `removeItem(key)` → void
+- `clear()` → void
+- `getStorageStats()` → `{ totalItems, expiredItems }`
+- `findByPrefix<T>(prefix)` → `Map<string, T>` — excludes expired items
+
+### Network Monitor (`services/networkMonitor.ts`)
+
+PRD rule: assume online on detection failure (avoid false offline blocking).
+
+- `checkConnectivity()` → `Promise<boolean>` — pings `GET /health` with 3s timeout
+- `getNetworkStatus()` → `NetworkStatus` — `{ isOnline, lastChecked, connectionType? }`
+- `isOnline()` → boolean
+- `onStatusChange(callback)` → unsubscribe function
+- `resetNetworkMonitor()` → void
+
+### Running Late Service (`services/runningLateService.ts`)
+
+Zero API cost re-ranking for delay and GPS scenarios. Completes within 2s performance budget.
+
+- `recalculateForDelay(restaurants, delayMinutes, currentTime)` → `EnhancedRestaurant[]` — filters closed, adjusts timing scores, re-sorts
+- `calculateUrgency(restaurant, currentTime)` → `UrgencyState` — upcoming/active/closing_soon/closed
+- `getTimeWarning(restaurant, currentTime, mealType)` → `string | undefined` — "Closes in X minutes" or "Opens at HH:MM"
+- `adjustForCurrentLocation(restaurants, currentCoordinates)` → `EnhancedRestaurant[]` — re-scores convenience by GPS distance
+
+### New Fixtures Added (Phase 5)
+
+- `MOCK_ERROR_ENTRIES` — 5 sample ErrorLogEntry at each severity level
+- `MOCK_NETWORK_ONLINE` / `MOCK_NETWORK_OFFLINE` — NetworkStatus fixtures
+- `CLOSING_SOON_RESTAURANT` — EnhancedRestaurant closing at 14:30 (for Running Late tests)
+- `DELAYED_TIMELINE` — SAMPLE_TIMELINE shifted by 30 minutes
 
 ## Design System
 
