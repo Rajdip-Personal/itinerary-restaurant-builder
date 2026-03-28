@@ -10,7 +10,10 @@ restaurant-builder-from-itinerary/
 │   ├── constants.ts          # App-wide constants (scoring, budgets, cities)
 │   ├── distance.ts           # Haversine distance + formatDistance
 │   ├── timeCalculator.ts     # calculateTimeline → TimelineEntry[]
-│   └── routeCorridorSearch.ts # Bounding box + proximity filtering
+│   ├── routeCorridorSearch.ts # Bounding box + proximity filtering
+│   ├── recommendationRanker.ts # Scoring engine (quality, authenticity, convenience, timing, curation)
+│   ├── touristTrapDetector.ts # Tourist trap detection (review patterns, cuisine, price)
+│   └── routeContextBuilder.ts # Build RouteContext for restaurant-to-itinerary positioning
 ├── data/
 │   ├── landmarks/
 │   │   ├── paris.ts          # Paris landmarks (16) + Landmark type + fuzzy matching
@@ -27,18 +30,22 @@ restaurant-builder-from-itinerary/
 │   ├── timeCalculator.ts     # Time parsing, walking time, arrival times
 │   ├── mealBreakInserter.ts  # Insert meal breaks at European meal windows
 │   ├── routeService.ts       # Route calculation (OSRM proxy + Haversine)
-│   └── routePathGenerator.ts # Route path generation (direct OSRM + fallback)
+│   ├── routePathGenerator.ts # Route path generation (direct OSRM + fallback)
+│   └── restaurantSearch.ts   # Search curated data by location + route corridor
 ├── hooks/                    # Custom hooks (planned)
 ├── __tests__/
 │   ├── fixtures/
 │   │   └── index.ts          # Shared test fixtures (itineraries, restaurants, mocks)
-│   ├── scoring/              # Scoring/ranking tests (planned)
 │   ├── services/
-│   │   └── geocodingService.test.ts  # 23 tests: 4-tier pipeline, batch, edge cases
+│   │   ├── geocodingService.test.ts  # 23 tests: 4-tier pipeline, batch, edge cases
+│   │   └── restaurantSearch.test.ts  # 15 tests: nearby search, route search, filters
 │   ├── data/
 │   │   └── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
 │   ├── utils/
-│   │   └── constants.test.ts # Constants verification tests
+│   │   ├── constants.test.ts # Constants verification tests
+│   │   ├── recommendationRanker.test.ts  # 25 tests: sub-scores, full scoring, ranking
+│   │   ├── touristTrapDetector.test.ts   # 13 tests: trap scoring, threshold, warnings
+│   │   └── routeContextBuilder.test.ts   # 8 tests: position, walk time, route fit
 │   └── types.test.ts         # Type compilation smoke tests
 ├── package.json
 ├── tsconfig.json
@@ -111,7 +118,7 @@ RecommendationResult
 Phase 0 (done): types + constants + fixtures + test infra
 Phase 1 (done): Geocoding pipeline (4-tier: landmark → cache → google → ai)
 Phase 2 (done): Time calculator + route path generator + corridor search
-Phase 3: Restaurant search + scoring engine + tourist trap detection
+Phase 3 (done): Restaurant search + scoring engine + tourist trap detection
 Phase 4: 3-tier recommendation engine + AI review analysis + multi-city
 Phase 5: Caching, error logging, network resilience, GPS
 Phase 6: Full validation audit
@@ -209,6 +216,59 @@ Phase 7: React/Next.js migration
 
 - `TimelineEntry` — arrival/departure times, transit info, travel mode
 - `BoundingBox` — north/south/east/west geographic bounds
+
+## Restaurant Search + Scoring + Tourist Trap Detection (Phase 3)
+
+### Restaurant Search (`services/restaurantSearch.ts`)
+
+- `searchNearbyRestaurants(coordinates, cityId, radius?, mealType?)` → `Restaurant[]`
+  - Loads curated data for city (paris/rome/venice)
+  - Filters by radius (default 5000m), minimum rating (4.2)
+  - Limits to 20 results, sorted by distance ascending
+- `searchAlongRoute(routePoints, cityId, bufferMeters?, mealType?)` → `Restaurant[]`
+  - Uses `filterByRouteProximity` from routeCorridorSearch
+  - Default buffer: 400m
+
+### Scoring Engine (`utils/recommendationRanker.ts`)
+
+| Sub-Score | Max | Formula |
+|-----------|-----|---------|
+| Quality | 25 | `(rating/5)*20 + min(reviewCount/500,1)*5` |
+| Authenticity | 20 | Type bonus (local +10, generic +3) + price bonus + cuisine bonus |
+| Convenience | 43 | `max(0, 43 - distance/100)` + hotel bonus (+5 if ≤500m) |
+| Timing | 15 | Open bonus + reservation ease + off-peak bonus |
+| Curation | 5 | In curated list (+3) + famous dishes (+1) + rich safe dishes (+1) |
+| Progression | -15 to +5 | New cuisine +5, exact repeat -15, similar -5 |
+
+- `scoreRestaurant(restaurant, context)` → `ScoreBreakdown`
+- `rankRestaurants(restaurants, context)` → `EnhancedRestaurant[]` (sorted desc)
+- `SCORING_VERSION` exported (always imported from constants, current: 7)
+
+### Tourist Trap Detector (`utils/touristTrapDetector.ts`)
+
+- `calculateTouristTrapScore(restaurant)` → 0-100
+  - High reviews + low rating: +30 (>1000 reviews & <4.0 rating)
+  - Generic cuisine only: +10
+  - High price + no local type: +20
+  - No famous dishes: +15
+  - Minimal safe dishes: +10
+- `isTouristTrap(score)` → boolean (threshold: 70)
+- `getTouristTrapWarning(score)` → warning string or undefined
+
+### Route Context Builder (`utils/routeContextBuilder.ts`)
+
+- `buildRouteContext(restaurant, attractions, timeline)` → `RouteContext`
+  - Finds nearest attraction by Haversine distance
+  - Position: first attraction → 'before', last → 'after', middle → 'between'
+  - Walk time from walking speed (1.4 m/s ≈ 5 km/h)
+  - Route fit string: "{N} min walk from/toward {attraction}"
+
+### New Fixtures Added
+
+- `TOURIST_TRAP_RESTAURANT` — high reviews, mediocre rating, generic cuisine, no famous dishes
+- `AUTHENTIC_RESTAURANT` — osteria type, good rating, local cuisine, weekly hours
+- `SCORING_CONTEXT` — reusable context with Colosseum target, hotel, lunch meal type
+- `SAMPLE_TIMELINE` — 3-entry timeline for Paris (Louvre → Notre-Dame → Eiffel Tower)
 
 ## Design System
 

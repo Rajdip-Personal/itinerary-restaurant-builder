@@ -568,3 +568,95 @@ export const PARIS_DINNER_BREAK: MealBreak = {
   nearAttraction: 'Eiffel Tower',
   nearCoordinates: PARIS_COORDS.eiffelTower,
 };
+
+// ---------------------------------------------------------------------------
+// Phase 3: Tourist Trap & Scoring Fixtures
+// ---------------------------------------------------------------------------
+
+import type { TimelineEntry, MealType } from 'types/index';
+
+/** Restaurant with tourist-trap-like attributes: high reviews, mediocre rating, generic cuisine, high price, no famous dishes */
+export const TOURIST_TRAP_RESTAURANT: Restaurant = {
+  id: 'trap-rest-1',
+  name: 'Ristorante Bella Vista',
+  address: 'Piazza Navona 12, Roma',
+  cityId: 'rome',
+  coordinates: { latitude: 41.8992, longitude: 12.4731 },
+  rating: 3.5,
+  reviewCount: 2500,
+  priceLevel: 3,
+  cuisineTypes: ['italian', 'pizza'],
+  isOpenNow: true,
+  famousFor: [],
+  safeDishes: { vegetarian: ['margherita'], vegan: [] },
+  type: 'restaurant',
+};
+
+/** Clearly authentic local restaurant: local type, good rating, moderate reviews, local cuisine, famous dishes */
+export const AUTHENTIC_RESTAURANT: Restaurant = {
+  id: 'auth-rest-1',
+  name: 'Osteria del Nonno',
+  address: 'Vicolo del Bologna 8, Roma',
+  cityId: 'rome',
+  coordinates: { latitude: 41.8910, longitude: 12.4780 },
+  rating: 4.7,
+  reviewCount: 350,
+  priceLevel: 2,
+  cuisineTypes: ['roman', 'trattoria'],
+  isOpenNow: true,
+  famousFor: ['cacio e pepe', 'supplì al telefono'],
+  safeDishes: {
+    vegetarian: ['cacio e pepe', 'fried artichokes'],
+    vegan: ['bruschetta'],
+  },
+  weeklyHours: {
+    monday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    tuesday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    wednesday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    thursday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    friday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    saturday: [{ open: '12:00', close: '15:00' }, { open: '19:00', close: '23:00' }],
+    sunday: 'closed',
+  },
+  reservationRequired: 'recommended',
+  reservationLeadDays: 1,
+  type: 'osteria',
+};
+
+/** Reusable scoring context for recommendation ranker tests */
+export const SCORING_CONTEXT = {
+  targetCoordinates: ROME_COORDS.colosseum,
+  hotelCoordinates: ROME_COORDS.hotel,
+  mealType: 'lunch' as MealType,
+  currentTime: '12:30',
+  previousCuisines: [] as string[],
+};
+
+/** Sample timeline for route context builder tests */
+export const SAMPLE_TIMELINE: TimelineEntry[] = [
+  {
+    attractionId: 'paris-attr-1',
+    attractionName: 'Louvre Museum',
+    arrivalTime: '09:00',
+    departureTime: '12:00',
+    durationMinutes: 180,
+    transitToNextMinutes: 15,
+    distanceToNextMeters: 1200,
+  },
+  {
+    attractionId: 'paris-attr-2',
+    attractionName: 'Notre-Dame Cathedral',
+    arrivalTime: '14:00',
+    departureTime: '15:30',
+    durationMinutes: 90,
+    transitToNextMinutes: 25,
+    distanceToNextMeters: 4000,
+  },
+  {
+    attractionId: 'paris-attr-3',
+    attractionName: 'Eiffel Tower',
+    arrivalTime: '16:30',
+    departureTime: '18:30',
+    durationMinutes: 120,
+  },
+];
