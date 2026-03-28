@@ -13,7 +13,8 @@ restaurant-builder-from-itinerary/
 │   ├── routeCorridorSearch.ts # Bounding box + proximity filtering
 │   ├── recommendationRanker.ts # Scoring engine (quality, authenticity, convenience, timing, curation)
 │   ├── touristTrapDetector.ts # Tourist trap detection (review patterns, cuisine, price)
-│   └── routeContextBuilder.ts # Build RouteContext for restaurant-to-itinerary positioning
+│   ├── routeContextBuilder.ts # Build RouteContext for restaurant-to-itinerary positioning
+│   └── tokenTracker.ts       # AI token usage tracking against budget limits
 ├── data/
 │   ├── landmarks/
 │   │   ├── paris.ts          # Paris landmarks (16) + Landmark type + fuzzy matching
@@ -31,21 +32,32 @@ restaurant-builder-from-itinerary/
 │   ├── mealBreakInserter.ts  # Insert meal breaks at European meal windows
 │   ├── routeService.ts       # Route calculation (OSRM proxy + Haversine)
 │   ├── routePathGenerator.ts # Route path generation (direct OSRM + fallback)
-│   └── restaurantSearch.ts   # Search curated data by location + route corridor
+│   ├── restaurantSearch.ts   # Search curated data by location + route corridor
+│   ├── recommendationEngine.ts   # 3-tier recommendation engine (manual→cache→AI)
+│   ├── recommendationCache.ts    # In-memory recommendation cache with TTL + version tracking
+│   ├── aiReviewAnalyzer.ts       # AI-powered restaurant insights via backend proxy
+│   ├── itineraryParser.ts        # Parse itinerary text (AI + local regex fallback)
+│   └── multiCityHandler.ts       # Multi-city itinerary detection and segmentation
 ├── hooks/                    # Custom hooks (planned)
 ├── __tests__/
 │   ├── fixtures/
 │   │   └── index.ts          # Shared test fixtures (itineraries, restaurants, mocks)
 │   ├── services/
-│   │   ├── geocodingService.test.ts  # 23 tests: 4-tier pipeline, batch, edge cases
-│   │   └── restaurantSearch.test.ts  # 15 tests: nearby search, route search, filters
+│   │   ├── geocodingService.test.ts      # 23 tests: 4-tier pipeline, batch, edge cases
+│   │   ├── restaurantSearch.test.ts      # 15 tests: nearby search, route search, filters
+│   │   ├── recommendationEngine.test.ts  # 22 tests: 3-tier fallback, manual/cache/AI
+│   │   ├── recommendationCache.test.ts   # 12 tests: set/get, TTL, stale, stats
+│   │   ├── aiReviewAnalyzer.test.ts      # 11 tests: analysis, batch, error handling
+│   │   ├── itineraryParser.test.ts       # 17 tests: AI parsing, local fallback, city detection
+│   │   └── multiCityHandler.test.ts      # 11 tests: detection, segmentation, recommendations
 │   ├── data/
 │   │   └── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
 │   ├── utils/
-│   │   ├── constants.test.ts # Constants verification tests
-│   │   ├── recommendationRanker.test.ts  # 25 tests: sub-scores, full scoring, ranking
+│   │   ├── constants.test.ts             # Constants verification tests
+│   │   ├── recommendationRanker.test.ts  # 30 tests: sub-scores, full scoring, ranking
 │   │   ├── touristTrapDetector.test.ts   # 13 tests: trap scoring, threshold, warnings
-│   │   └── routeContextBuilder.test.ts   # 8 tests: position, walk time, route fit
+│   │   ├── routeContextBuilder.test.ts   # 8 tests: position, walk time, route fit
+│   │   └── tokenTracker.test.ts          # 13 tests: tracking, budget, warning, reset
 │   └── types.test.ts         # Type compilation smoke tests
 ├── package.json
 ├── tsconfig.json
@@ -119,7 +131,7 @@ Phase 0 (done): types + constants + fixtures + test infra
 Phase 1 (done): Geocoding pipeline (4-tier: landmark → cache → google → ai)
 Phase 2 (done): Time calculator + route path generator + corridor search
 Phase 3 (done): Restaurant search + scoring engine + tourist trap detection
-Phase 4: 3-tier recommendation engine + AI review analysis + multi-city
+Phase 4 (done): 3-tier recommendation engine + AI review analysis + multi-city
 Phase 5: Caching, error logging, network resilience, GPS
 Phase 6: Full validation audit
 Phase 7: React/Next.js migration
@@ -277,6 +289,69 @@ Uses landmark proximity, price-rating penalty, and quality bonus (from CultureGu
 - `AUTHENTIC_RESTAURANT` — osteria type, good rating, local cuisine, weekly hours
 - `SCORING_CONTEXT` — reusable context with Colosseum target, hotel, lunch meal type
 - `SAMPLE_TIMELINE` — 3-entry timeline for Paris (Louvre → Notre-Dame → Eiffel Tower)
+
+## 3-Tier Recommendation Engine + AI Reviews + Multi-City (Phase 4)
+
+### Recommendation Engine (`services/recommendationEngine.ts`)
+
+3-tier fallback chain: manual curation → cache → AI → stale cache → empty (never crash)
+
+- `getRecommendations(params)` → `Promise<RecommendationResult>` — orchestrates the full chain
+- `getManualRecommendations(params)` → `RecommendationResult | null` — Tier 1: curated data + scoring + tourist trap filter
+- `getCachedRecommendations(cacheKey)` → `RecommendationResult | null` — Tier 2: in-memory cache
+- `generateAIRecommendations(params)` → `Promise<RecommendationResult | null>` — Tier 3: backend proxy AI
+
+**RecommendationParams:**
+`{ cityId, coordinates, mealType, routePoints?, hotelCoordinates?, previousCuisines?, forceRefresh? }`
+
+### Recommendation Cache (`services/recommendationCache.ts`)
+
+In-memory cache with TTL and scoring version tracking.
+
+- `buildRecommendationCacheKey(cityId, mealType, lat, lon)` → string (coordinates rounded to 4 decimals)
+- `getCachedRecommendation(key)` → `RecommendationResult | null` (checks TTL and SCORING_VERSION)
+- `setCachedRecommendation(key, result)` → void
+- `getStaleRecommendation(key)` → `RecommendationResult | null` (returns expired entries as fallback, source: 'stale_cache')
+- `clearRecommendationCache()` → void
+- `getCacheStats()` → `{ total, fresh, stale, hitRate }`
+
+TTL: `CACHE_TTLS.ai` (7 days) for AI source, `CACHE_TTLS.lowQuality` (24h) for other sources.
+
+### AI Review Analyzer (`services/aiReviewAnalyzer.ts`)
+
+- `analyzeRestaurant(restaurant)` → `Promise<RestaurantInsights | null>` — calls `POST /api/ai/analyze-review`
+- `generateInsights(restaurants)` → `Promise<Map<string, RestaurantInsights>>` — sequential batch analysis
+- `buildAnalysisPrompt(restaurant)` → string — constructs prompt with name, cuisine, rating, dishes
+
+### Itinerary Parser (`services/itineraryParser.ts`)
+
+- `parseItinerary(text, cityName?)` → `Promise<DailyItinerary>` — AI parsing via `POST /api/ai/parse-itinerary` with local fallback
+- `parseItineraryLocal(text)` → `DailyItinerary` — regex-based parsing (times, durations, attractions)
+- `detectCity(text)` → string — case-insensitive city detection from SUPPORTED_CITIES
+
+### Multi-City Handler (`services/multiCityHandler.ts`)
+
+- `detectMultiCity(itinerary)` → boolean — checks segments or mixed cityId values
+- `splitIntoSegments(itinerary)` → `ItinerarySegment[]` — groups by city, maintains order
+- `getRecommendationsForDay(itinerary, routePoints?, hotelLocation?)` → `Promise<Map<MealType, RecommendationResult>>` — per-meal recommendations for single or multi-city days
+
+### Token Tracker (`utils/tokenTracker.ts`)
+
+- `trackTokenUsage(usage)` → void — accumulates toward TOKEN_BUDGET.limit (2M tokens)
+- `getTokenUsage()` → `{ total, remaining, percentUsed, isWarning, isOverBudget }`
+- `resetTokenUsage()` → void
+- `canAffordRequest(estimatedTokens)` → boolean
+
+Warning at 75% (1.5M tokens), over budget at 2M tokens.
+
+### New Fixtures Added (Phase 4)
+
+- `MOCK_TOKEN_USAGE` — sample TokenUsage response
+- `MOCK_AI_INSIGHTS_RESPONSE` — sample RestaurantInsights
+- `MOCK_AI_PARSE_RESPONSE` — sample parsed itinerary with usage
+- `MOCK_RECOMMENDATION_RESULT` — complete RecommendationResult
+- `MULTI_CITY_ITINERARY_TEXT` — Venice→Rome day text
+- `PARIS_ITINERARY_TEXT` — Paris full day text
 
 ## Design System
 
