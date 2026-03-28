@@ -1,0 +1,224 @@
+# ARCHITECTURE.md — CultureGuide Restaurant Builder
+
+## Project Structure
+
+```
+restaurant-builder-from-itinerary/
+├── types/
+│   └── index.ts              # All TypeScript interfaces and type aliases
+├── utils/
+│   ├── constants.ts          # App-wide constants (scoring, budgets, cities)
+│   ├── distance.ts           # Haversine distance + formatDistance
+│   ├── timeCalculator.ts     # calculateTimeline → TimelineEntry[]
+│   └── routeCorridorSearch.ts # Bounding box + proximity filtering
+├── data/
+│   ├── landmarks/
+│   │   ├── paris.ts          # Paris landmarks (16) + Landmark type + fuzzy matching
+│   │   ├── rome.ts           # Rome landmarks (14)
+│   │   └── venice.ts         # Venice landmarks (13)
+│   └── restaurants/
+│       ├── paris.ts          # Curated Paris restaurants (43)
+│       ├── rome.ts           # Curated Rome restaurants (40)
+│       └── venice.ts         # Curated Venice restaurants (15)
+├── services/
+│   ├── geocodingService.ts   # 4-tier geocoding pipeline (landmark→cache→google→ai)
+│   ├── geocodingCache.ts     # In-memory geocoding cache with 30-day TTL
+│   ├── googleGeocodingService.ts  # Google Geocoding API via backend proxy
+│   ├── timeCalculator.ts     # Time parsing, walking time, arrival times
+│   ├── mealBreakInserter.ts  # Insert meal breaks at European meal windows
+│   ├── routeService.ts       # Route calculation (OSRM proxy + Haversine)
+│   └── routePathGenerator.ts # Route path generation (direct OSRM + fallback)
+├── hooks/                    # Custom hooks (planned)
+├── __tests__/
+│   ├── fixtures/
+│   │   └── index.ts          # Shared test fixtures (itineraries, restaurants, mocks)
+│   ├── scoring/              # Scoring/ranking tests (planned)
+│   ├── services/
+│   │   └── geocodingService.test.ts  # 23 tests: 4-tier pipeline, batch, edge cases
+│   ├── data/
+│   │   └── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
+│   ├── utils/
+│   │   └── constants.test.ts # Constants verification tests
+│   └── types.test.ts         # Type compilation smoke tests
+├── package.json
+├── tsconfig.json
+├── jest.config.js
+├── CLAUDE.md                 # Project rules and conventions
+├── ARCHITECTURE.md           # This file
+└── prd.md                    # Product Requirements Document
+```
+
+## Type Hierarchy
+
+```
+Coordinates ─────────────┐
+                         ├──▶ HotelLocation
+                         ├──▶ ItineraryAttraction
+                         ├──▶ Restaurant
+                         ├──▶ GeocodedLocation
+                         ├──▶ RoutePoint
+                         └──▶ MealBreak
+
+Restaurant ──────────────┐
+  + RestaurantInsights    │
+  + ScoreBreakdown        ├──▶ EnhancedRestaurant
+  + RouteContext          │
+  + ReservationUrgency    │
+  + MealType              │
+  + UrgencyState         ─┘
+
+DailyItinerary
+  ├── ItineraryAttraction[]
+  ├── ItinerarySegment[]  (multi-city)
+  └── HotelLocation?
+
+RouteSegment
+  ├── from/to: string
+  ├── distance/duration
+  └── geometry: RoutePoint[]
+
+RecommendationResult
+  ├── EnhancedRestaurant[]
+  ├── source: RecommendationSource
+  └── mealType: MealType
+```
+
+## Constants Reference
+
+| Constant | Value | Source |
+|----------|-------|--------|
+| SCORING_VERSION | 7 | `utils/constants.ts` |
+| MAX_SCORE | 110 | `utils/constants.ts` |
+| SCORE_WEIGHTS | quality:25, authenticity:20, convenience:43, timing:15, curation:5 | `utils/constants.ts` |
+| MEAL_TIME_WINDOWS | breakfast 07:00-10:30, lunch 12:00-14:30, dinner 19:00-22:00 | `utils/constants.ts` |
+| TOURIST_TRAP_THRESHOLD | 70 | `utils/constants.ts` |
+| TOKEN_BUDGET | limit:2M, warning:1.5M, reset:30d | `utils/constants.ts` |
+| SUPPORTED_CITIES | paris, rome, venice | `utils/constants.ts` |
+| CITY_RESTAURANT_COUNTS | paris:43, rome:40, venice:15 | `utils/constants.ts` |
+
+## Testing Strategy
+
+- **TDD**: Write failing tests first, then implement
+- **Fixtures**: All test data in `__tests__/fixtures/index.ts` — never inline
+- **No real APIs**: Google Places, OpenAI, OSRM all mocked in tests
+- **No `new Date()`**: Use `FIXED_TIMESTAMPS` for determinism
+- **Jest + ts-jest**: TypeScript tests with path aliases via `moduleNameMapper`
+- **Coverage**: Collected from `services/`, `utils/`, `hooks/` (excluding `.d.ts`)
+
+## Module Dependency Plan
+
+```
+Phase 0 (done): types + constants + fixtures + test infra
+Phase 1 (done): Geocoding pipeline (4-tier: landmark → cache → google → ai)
+Phase 2 (done): Time calculator + route path generator + corridor search
+Phase 3: Restaurant search + scoring engine + tourist trap detection
+Phase 4: 3-tier recommendation engine + AI review analysis + multi-city
+Phase 5: Caching, error logging, network resilience, GPS
+Phase 6: Full validation audit
+Phase 7: React/Next.js migration
+```
+
+## Geocoding Pipeline (Phase 1)
+
+### 4-Tier Strategy
+
+| Tier | Source | File | Confidence | Cost |
+|------|--------|------|------------|------|
+| 1 | Local landmark DB | `data/landmarks/{city}.ts` | 1.0 | $0 |
+| 2 | In-memory cache (30-day TTL) | `services/geocodingCache.ts` | 0.9 | $0 |
+| 3 | Google Geocoding API | `services/googleGeocodingService.ts` | 0.8 | $0.005 |
+| 4 | AI Geocoding (DISABLED) | — | 0.6 | — |
+
+### Landmark Data
+
+| City | Count | Key Landmarks |
+|------|-------|--------------|
+| Paris | 16 | Eiffel Tower, Louvre, Notre-Dame, Arc de Triomphe, Sacré-Cœur, Versailles, Musée d'Orsay |
+| Rome | 14 | Colosseum, Vatican Museums, Trevi Fountain, Pantheon, Spanish Steps, Roman Forum |
+| Venice | 13 | St. Mark's Square, Rialto Bridge, Doge's Palace, Grand Canal, Murano, Burano |
+
+### Matching Strategy
+
+1. **Exact name match** (case-insensitive)
+2. **Alias match** (case-insensitive) — each landmark has alternate names
+3. **Fuzzy match** — containment-based similarity with 0.8 threshold
+
+### Key Functions
+
+- `geocodeAttraction(name, cityId)` → `GeocodedLocation | null`
+- `geocodeAttractions(attractions[], cityId)` → `(GeocodedLocation | null)[]`
+- Attractions with pre-existing coordinates are passed through as `source: 'pre_existing'`
+- Empty/whitespace names return null immediately
+
+## Time Calculation & Route Generation (Phase 2)
+
+### Distance Utilities (`utils/distance.ts`)
+
+- `calculateDistance(from, to)` → meters (Haversine formula)
+- `formatDistance(meters)` → `"350 m"` or `"1.5 km"`
+
+### Timeline Calculator (`utils/timeCalculator.ts`)
+
+- `calculateTimeline(attractions[])` → `TimelineEntry[]`
+- Each entry: arrivalTime, departureTime, transitToNextMinutes, distanceToNextMeters, travelMode
+- Walking speed: 5 km/h (~83 m/min)
+- Walking threshold: ≤15 min walk → walking mode; >15 min → transit mode (20 min base + 5 min/km)
+- Default transit: 10 min when coordinates missing
+
+### Time Calculator Service (`services/timeCalculator.ts`)
+
+- `haversineDistance(a, b)` → meters
+- `walkingTime(distance, speed?)` → minutes
+- `parseTimeToMinutes(timeStr)` → minutes since midnight (supports "9:00 AM", "14:30")
+- `minutesToTimeString(minutes)` → "HH:MM"
+- `addMinutesToTime(time, minutes)` → "HH:MM"
+- `calculateArrivalTimes(attractions)` → updated ItineraryAttraction[] with sequential times
+
+### Meal Break Inserter (`services/mealBreakInserter.ts`)
+
+- `insertMealBreaks(entries, cityId?)` → `MealBreak[]`
+- Accepts both `TimelineEntry[]` and `ItineraryAttraction[]` (legacy)
+- European meal windows: breakfast 07:00-10:30, lunch 12:00-14:30, dinner 19:00-22:00
+- Breakfast: placed before first attraction if gap exists
+- Lunch: placed at gap nearest to lunch window
+- Dinner: placed after last attraction
+
+### Route Path Generator (`services/routePathGenerator.ts`)
+
+- `generateRoutePath(locations[])` → `Promise<RoutePoint[]>`
+- `generateStraightLineFallback(locations[])` → `RoutePoint[]`
+- Primary: OSRM public API (`router.project-osrm.org/route/v1/walking/`)
+- Fallback: straight-line interpolation every ~300m
+- 5-second OSRM timeout, max 10 transit points per segment
+
+### Route Service (`services/routeService.ts`)
+
+- `calculateRoute(fromName, fromCoords, toName, toCoords)` → `RouteSegment | null`
+- `calculateRoutes(points[])` → `RouteSegment[]`
+- OSRM via backend proxy with Haversine fallback
+- In-memory cache with 30-day TTL
+
+### Route Corridor Search (`utils/routeCorridorSearch.ts`)
+
+- `calculateRouteBoundingBox(routePoints, paddingMeters)` → `BoundingBox`
+- `filterByRouteProximity(candidates, routePoints, maxDistanceMeters)` → `Coordinates[]`
+- Perpendicular distance to route segments
+- Empty route returns empty bounding box / empty filtered results
+
+### New Types Added
+
+- `TimelineEntry` — arrival/departure times, transit info, travel mode
+- `BoundingBox` — north/south/east/west geographic bounds
+
+## Design System
+
+| Token | Value |
+|-------|-------|
+| Font (display) | Cormorant Garamond |
+| Font (body) | Outfit |
+| --charcoal | #1a1a2e |
+| --terracotta | #c4704b |
+| --ochre | #d4a574 |
+| --cream | #f5f0eb |
+| --sage | #8a9a7b |
+| Aesthetic | Editorial luxury travel magazine |
