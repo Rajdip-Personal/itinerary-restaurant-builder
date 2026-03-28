@@ -231,27 +231,35 @@ Phase 7: React/Next.js migration
 
 ### Scoring Engine (`utils/recommendationRanker.ts`)
 
+Based on CultureGuideWeb reference formulas:
+
 | Sub-Score | Max | Formula |
 |-----------|-----|---------|
-| Quality | 25 | `(rating/5)*20 + min(reviewCount/500,1)*5` |
-| Authenticity | 20 | Type bonus (local +10, generic +3) + price bonus + cuisine bonus |
-| Convenience | 43 | `max(0, 43 - distance/100)` + hotel bonus (+5 if ≤500m) |
-| Timing | 15 | Open bonus + reservation ease + off-peak bonus |
+| Quality | 25 | `(rating/5)*12.5 + min(12.5, log10(reviewCount+1)*4.166)` |
+| Authenticity | 20 | `(100 - touristTrapScore) / 5` — depends on tourist trap detection |
+| Convenience | 43 | Distance tiers: <100m→43, 100-200m→38, 200-400m→32, 400-600m→21, 600-800m→10, **>800m→null (HARD EXCLUSION)** |
+| Timing | 15 | Open now: +10, Meal type match: +5 (bakery→breakfast, trattoria→lunch/dinner, gelateria→snack) |
 | Curation | 5 | In curated list (+3) + famous dishes (+1) + rich safe dishes (+1) |
-| Progression | -15 to +5 | New cuisine +5, exact repeat -15, similar -5 |
+| Progression | -15 to +5 | Route progress (breakfast start +5, lunch mid +5, dinner end +5) + cuisine variety (exact repeat -15, similar -5) |
 
-- `scoreRestaurant(restaurant, context)` → `ScoreBreakdown`
-- `rankRestaurants(restaurants, context)` → `EnhancedRestaurant[]` (sorted desc)
+- Hotel bonus: +5 if within 500m (separate from progression, capped at 43 total convenience)
+- `scoreRestaurant(restaurant, context)` → `ScoreBreakdown | null` (null = excluded)
+- `rankRestaurants(restaurants, context)` → `EnhancedRestaurant[]` (sorted desc, >800m excluded)
 - `SCORING_VERSION` exported (always imported from constants, current: 7)
 
 ### Tourist Trap Detector (`utils/touristTrapDetector.ts`)
 
-- `calculateTouristTrapScore(restaurant)` → 0-100
-  - High reviews + low rating: +30 (>1000 reviews & <4.0 rating)
-  - Generic cuisine only: +10
-  - High price + no local type: +20
-  - No famous dishes: +15
-  - Minimal safe dishes: +10
+Uses landmark proximity, price-rating penalty, and quality bonus (from CultureGuideWeb reference):
+
+- `calculateLandmarkProximityScore(coordinates, cityId)` → 0-40
+  - Uses landmarks from `data/landmarks/{city}.ts`
+  - Distance tiers: 0-50m→40, 50-100m→30, 100-200m→20, 200-500m→10, 500m+→0
+- `calculatePriceRatingPenalty(restaurant, landmarkScore)` → 0-35
+  - Only applies near landmarks (landmarkScore > 0)
+  - €€€€ + rating<4.0: 35, €€€€ + rating<4.3: 30, €€€ + rating<4.0: 30, etc.
+- `calculateQualityBonus(restaurant)` → -40 to 0
+  - 4.6★ + 1000+ reviews: -40, 4.5★ + 500+: -30, 4.4★ + 200+: -20, 4.3★ + 100+: -10
+- `calculateTouristTrapScore(restaurant)` → 0-100 (landmark + penalty + bonus)
 - `isTouristTrap(score)` → boolean (threshold: 70)
 - `getTouristTrapWarning(score)` → warning string or undefined
 

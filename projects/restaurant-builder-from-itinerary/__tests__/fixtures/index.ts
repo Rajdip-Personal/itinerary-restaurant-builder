@@ -573,7 +573,7 @@ export const PARIS_DINNER_BREAK: MealBreak = {
 // Phase 3: Tourist Trap & Scoring Fixtures
 // ---------------------------------------------------------------------------
 
-import type { TimelineEntry, MealType } from 'types/index';
+import type { TimelineEntry, MealType, RecommendationResult, RestaurantInsights, RecommendationSource } from 'types/index';
 
 /** Restaurant with tourist-trap-like attributes: high reviews, mediocre rating, generic cuisine, high price, no famous dishes */
 export const TOURIST_TRAP_RESTAURANT: Restaurant = {
@@ -660,3 +660,69 @@ export const SAMPLE_TIMELINE: TimelineEntry[] = [
     durationMinutes: 120,
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Phase 4: Recommendation Engine, AI Insights, Parser, Multi-City Fixtures
+// ---------------------------------------------------------------------------
+
+/** Mock token usage response from backend proxy */
+export const MOCK_TOKEN_USAGE: TokenUsage = {
+  promptTokens: 245,
+  completionTokens: 380,
+  totalTokens: 625,
+  estimatedCost: 0.0004,
+};
+
+/** Mock AI insights response for a restaurant */
+export const MOCK_AI_INSIGHTS_RESPONSE: RestaurantInsights = {
+  summary: 'Classic Parisian bistro with excellent steak tartare and warm atmosphere',
+  atmosphere: 'Cozy neighborhood bistro with sidewalk seating and checkered tablecloths',
+  bestDishes: ['steak tartare', 'croque monsieur', 'onion soup'],
+  localTip: 'Go before 12:30 to avoid the lunch queue — locals arrive early',
+  touristTrapScore: 15,
+};
+
+/** Mock AI parse response — structured itinerary from backend proxy */
+export const MOCK_AI_PARSE_RESPONSE = {
+  parsed: {
+    id: 'paris-2025-04-15',
+    date: '2025-04-15',
+    cityId: 'paris',
+    attractions: PARIS_ATTRACTIONS.filter((a) => !a.isPlaceholder),
+    hotelLocation: PARIS_HOTEL,
+    createdAt: FIXED_TIMESTAMPS.created,
+    updatedAt: FIXED_TIMESTAMPS.updated,
+  } satisfies DailyItinerary,
+  usage: MOCK_TOKEN_USAGE,
+};
+
+/** Complete mock RecommendationResult */
+export const MOCK_RECOMMENDATION_RESULT: RecommendationResult = {
+  restaurants: [ENHANCED_PARIS_RESTAURANT],
+  source: 'manual' as RecommendationSource,
+  mealType: 'lunch',
+  generatedAt: FIXED_TIMESTAMPS.noon,
+  cityId: 'paris',
+};
+
+/** Multi-city itinerary text: Venice morning → Rome evening */
+export const MULTI_CITY_ITINERARY_TEXT = `
+Day 1 - Venice to Rome
+
+8:00 AM - Dorsoduro Walk in Venice
+10:30 AM - Accademia Bridge in Venice
+12:00 PM - Train to Rome
+3:00 PM - Trevi Fountain in Rome
+4:00 PM - Pantheon in Rome
+7:30 PM - Dinner in Rome
+`;
+
+/** Single-city itinerary text: Paris full day */
+export const PARIS_ITINERARY_TEXT = `
+Day 1 - Paris
+
+9:00 AM - Louvre Museum (3 hours)
+12:30 PM - Lunch break
+2:00 PM - Notre-Dame Cathedral (1.5 hours)
+4:30 PM - Eiffel Tower (2 hours)
+`;
