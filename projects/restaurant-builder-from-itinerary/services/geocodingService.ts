@@ -108,7 +108,7 @@ export async function geocodeAttractions(
       results.push({
         name: attraction.name,
         coordinates: attraction.coordinates,
-        source: 'pre_existing' as GeocodedLocation['source'],
+        source: 'pre_existing',
         confidence: 1.0,
       });
       continue;

@@ -17,7 +17,8 @@ restaurant-builder-from-itinerary/
 │   ├── tokenTracker.ts       # AI token usage tracking against budget limits
 │   ├── errorLogger.ts       # Centralized error logging with 5 severity levels
 │   ├── retryHandler.ts      # Retry, timeout, and fallback utilities
-│   └── performanceMonitor.ts # Operation timing and performance budget tracking
+│   ├── performanceMonitor.ts # Operation timing and performance budget tracking
+│   └── hoursChecker.ts      # isRestaurantOpen — check WeeklyHours against current date/time
 ├── data/
 │   ├── landmarks/
 │   │   ├── paris.ts          # Paris landmarks (16) + Landmark type + fuzzy matching
@@ -60,7 +61,11 @@ restaurant-builder-from-itinerary/
 │   │   ├── networkMonitor.test.ts       # 9 tests: connectivity, status change, PRD offline rule
 │   │   └── runningLateService.test.ts   # 17 tests: delay filter, urgency, time warnings, GPS adjust
 │   ├── data/
-│   │   └── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
+│   │   ├── landmarks.test.ts # 22 tests: landmark data validation, fuzzy matching
+│   │   └── restaurants.test.ts # 15 tests: curated restaurant data validation across all cities
+│   ├── integration/
+│   │   ├── fullPipeline.test.ts  # 12 tests: end-to-end geocode→timeline→meals→search→score→rank
+│   │   └── edgeCases.test.ts     # 28 tests: empty inputs, score boundaries, token budget, cache
 │   ├── utils/
 │   │   ├── constants.test.ts             # Constants verification tests
 │   │   ├── recommendationRanker.test.ts  # 30 tests: sub-scores, full scoring, ranking
@@ -69,7 +74,8 @@ restaurant-builder-from-itinerary/
 │   │   ├── tokenTracker.test.ts          # 13 tests: tracking, budget, warning, reset
 │   │   ├── errorLogger.test.ts          # 21 tests: severity routing, FIFO buffer, stats
 │   │   ├── retryHandler.test.ts         # 10 tests: retry, timeout, fallback
-│   │   └── performanceMonitor.test.ts   # 10 tests: timing, budget tracking, stats
+│   │   ├── performanceMonitor.test.ts   # 10 tests: timing, budget tracking, stats
+│   │   └── hoursChecker.test.ts        # 11 tests: open/closed, boundaries, overnight hours
 │   └── types.test.ts         # Type compilation smoke tests
 ├── package.json
 ├── tsconfig.json
@@ -145,7 +151,7 @@ Phase 2 (done): Time calculator + route path generator + corridor search
 Phase 3 (done): Restaurant search + scoring engine + tourist trap detection
 Phase 4 (done): 3-tier recommendation engine + AI review analysis + multi-city
 Phase 5 (done): Error logging, retry/timeout, performance monitoring, storage, network, running late
-Phase 6: Full validation audit
+Phase 6 (done): Full validation audit — type safety, `as any` removal, hoursChecker module, data file compliance, integration + edge case tests
 Phase 7: React/Next.js migration
 ```
 
@@ -426,6 +432,49 @@ Zero API cost re-ranking for delay and GPS scenarios. Completes within 2s perfor
 - `MOCK_NETWORK_ONLINE` / `MOCK_NETWORK_OFFLINE` — NetworkStatus fixtures
 - `CLOSING_SOON_RESTAURANT` — EnhancedRestaurant closing at 14:30 (for Running Late tests)
 - `DELAYED_TIMELINE` — SAMPLE_TIMELINE shifted by 30 minutes
+
+## Full Validation Audit (Phase 6)
+
+### Issues Found and Fixed
+
+| Issue | File(s) | Fix |
+|-------|---------|-----|
+| Missing `utils/hoursChecker.ts` module | `data/restaurants/*.ts` import it | Created `utils/hoursChecker.ts` with `isRestaurantOpen(weeklyHours, date)` |
+| `as any` in source files (3 instances) | `data/restaurants/paris.ts`, `rome.ts`, `venice.ts` | Typed `base` as `WeeklyHours` — index signature allows dynamic key access |
+| `'pre_existing'` type assertion hack | `services/geocodingService.ts:111` | Added `'pre_existing'` to `GeocodedLocation.source` union type |
+| `RestaurantInsights` shape mismatch | `data/restaurants/*.ts` | Updated data files to produce correct `RestaurantInsights` shape (summary, atmosphere, bestDishes, localTip, touristTrapScore) |
+| `unknown` type on `response.json()` | `services/googleGeocodingService.ts` | Added explicit type assertion for Google API response |
+| Extra fields in data file return objects | `data/restaurants/*.ts` | Removed `placeId`, `imageUrl`, `distance`, `reservationNotes` not in types |
+
+### Hours Checker (`utils/hoursChecker.ts`)
+
+- `isRestaurantOpen(weeklyHours, date)` → boolean
+- Checks day of week from Date, looks up time windows, supports overnight hours
+- Re-exports `WeeklyHours` type for convenience
+
+### Test Additions
+
+| Test File | Tests | Purpose |
+|-----------|-------|---------|
+| `__tests__/data/restaurants.test.ts` | 15 | Validate curated data: counts, IDs, coordinates, types, insights shape |
+| `__tests__/integration/fullPipeline.test.ts` | 12 | End-to-end: geocode → timeline → meals → search → score → rank for Paris, Rome, Venice, multi-city |
+| `__tests__/integration/edgeCases.test.ts` | 28 | Empty inputs, score boundaries, tourist trap threshold, token budget, cache version, distance edge cases |
+| `__tests__/utils/hoursChecker.test.ts` | 11 | Open/closed hours, boundaries, overnight, empty hours |
+
+### TypeScript Compilation
+
+`npx tsc --noEmit` passes with zero errors after all fixes.
+
+### Console Log Format
+
+All console.log/warn/error in source files use `[BracketedPrefix]` format. Verified across all services and utils.
+
+### Constants Compliance
+
+- `SCORING_VERSION` always imported from `utils/constants.ts` (re-exported via `utils/recommendationRanker.ts`)
+- `MAX_SCORE` (110) never exceeded in scoring
+- `TOURIST_TRAP_THRESHOLD` (70) used consistently
+- Score weights match constants in all scoring functions
 
 ## Design System
 

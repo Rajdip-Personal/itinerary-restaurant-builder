@@ -148,7 +148,7 @@ export interface EnhancedRestaurant extends Restaurant {
 export interface GeocodedLocation {
   name: string;
   coordinates: Coordinates;
-  source: 'landmark' | 'google' | 'ai' | 'cache';
+  source: 'landmark' | 'google' | 'ai' | 'cache' | 'pre_existing';
   confidence: number;                  // 0-1
 }
 

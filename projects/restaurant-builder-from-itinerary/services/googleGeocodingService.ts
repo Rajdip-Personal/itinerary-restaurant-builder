@@ -44,7 +44,13 @@ export async function geocodeWithGoogle(
       return null;
     }
 
-    const data = await response.json();
+    const data = await response.json() as {
+      status: string;
+      results?: Array<{
+        geometry: { location: { lat: number; lng: number } };
+        formatted_address?: string;
+      }>;
+    };
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
