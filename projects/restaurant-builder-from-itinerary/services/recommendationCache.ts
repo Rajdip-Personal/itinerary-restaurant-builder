@@ -23,9 +23,10 @@ export function buildRecommendationCacheKey(
   lon: number,
 ): string {
   // Round coordinates to 4 decimal places (~11m precision) for cache key stability
+  // Include SCORING_VERSION so version changes auto-invalidate cache entries
   const roundedLat = lat.toFixed(4);
   const roundedLon = lon.toFixed(4);
-  return `rec:${cityId}:${mealType}:${roundedLat}:${roundedLon}`;
+  return `rec:${cityId}:${mealType}:${roundedLat}:${roundedLon}:v${SCORING_VERSION}`;
 }
 
 /**

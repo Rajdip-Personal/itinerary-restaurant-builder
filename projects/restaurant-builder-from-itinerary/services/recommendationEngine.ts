@@ -23,9 +23,10 @@ import {
   setCachedRecommendation,
   getStaleRecommendation,
 } from 'services/recommendationCache';
-import { trackTokenUsage } from 'utils/tokenTracker';
+import { trackTokenUsage, canAffordRequest } from 'utils/tokenTracker';
 
 const BACKEND_URL = 'http://localhost:3000';
+const ESTIMATED_AI_TOKENS = 2000; // Estimated tokens per AI recommendation request
 
 export interface RecommendationParams {
   cityId: string;
@@ -35,6 +36,33 @@ export interface RecommendationParams {
   hotelCoordinates?: Coordinates;
   previousCuisines?: string[];
   forceRefresh?: boolean;
+}
+
+/**
+ * Evaluate recommendation quality to decide if Tier 1 results are good enough.
+ * Returns true if results meet minimum quality bar.
+ */
+export function evaluateRecommendationQuality(
+  restaurants: EnhancedRestaurant[],
+): { isGoodQuality: boolean; reason: string; avgScore: number } {
+  if (restaurants.length < 2) {
+    return { isGoodQuality: false, reason: 'Too few recommendations', avgScore: 0 };
+  }
+
+  const avgScore = restaurants.reduce((sum, r) => sum + r.contextScore, 0) / restaurants.length;
+
+  if (avgScore < 50) {
+    return { isGoodQuality: false, reason: `Average score too low (${avgScore.toFixed(1)})`, avgScore };
+  }
+
+  const highScoreCount = restaurants.filter((r) => r.contextScore >= 60).length;
+  const highScoreRatio = highScoreCount / restaurants.length;
+
+  if (highScoreRatio < 0.6) {
+    return { isGoodQuality: false, reason: `Only ${(highScoreRatio * 100).toFixed(0)}% have score ≥60`, avgScore };
+  }
+
+  return { isGoodQuality: true, reason: 'Good quality', avgScore };
 }
 
 /**
@@ -182,10 +210,15 @@ export async function getRecommendations(
     params.coordinates.longitude,
   );
 
-  // Tier 1: Manual curation
+  // Tier 1: Manual curation (with quality gate)
   const manual = getManualRecommendations(params);
   if (manual && manual.restaurants.length > 0) {
-    return manual;
+    const quality = evaluateRecommendationQuality(manual.restaurants);
+    if (quality.isGoodQuality) {
+      console.log(`[Engine] Tier 1 passed quality gate (avg: ${quality.avgScore.toFixed(1)})`);
+      return manual;
+    }
+    console.log(`[Engine] Tier 1 failed quality gate: ${quality.reason}, trying next tier`);
   }
 
   // Tier 2: Cache (skip if forceRefresh)
@@ -196,10 +229,14 @@ export async function getRecommendations(
     }
   }
 
-  // Tier 3: AI generation
-  const ai = await generateAIRecommendations(params);
-  if (ai && ai.restaurants.length > 0) {
-    return ai;
+  // Tier 3: AI generation (check budget first)
+  if (canAffordRequest(ESTIMATED_AI_TOKENS)) {
+    const ai = await generateAIRecommendations(params);
+    if (ai && ai.restaurants.length > 0) {
+      return ai;
+    }
+  } else {
+    console.log('[Engine] Tier 3: Skipped — token budget exceeded');
   }
 
   // Stale cache fallback
@@ -207,6 +244,12 @@ export async function getRecommendations(
   if (stale) {
     console.log('[Engine] Using stale cache as final fallback');
     return stale;
+  }
+
+  // Low-quality manual results are better than nothing
+  if (manual && manual.restaurants.length > 0) {
+    console.log('[Engine] Returning low-quality manual results as last resort');
+    return manual;
   }
 
   // Empty result (never crash)
