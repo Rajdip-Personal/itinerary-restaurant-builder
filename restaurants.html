@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CultureGuide — Restaurant Recommendations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #1a1a2e;
+    --charcoal-light: #2d2d44;
+    --terracotta: #c4704b;
+    --terracotta-dark: #a85a3a;
+    --ochre: #d4a574;
+    --ochre-light: #e8c9a0;
+    --cream: #f5f0eb;
+    --cream-dark: #ebe3da;
+    --sage: #8a9a7b;
+    --sage-light: #a8b89a;
+    --white: #fefcfa;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Outfit', system-ui, sans-serif;
+    --red: #c0392b;
+    --red-light: #fdf0ef;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* ═══════════ NAV ═══════════ */
+  nav {
+    padding: 1.5rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    background: rgba(245, 240, 235, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--charcoal);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--terracotta); font-style: italic; }
+
+  .nav-back {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.3s ease;
+  }
+  .nav-back:hover { color: var(--terracotta); }
+
+  /* ═══════════ PAGE LAYOUT ═══════════ */
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem 4rem;
+  }
+
+  /* ═══════════ EMPTY STATE ═══════════ */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: rgba(26, 26, 46, 0.4);
+    max-width: 380px;
+    margin-bottom: 2rem;
+    line-height: 1.7;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  /* ═══════════ LOADING STATE ═══════════ */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(26, 26, 46, 0.08);
+    border-top-color: var(--charcoal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .loading-sub {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: rgba(26, 26, 46, 0.35);
+  }
+
+  /* ═══════════ ERROR STATE ═══════════ */
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+  }
+
+  .error-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 0.4rem;
+  }
+
+  .error-desc {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(26, 26, 46, 0.4);
+    max-width: 400px;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  /* ═══════════ RUNNING LATE PANEL ═══════════ */
+  .running-late-panel {
+    margin-bottom: 2rem;
+  }
+
+  .running-late-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .running-late-toggle:hover {
+    border-color: var(--terracotta);
+    color: var(--terracotta);
+  }
+
+  .running-late-toggle.active {
+    background: rgba(196, 112, 75, 0.06);
+    border-color: var(--terracotta);
+    color: var(--terracotta);
+  }
+
+  .running-late-controls {
+    display: none;
+    margin-top: 1rem;
+    padding: 1.2rem 1.5rem;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.08);
+  }
+
+  .running-late-controls.visible {
+    display: block;
+  }
+
+  .delay-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .delay-btn {
+    padding: 0.4rem 1rem;
+    background: none;
+    border: 1px solid rgba(26, 26, 46, 0.12);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--charcoal-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .delay-btn:hover {
+    border-color: var(--ochre);
+    color: var(--charcoal);
+  }
+
+  .delay-btn.active {
+    background: var(--charcoal);
+    border-color: var(--charcoal);
+    color: var(--cream);
+  }
+
+  .delay-apply {
+    padding: 0.5rem 1.5rem;
+    background: var(--terracotta);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white);
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .delay-apply:hover {
+    background: var(--terracotta-dark);
+  }
+
+  .delay-apply:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .delay-banner {
+    display: none;
+    padding: 0.8rem 1.2rem;
+    background: rgba(196, 112, 75, 0.08);
+    border-left: 3px solid var(--terracotta);
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--charcoal-light);
+    margin-bottom: 1.5rem;
+  }
+
+  .delay-banner.visible {
+    display: block;
+  }
+
+  .delay-banner strong {
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+
+  .delay-reset {
+    margin-left: 0.8rem;
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--terracotta);
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  /* ═══════════ RESULTS HEADER ═══════════ */
+  .results-header {
+    margin-bottom: 2rem;
+  }
+
+  .results-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 0.5rem;
+  }
+
+  .results-title {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 300;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+  }
+  .results-title em { font-style: italic; color: var(--terracotta); }
+
+  .results-meta {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+  }
+  .results-meta strong { color: var(--terracotta); font-weight: 500; }
+
+  /* ═══════════ MEAL TABS ═══════════ */
+  .meal-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.1);
+  }
+
+  .meal-tab {
+    padding: 0.8rem 1.5rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--charcoal-light);
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.3s ease;
+  }
+
+  .meal-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--terracotta);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .meal-tab:hover { color: var(--charcoal); }
+
+  .meal-tab.active {
+    color: var(--charcoal);
+    font-weight: 600;
+  }
+
+  .meal-tab.active::after {
+    transform: scaleX(1);
+  }
+
+  .meal-tab .tab-count {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: rgba(26, 26, 46, 0.06);
+    padding: 0.1rem 0.4rem;
+    border-radius: 1px;
+    color: var(--charcoal-light);
+  }
+
+  .meal-tab.active .tab-count {
+    background: rgba(196, 112, 75, 0.12);
+    color: var(--terracotta);
+  }
+
+  .meal-source {
+    display: block;
+    font-size: 0.55rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: none;
+    color: rgba(26, 26, 46, 0.3);
+    margin-top: 0.15rem;
+  }
+
+  /* ═══════════ RESTAURANT CARDS ═══════════ */
+  .cards-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .card-panel {
+    display: none;
+  }
+  .card-panel.active {
+    display: block;
+  }
+
+  .restaurant-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    padding: 2rem 2.2rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: cardIn 0.4s ease forwards;
+  }
+
+  .restaurant-card:nth-child(1) { animation-delay: 0.05s; }
+  .restaurant-card:nth-child(2) { animation-delay: 0.1s; }
+  .restaurant-card:nth-child(3) { animation-delay: 0.15s; }
+  .restaurant-card:nth-child(4) { animation-delay: 0.2s; }
+  .restaurant-card:nth-child(5) { animation-delay: 0.25s; }
+  .restaurant-card:nth-child(6) { animation-delay: 0.3s; }
+  .restaurant-card:nth-child(7) { animation-delay: 0.35s; }
+  .restaurant-card:nth-child(8) { animation-delay: 0.4s; }
+
+  @keyframes cardIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .restaurant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(26, 26, 46, 0.08);
+  }
+
+  .restaurant-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--ochre);
+    transition: background 0.3s ease;
+  }
+
+  .restaurant-card:hover::before {
+    background: var(--terracotta);
+  }
+
+  /* Card top row */
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.8rem;
+  }
+
+  .card-name {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .card-badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border-radius: 1px;
+    white-space: nowrap;
+  }
+
+  .badge-type {
+    background: rgba(138, 154, 123, 0.12);
+    color: var(--sage);
+  }
+
+  .badge-score {
+    background: var(--charcoal);
+    color: var(--cream);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .badge-score-high {
+    background: var(--sage);
+    color: var(--white);
+  }
+
+  .badge-tourist-trap {
+    background: var(--red-light);
+    color: var(--red);
+    border: 1px solid rgba(192, 57, 43, 0.15);
+  }
+
+  .badge-tourist-trap-warn {
+    background: rgba(212, 165, 116, 0.15);
+    color: var(--ochre);
+    border: 1px solid rgba(212, 165, 116, 0.25);
+  }
+
+  .badge-reservation-essential {
+    background: rgba(196, 112, 75, 0.1);
+    color: var(--terracotta);
+    border: 1px solid rgba(196, 112, 75, 0.2);
+  }
+
+  /* Card cuisine + neighborhood */
+  .card-subtitle {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--charcoal-light);
+    margin-bottom: 1rem;
+  }
+
+  .card-subtitle .dot {
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--ochre);
+    vertical-align: middle;
+    margin: 0 0.5rem;
+  }
+
+  /* Card details grid */
+  .card-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem 1.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .detail-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(26, 26, 46, 0.35);
+  }
+
+  .detail-value {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--charcoal);
+  }
+
+  .detail-value .price {
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+
+  /* Rating stars */
+  .stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .star {
+    color: var(--ochre);
+    font-size: 0.8rem;
+  }
+
+  .star.empty {
+    color: rgba(26, 26, 46, 0.12);
+  }
+
+  .rating-text {
+    font-size: 0.8rem;
+    color: var(--charcoal-light);
+    margin-left: 0.3rem;
+  }
+
+  /* Reservation status */
+  .reservation-none { color: var(--sage); }
+  .reservation-recommended { color: var(--ochre); }
+  .reservation-essential { color: var(--terracotta); font-weight: 500; }
+
+  /* Walking distance */
+  .walk-distance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--charcoal);
+  }
+
+  .walk-icon {
+    font-size: 0.9rem;
+    opacity: 0.5;
+  }
+
+  /* Route context */
+  .route-fit {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--sage);
+    font-style: italic;
+  }
+
+  /* Score breakdown */
+  .score-breakdown {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem 1.2rem;
+    background: rgba(26, 26, 46, 0.02);
+    border: 1px solid rgba(26, 26, 46, 0.05);
+  }
+
+  .score-breakdown.visible {
+    display: block;
+  }
+
+  .score-breakdown-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(26, 26, 46, 0.35);
+    margin-bottom: 0.6rem;
+  }
+
+  .score-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .score-bar-label {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--charcoal-light);
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .score-bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(26, 26, 46, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .score-bar-fill-quality { background: var(--sage); }
+  .score-bar-fill-authenticity { background: var(--terracotta); }
+  .score-bar-fill-convenience { background: var(--ochre); }
+  .score-bar-fill-timing { background: var(--charcoal-light); }
+  .score-bar-fill-curation { background: var(--sage-light); }
+
+  .score-bar-value {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .score-toggle {
+    display: inline-block;
+    margin-top: 0.6rem;
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: rgba(26, 26, 46, 0.35);
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .score-toggle:hover {
+    color: var(--charcoal-light);
+  }
+
+  /* Local tip */
+  .card-tip {
+    padding: 0.8rem 1rem;
+    background: rgba(138, 154, 123, 0.06);
+    border-left: 2px solid var(--sage-light);
+    font-size: 0.8rem;
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--charcoal-light);
+    font-style: italic;
+  }
+
+  .card-tip strong {
+    font-weight: 500;
+    font-style: normal;
+    color: var(--sage);
+  }
+
+  /* ═══════════ MODE SWITCHER ═══════════ */
+  .mode-switcher {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2rem;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .mode-btn {
+    padding: 0.7rem 1.5rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--charcoal-light);
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mode-btn:not(:last-child) {
+    border-right: 1px solid rgba(26, 26, 46, 0.08);
+  }
+
+  .mode-btn:hover {
+    color: var(--charcoal);
+    background: rgba(26, 26, 46, 0.02);
+  }
+
+  .mode-btn.active {
+    background: var(--terracotta);
+    color: var(--white);
+    font-weight: 600;
+  }
+
+  .mode-btn.active:hover {
+    background: var(--terracotta-dark);
+  }
+
+  .mode-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* ═══════════ NEARBY PANEL ═══════════ */
+  .nearby-panel {
+    display: none;
+  }
+
+  .nearby-panel.active {
+    display: block;
+  }
+
+  .nearby-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 30vh;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .nearby-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 30vh;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .nearby-error-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 0.4rem;
+  }
+
+  .nearby-error-desc {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(26, 26, 46, 0.4);
+    max-width: 400px;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .nearby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+  }
+
+  .nearby-subtitle {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+  }
+
+  .nearby-count {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: rgba(26, 26, 46, 0.4);
+  }
+
+  .nearby-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    padding: 1.8rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: cardIn 0.4s ease forwards;
+  }
+
+  .nearby-card:nth-child(1) { animation-delay: 0.05s; }
+  .nearby-card:nth-child(2) { animation-delay: 0.1s; }
+  .nearby-card:nth-child(3) { animation-delay: 0.15s; }
+  .nearby-card:nth-child(4) { animation-delay: 0.2s; }
+  .nearby-card:nth-child(5) { animation-delay: 0.25s; }
+  .nearby-card:nth-child(6) { animation-delay: 0.3s; }
+  .nearby-card:nth-child(7) { animation-delay: 0.35s; }
+  .nearby-card:nth-child(8) { animation-delay: 0.4s; }
+
+  .nearby-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(26, 26, 46, 0.08);
+  }
+
+  .nearby-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--sage);
+    transition: background 0.3s ease;
+  }
+
+  .nearby-card:hover::before {
+    background: var(--terracotta);
+  }
+
+  .nearby-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.6rem;
+  }
+
+  .nearby-card-name {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .nearby-card-distance {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--terracotta);
+    white-space: nowrap;
+    margin-left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .nearby-card-address {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+    margin-bottom: 0.8rem;
+  }
+
+  .nearby-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .nearby-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--charcoal);
+  }
+
+  .nearby-card-price {
+    font-size: 0.85rem;
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+
+  .nearby-card-types {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .nearby-type-tag {
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    background: rgba(138, 154, 123, 0.1);
+    color: var(--sage);
+    border-radius: 1px;
+  }
+
+  /* ═══════════ EMPTY STATE WITH MODE SWITCHER ═══════════ */
+  .empty-mode-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(26, 26, 46, 0.08);
+  }
+
+  .empty-mode-hint {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--sage);
+    margin-bottom: 0.8rem;
+    font-style: italic;
+  }
+
+  /* ═══════════ NO RESULTS FOR MEAL ═══════════ */
+  .no-results {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--charcoal-light);
+  }
+
+  .no-results-icon {
+    font-size: 2rem;
+    opacity: 0.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-results-text {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* ═══════════ RESPONSIVE ═══════════ */
+  @media (max-width: 900px) {
+    .page { padding: 2rem 1.5rem; }
+    nav { padding: 1.2rem 1.5rem; }
+    .card-details { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 1.5rem 1rem; }
+    .restaurant-card { padding: 1.5rem; }
+    .nearby-card { padding: 1.3rem; }
+    .card-name { font-size: 1.3rem; }
+    .nearby-card-name { font-size: 1.2rem; }
+    .results-title { font-size: 2rem; }
+    .meal-tab { padding: 0.6rem 1rem; font-size: 0.7rem; }
+    .mode-btn { padding: 0.5rem 1rem; font-size: 0.7rem; }
+    .card-top { flex-direction: column; gap: 0.5rem; }
+    .card-badges { margin-left: 0; }
+    .delay-options { gap: 0.3rem; }
+    .nearby-card-top { flex-direction: column; gap: 0.3rem; }
+    .nearby-card-distance { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
+  <a href="itinerary.html" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to itinerary
+  </a>
+</nav>
+
+<!-- ═══════════ EMPTY STATE ═══════════ -->
+<div class="page" id="emptyState" style="display: none;">
+  <div class="empty-state">
+    <div class="empty-icon">&#128466;</div>
+    <h2 class="empty-title">No itinerary found</h2>
+    <p class="empty-desc">
+      Parse your travel itinerary first, then come back here
+      to see restaurant recommendations matched to your route.
+    </p>
+    <a href="itinerary.html" class="btn-primary">
+      Parse Your Itinerary
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="empty-mode-section">
+      <p class="empty-mode-hint">Or discover restaurants near your current location:</p>
+      <button class="btn-primary" onclick="activateNearbyFromEmpty()" style="background: var(--sage);">
+        <span class="mode-icon">&#128205;</span>
+        Near You Now
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ LOADING STATE ═══════════ -->
+<div class="page" id="loadingState" style="display: none;">
+  <div class="loading-state">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Finding the perfect restaurants</div>
+    <div class="loading-sub">Scoring against your route, meal times, and local knowledge&hellip;</div>
+  </div>
+</div>
+
+<!-- ═══════════ ERROR STATE ═══════════ -->
+<div class="page" id="errorState" style="display: none;">
+  <div class="error-state">
+    <div class="error-icon">&#9888;</div>
+    <h2 class="error-title">Something went wrong</h2>
+    <p class="error-desc" id="errorDesc">Could not load restaurant recommendations. Please check that the backend server is running.</p>
+    <button class="btn-primary" onclick="retryLoad()">
+      Try Again
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ RESULTS ═══════════ -->
+<div class="page" id="resultsPage" style="display: none;">
+  <div class="results-header">
+    <p class="results-label" id="resultsLabel">Route-Aware Recommendations</p>
+    <h1 class="results-title" id="resultsTitle">Restaurants in <em>Paris</em></h1>
+    <p class="results-meta" id="resultsMeta"></p>
+  </div>
+
+  <!-- Mode Switcher -->
+  <div class="mode-switcher" id="modeSwitcher">
+    <button class="mode-btn active" id="modeRoute" onclick="switchMode('route')">
+      <span class="mode-icon">&#128506;</span> Today's Route
+    </button>
+    <button class="mode-btn" id="modeNearby" onclick="switchMode('nearby')">
+      <span class="mode-icon">&#128205;</span> Near You Now
+    </button>
+  </div>
+
+  <!-- Route Mode Content -->
+  <div id="routeModeContent">
+    <!-- Running Late Panel -->
+    <div class="running-late-panel" id="runningLatePanel">
+      <button class="running-late-toggle" id="runningLateToggle" onclick="toggleRunningLate()">
+        &#9201; Running late?
+      </button>
+      <div class="running-late-controls" id="runningLateControls">
+        <div class="delay-options" id="delayOptions"></div>
+        <button class="delay-apply" id="delayApply" onclick="applyDelay()" disabled>Apply delay</button>
+      </div>
+    </div>
+
+    <div class="delay-banner" id="delayBanner"></div>
+
+    <div class="meal-tabs" id="mealTabs"></div>
+
+    <div id="cardPanels"></div>
+  </div>
+
+  <!-- Nearby Mode Content -->
+  <div class="nearby-panel" id="nearbyModeContent">
+    <div id="nearbyInner"></div>
+  </div>
+</div>
+
+<!-- ═══════════ JAVASCRIPT ═══════════ -->
+<script>
+  // ============================================================================
+  // CONFIG
+  // ============================================================================
+
+  const API_BASE = 'http://localhost:3000';
+  const API_KEY = 'cg_a05c1e742ef279b4f9813b0bdf7a24e31acb71f43d0beb25e9a1ee646f9c8337';
+
+  // State
+  let currentRecommendations = null;  // The last successful response from /generate
+  let originalRecommendations = null; // Before running-late adjustment
+  let parsedData = null;
+  let selectedDelay = null;
+
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating - full >= 0.3;
+    let html = '<span class="stars">';
+    for (let i = 0; i < 5; i++) {
+      if (i < full) {
+        html += '<span class="star">&#9733;</span>';
+      } else if (i === full && half) {
+        html += '<span class="star">&#9733;</span>';
+      } else {
+        html += '<span class="star empty">&#9733;</span>';
+      }
+    }
+    html += '</span>';
+    return html;
+  }
+
+  function formatPrice(level) {
+    if (!level || level < 1) return '';
+    return '&euro;'.repeat(Math.min(level, 4));
+  }
+
+  // ============================================================================
+  // API CALLS
+  // ============================================================================
+
+  async function fetchRecommendations(entries, startTime, dateISO) {
+    console.log('[Restaurants] Fetching recommendations for', entries.length, 'entries');
+
+    const response = await fetch(API_BASE + '/api/recommendations/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY,
+      },
+      body: JSON.stringify({
+        entries: entries,
+        startTime: startTime || '09:00',
+        date: dateISO || new Date().toISOString().split('T')[0],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Server returned ' + response.status);
+    }
+
+    return response.json();
+  }
+
+  async function fetchRunningLate(recommendations, delayMinutes, currentTime) {
+    console.log('[Restaurants] Running late:', delayMinutes, 'min delay at', currentTime);
+
+    const response = await fetch(API_BASE + '/api/recommendations/running-late', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY,
+      },
+      body: JSON.stringify({
+        recommendations: recommendations,
+        delayMinutes: delayMinutes,
+        currentTime: currentTime,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Server returned ' + response.status);
+    }
+
+    return response.json();
+  }
+
+  // ============================================================================
+  // RENDER CARD
+  // ============================================================================
+
+  function renderCard(restaurant) {
+    const r = restaurant;
+    const score = Math.round(r.contextScore || 0);
+    const breakdown = r.scoreBreakdown || {};
+    const insights = r.insights || {};
+    const routeCtx = r.routeContext || {};
+    const reservation = r.reservationRequired || 'none';
+
+    const typeLabels = {
+      'restaurant': 'Restaurant', 'bakery': 'Bakery', 'patisserie': 'Patisserie',
+      'bacaro': 'Bacaro', 'osteria': 'Osteria', 'trattoria': 'Trattoria',
+      'gelateria': 'Gelateria', 'pizzeria': 'Pizzeria', 'cafe': 'Caf\u00e9',
+    };
+
+    const reservationLabels = {
+      'none': '<span class="reservation-none">None needed</span>',
+      'recommended': '<span class="reservation-recommended">Recommended</span>',
+      'essential': '<span class="reservation-essential">Essential</span>',
+    };
+
+    // Score badge color: >= 70 is high
+    const scoreBadgeClass = score >= 70 ? 'badge badge-score badge-score-high' : 'badge badge-score';
+
+    // Tourist trap badge
+    let trapBadge = '';
+    const trapScore = insights.touristTrapScore || 0;
+    if (trapScore > 50) {
+      trapBadge = '<span class="badge badge-tourist-trap">Tourist Trap Risk</span>';
+    } else if (trapScore > 25) {
+      trapBadge = '<span class="badge badge-tourist-trap-warn">Moderate Tourist Area</span>';
+    }
+
+    // Reservation urgency badge
+    let reservationBadge = '';
+    if (reservation === 'essential') {
+      reservationBadge = '<span class="badge badge-reservation-essential">Book Ahead</span>';
+    }
+
+    // Walk time from route context
+    let walkHtml = '';
+    if (routeCtx.walkTime != null) {
+      const walkMin = Math.round(routeCtx.walkTime);
+      walkHtml = `
+        <div class="detail-item">
+          <span class="detail-label">Walk from Route</span>
+          <span class="detail-value">
+            <span class="walk-distance">
+              <span class="walk-icon">&#128694;</span>
+              ${walkMin} min
+            </span>
+            ${routeCtx.routeFit ? '<span class="route-fit">' + escapeHtml(routeCtx.routeFit) + '</span>' : ''}
+          </span>
+        </div>`;
+    }
+
+    // Signature dish (from insights or famousFor)
+    let dishHtml = '';
+    if (insights.bestDishes && insights.bestDishes.length > 0) {
+      dishHtml = `
+        <div class="detail-item">
+          <span class="detail-label">Known For</span>
+          <span class="detail-value">${escapeHtml(insights.bestDishes.slice(0, 2).join(', '))}</span>
+        </div>`;
+    } else if (r.famousFor && r.famousFor.length > 0) {
+      dishHtml = `
+        <div class="detail-item">
+          <span class="detail-label">Known For</span>
+          <span class="detail-value">${escapeHtml(r.famousFor.slice(0, 2).join(', '))}</span>
+        </div>`;
+    }
+
+    // Price level
+    const priceHtml = r.priceLevel ? `<span class="price">${formatPrice(r.priceLevel)}</span>` : '';
+
+    // Timing warning
+    let timingNote = '';
+    if (r.isOpenNow === false) {
+      timingNote = '<span style="color: var(--red); font-size: 0.75rem; font-weight: 500;">Currently closed</span>';
+    }
+
+    // Score breakdown bars
+    const cardId = 'breakdown-' + (r.id || Math.random().toString(36).slice(2));
+    const bars = [
+      { label: 'Quality', value: breakdown.quality || 0, max: 25, cls: 'quality' },
+      { label: 'Authenticity', value: breakdown.authenticity || 0, max: 20, cls: 'authenticity' },
+      { label: 'Convenience', value: breakdown.convenience || 0, max: 43, cls: 'convenience' },
+      { label: 'Timing', value: breakdown.timing || 0, max: 15, cls: 'timing' },
+      { label: 'Curation', value: breakdown.curation || 0, max: 5, cls: 'curation' },
+    ];
+
+    const barsHtml = bars.map(b => {
+      const pct = b.max > 0 ? Math.round((b.value / b.max) * 100) : 0;
+      return `
+        <div class="score-bar-row">
+          <span class="score-bar-label">${b.label}</span>
+          <div class="score-bar-track">
+            <div class="score-bar-fill score-bar-fill-${b.cls}" style="width: ${pct}%"></div>
+          </div>
+          <span class="score-bar-value">${Math.round(b.value)}/${b.max}</span>
+        </div>`;
+    }).join('');
+
+    // Local tip
+    let tipHtml = '';
+    if (insights.localTip) {
+      tipHtml = `<div class="card-tip"><strong>Local Tip:</strong> ${escapeHtml(insights.localTip)}</div>`;
+    }
+
+    // Nearby attraction from route context
+    let nearbyHtml = '';
+    if (routeCtx.nearbyAttraction) {
+      nearbyHtml = `<span class="dot"></span>Near ${escapeHtml(routeCtx.nearbyAttraction)}`;
+    }
+
+    return `
+      <div class="restaurant-card">
+        <div class="card-top">
+          <h3 class="card-name">${escapeHtml(r.name)}</h3>
+          <div class="card-badges">
+            <span class="${scoreBadgeClass}">${score}/110</span>
+            <span class="badge badge-type">${typeLabels[r.type] || r.type || 'Restaurant'}</span>
+            ${trapBadge}
+            ${reservationBadge}
+          </div>
+        </div>
+
+        <div class="card-subtitle">
+          ${r.cuisineTypes ? r.cuisineTypes.join(', ') : ''}
+          ${r.address ? '<span class="dot"></span>' + escapeHtml(r.address) : ''}
+          ${nearbyHtml}
+        </div>
+
+        <div class="card-details">
+          ${dishHtml}
+
+          <div class="detail-item">
+            <span class="detail-label">Rating</span>
+            <span class="detail-value">
+              ${renderStars(r.rating || 0)}
+              <span class="rating-text">${r.rating || '?'} (${(r.reviewCount || 0).toLocaleString()}) ${priceHtml}</span>
+            </span>
+          </div>
+
+          ${walkHtml}
+
+          <div class="detail-item">
+            <span class="detail-label">Reservation</span>
+            <span class="detail-value">${reservationLabels[reservation] || reservationLabels['none']} ${timingNote}</span>
+          </div>
+        </div>
+
+        ${tipHtml}
+
+        <button class="score-toggle" onclick="toggleBreakdown('${cardId}')">Show score breakdown</button>
+        <div class="score-breakdown" id="${cardId}">
+          <div class="score-breakdown-title">Score Breakdown</div>
+          ${barsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================================
+  // SCORE BREAKDOWN TOGGLE
+  // ============================================================================
+
+  function toggleBreakdown(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isVisible = el.classList.contains('visible');
+    el.classList.toggle('visible');
+    const btn = el.previousElementSibling;
+    if (btn) btn.textContent = isVisible ? 'Show score breakdown' : 'Hide score breakdown';
+  }
+
+  // ============================================================================
+  // RUNNING LATE
+  // ============================================================================
+
+  function toggleRunningLate() {
+    const controls = document.getElementById('runningLateControls');
+    const toggle = document.getElementById('runningLateToggle');
+    const isVisible = controls.classList.contains('visible');
+    controls.classList.toggle('visible');
+    toggle.classList.toggle('active');
+
+    if (!isVisible && document.getElementById('delayOptions').children.length === 0) {
+      // Build delay buttons
+      const delays = [5, 10, 15, 30, 45, 60];
+      const container = document.getElementById('delayOptions');
+      delays.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'delay-btn';
+        btn.textContent = d + ' min';
+        btn.dataset.delay = d;
+        btn.addEventListener('click', () => selectDelay(d));
+        container.appendChild(btn);
+      });
+    }
+  }
+
+  function selectDelay(minutes) {
+    selectedDelay = minutes;
+    document.querySelectorAll('.delay-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.delay) === minutes);
+    });
+    document.getElementById('delayApply').disabled = false;
+  }
+
+  async function applyDelay() {
+    if (!selectedDelay || !currentRecommendations) return;
+
+    const applyBtn = document.getElementById('delayApply');
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Adjusting...';
+
+    try {
+      // Save original before first adjustment
+      if (!originalRecommendations) {
+        originalRecommendations = currentRecommendations;
+      }
+
+      const now = new Date();
+      const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+      const result = await fetchRunningLate(originalRecommendations.meals, selectedDelay, currentTime);
+
+      // Count removed restaurants
+      let originalCount = 0;
+      let newCount = 0;
+      Object.values(originalRecommendations.meals).forEach(m => { originalCount += m.restaurants.length; });
+      Object.values(result.meals).forEach(m => { newCount += m.restaurants.length; });
+      const removedCount = originalCount - newCount;
+
+      // Update display
+      currentRecommendations = { ...currentRecommendations, meals: result.meals };
+      renderResults(currentRecommendations);
+
+      // Show banner
+      const banner = document.getElementById('delayBanner');
+      banner.innerHTML = `<strong>Adjusted for ${selectedDelay} minute delay</strong> &mdash; ${removedCount > 0 ? removedCount + ' restaurant' + (removedCount !== 1 ? 's' : '') + ' removed (closed or too far)' : 'all restaurants still available'} <button class="delay-reset" onclick="resetDelay()">Reset</button>`;
+      banner.classList.add('visible');
+
+      console.log('[Restaurants] Running late applied:', selectedDelay, 'min delay,', removedCount, 'removed');
+    } catch (err) {
+      console.error('[Restaurants] Running late error:', err.message);
+    } finally {
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Apply delay';
+    }
+  }
+
+  function resetDelay() {
+    if (!originalRecommendations) return;
+
+    currentRecommendations = originalRecommendations;
+    originalRecommendations = null;
+    selectedDelay = null;
+
+    document.querySelectorAll('.delay-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('delayApply').disabled = true;
+    document.getElementById('delayBanner').classList.remove('visible');
+
+    renderResults(currentRecommendations);
+    console.log('[Restaurants] Delay reset to original recommendations');
+  }
+
+  // ============================================================================
+  // RENDER RESULTS
+  // ============================================================================
+
+  function renderResults(data) {
+    const meals = data.meals || {};
+    const meta = data.meta || {};
+
+    const cityNames = { paris: 'Paris', rome: 'Rome', venice: 'Venice' };
+    const cityName = cityNames[meta.cityId] || meta.cityId || 'Your City';
+
+    // Set header
+    document.getElementById('resultsTitle').innerHTML = 'Restaurants in <em>' + escapeHtml(cityName) + '</em>';
+
+    const totalCount = meta.totalRestaurants || Object.values(meals).reduce((sum, m) => sum + m.restaurants.length, 0);
+    const geocoded = meta.geocodedCount || 0;
+    document.getElementById('resultsMeta').innerHTML =
+      '<strong>' + totalCount + '</strong> scored picks matched to your route' +
+      (geocoded > 0 ? ' &middot; <strong>' + geocoded + '</strong> stops geocoded' : '');
+
+    // Build tabs and panels
+    const tabsEl = document.getElementById('mealTabs');
+    const panelsEl = document.getElementById('cardPanels');
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '';
+
+    const mealLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+    const mealIcons = { breakfast: '&#9749;', lunch: '&#127860;', dinner: '&#127769;' };
+    const sourceLabels = { manual: 'Curated', cache: 'Cached', ai: 'AI Generated' };
+    let firstTab = null;
+
+    const mealOrder = ['breakfast', 'lunch', 'dinner'];
+    mealOrder.forEach(mealKey => {
+      const mealData = meals[mealKey];
+      if (!mealData || !mealData.restaurants || mealData.restaurants.length === 0) return;
+
+      const restaurants = mealData.restaurants;
+      const source = mealData.source || 'manual';
+
+      // Create tab
+      const tab = document.createElement('button');
+      tab.className = 'meal-tab';
+      tab.dataset.meal = mealKey;
+      tab.innerHTML = (mealIcons[mealKey] || '') + ' ' + (mealLabels[mealKey] || mealKey) +
+        ' <span class="tab-count">' + restaurants.length + '</span>' +
+        '<span class="meal-source">' + (sourceLabels[source] || source) + '</span>';
+      tab.addEventListener('click', function() { switchTab(mealKey); });
+      tabsEl.appendChild(tab);
+
+      if (!firstTab) firstTab = mealKey;
+
+      // Create panel
+      const panel = document.createElement('div');
+      panel.className = 'card-panel';
+      panel.id = 'panel-' + mealKey;
+
+      if (restaurants.length > 0) {
+        panel.innerHTML = '<div class="cards-grid">' + restaurants.map(function(r) { return renderCard(r); }).join('') + '</div>';
+      } else {
+        panel.innerHTML = '<div class="no-results"><div class="no-results-icon">&#127869;</div><p class="no-results-text">No recommendations for this meal</p></div>';
+      }
+
+      panelsEl.appendChild(panel);
+    });
+
+    // If no meals at all
+    if (!firstTab) {
+      panelsEl.innerHTML = '<div class="no-results"><div class="no-results-icon">&#127869;</div><p class="no-results-text">No restaurants found for your itinerary</p></div>';
+    }
+
+    // Activate first tab
+    if (firstTab) switchTab(firstTab);
+  }
+
+  // ============================================================================
+  // TAB SWITCHING
+  // ============================================================================
+
+  function switchTab(mealKey) {
+    // Deactivate all
+    document.querySelectorAll('.meal-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.card-panel').forEach(function(p) { p.classList.remove('active'); });
+
+    // Activate selected
+    var tab = document.querySelector('.meal-tab[data-meal="' + mealKey + '"]');
+    var panel = document.getElementById('panel-' + mealKey);
+    if (tab) tab.classList.add('active');
+    if (panel) {
+      panel.classList.remove('active');
+      // Force reflow for animation restart
+      void panel.offsetHeight;
+      panel.classList.add('active');
+    }
+  }
+
+  // ============================================================================
+  // SHOW / HIDE STATES
+  // ============================================================================
+
+  function showState(stateId) {
+    ['emptyState', 'loadingState', 'errorState', 'resultsPage'].forEach(function(id) {
+      document.getElementById(id).style.display = 'none';
+    });
+    document.getElementById(stateId).style.display = 'block';
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — GPS LOCATION SERVICE
+  // ============================================================================
+
+  const LOCATION_CACHE_KEY = '@culture_guide:user_location';
+  const LOCATION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  let currentMode = 'route';    // 'route' or 'nearby'
+  let nearbyResults = null;     // cached nearby results (no re-fetch on tab switch)
+  let nearbyLoading = false;
+  let nearbyError = null;
+
+  function getCachedLocation() {
+    try {
+      const raw = localStorage.getItem(LOCATION_CACHE_KEY);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      const age = Date.now() - (cached.timestamp || 0);
+      if (age < LOCATION_TTL_MS) {
+        console.log('[NearYou] Using cached location (age: ' + Math.round(age / 1000) + 's)');
+        return { latitude: cached.latitude, longitude: cached.longitude };
+      }
+      console.log('[NearYou] Cached location expired');
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function cacheLocation(latitude, longitude) {
+    try {
+      localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({
+        latitude: latitude,
+        longitude: longitude,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('[NearYou] Failed to cache location:', e.message);
+    }
+  }
+
+  function getCurrentLocation() {
+    return new Promise(function(resolve, reject) {
+      // Check cache first
+      const cached = getCachedLocation();
+      if (cached) {
+        resolve(cached);
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser.'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const loc = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          cacheLocation(loc.latitude, loc.longitude);
+          console.log('[NearYou] Got GPS location:', loc.latitude.toFixed(4), loc.longitude.toFixed(4));
+          resolve(loc);
+        },
+        function(error) {
+          let msg;
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              msg = 'Location access was denied. Please enable location permissions in your browser settings (click the lock icon in the address bar) and reload the page.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              msg = 'Your location could not be determined. Please check that location services are enabled on your device.';
+              break;
+            case error.TIMEOUT:
+              msg = 'Location request timed out. Please try again.';
+              break;
+            default:
+              msg = 'An unknown error occurred while getting your location.';
+          }
+          console.error('[NearYou] Geolocation error:', msg);
+          reject(new Error(msg));
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — FETCH & FILTER
+  // ============================================================================
+
+  async function fetchNearbyRestaurants(latitude, longitude) {
+    console.log('[NearYou] Fetching nearby restaurants at', latitude.toFixed(4), longitude.toFixed(4));
+
+    const response = await fetch(API_BASE + '/api/places/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY,
+      },
+      body: JSON.stringify({
+        latitude: latitude,
+        longitude: longitude,
+        radius: 5000,
+        type: 'restaurant',
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(function() { return {}; });
+      throw new Error(err.error || 'Server returned ' + response.status);
+    }
+
+    const data = await response.json();
+    const places = data.results || data.places || [];
+
+    // Client-side filtering: rating >= 4.2, user_ratings_total >= 100, limit 20
+    const filtered = places
+      .filter(function(p) {
+        return (p.rating || 0) >= 4.2 && (p.user_ratings_total || 0) >= 100;
+      })
+      .sort(function(a, b) { return (b.rating || 0) - (a.rating || 0); })
+      .slice(0, 20);
+
+    console.log('[NearYou] Fetched', places.length, 'places, filtered to', filtered.length);
+    return { places: filtered, userLat: latitude, userLng: longitude };
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — HAVERSINE DISTANCE
+  // ============================================================================
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371000; // Earth radius in meters
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function formatDistance(meters) {
+    if (meters < 1000) {
+      return Math.round(meters) + ' m';
+    }
+    return (meters / 1000).toFixed(1) + ' km';
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — GOOGLE TYPES TO READABLE LABELS
+  // ============================================================================
+
+  const GOOGLE_TYPE_LABELS = {
+    'restaurant': 'Restaurant',
+    'cafe': 'Cafe',
+    'bakery': 'Bakery',
+    'bar': 'Bar',
+    'meal_delivery': 'Delivery',
+    'meal_takeaway': 'Takeaway',
+    'food': 'Food',
+    'night_club': 'Night Club',
+    'italian_restaurant': 'Italian',
+    'french_restaurant': 'French',
+    'japanese_restaurant': 'Japanese',
+    'chinese_restaurant': 'Chinese',
+    'indian_restaurant': 'Indian',
+    'mexican_restaurant': 'Mexican',
+    'thai_restaurant': 'Thai',
+    'pizza_restaurant': 'Pizza',
+    'seafood_restaurant': 'Seafood',
+    'steak_house': 'Steakhouse',
+    'sushi_restaurant': 'Sushi',
+    'vegetarian_restaurant': 'Vegetarian',
+    'vegan_restaurant': 'Vegan',
+    'brunch_restaurant': 'Brunch',
+    'hamburger_restaurant': 'Burgers',
+    'ice_cream_shop': 'Ice Cream',
+    'coffee_shop': 'Coffee',
+  };
+
+  // Types to exclude from display (too generic or not food-related)
+  const GOOGLE_TYPE_EXCLUDE = new Set([
+    'point_of_interest', 'establishment', 'food', 'store', 'place',
+    'health', 'finance', 'lodging', 'tourist_attraction', 'premise',
+    'political', 'locality', 'sublocality', 'route', 'street_address',
+  ]);
+
+  function mapGoogleTypes(types) {
+    if (!types || !types.length) return [];
+    return types
+      .filter(function(t) { return !GOOGLE_TYPE_EXCLUDE.has(t); })
+      .map(function(t) { return GOOGLE_TYPE_LABELS[t] || t.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }); })
+      .slice(0, 3);
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — RENDER NEARBY CARD
+  // ============================================================================
+
+  function renderNearbyCard(place, userLat, userLng) {
+    var name = escapeHtml(place.name || 'Unknown');
+    var address = escapeHtml(place.formatted_address || place.vicinity || '');
+    var rating = place.rating || 0;
+    var reviewCount = place.user_ratings_total || 0;
+    var priceLevel = place.price_level;
+
+    // Distance
+    var distHtml = '';
+    var geo = place.geometry && place.geometry.location;
+    if (geo && userLat != null && userLng != null) {
+      var lat = typeof geo.lat === 'function' ? geo.lat() : geo.lat;
+      var lng = typeof geo.lng === 'function' ? geo.lng() : geo.lng;
+      var dist = haversineDistance(userLat, userLng, lat, lng);
+      distHtml = '<span class="nearby-card-distance"><span class="walk-icon">&#128694;</span> ' + formatDistance(dist) + '</span>';
+    }
+
+    // Price
+    var priceHtml = '';
+    if (priceLevel && priceLevel > 0) {
+      priceHtml = '<span class="nearby-card-price">' + '&euro;'.repeat(Math.min(priceLevel, 4)) + '</span>';
+    }
+
+    // Cuisine types
+    var types = mapGoogleTypes(place.types);
+    var typesHtml = '';
+    if (types.length > 0) {
+      typesHtml = '<div class="nearby-card-types">' + types.map(function(t) {
+        return '<span class="nearby-type-tag">' + escapeHtml(t) + '</span>';
+      }).join('') + '</div>';
+    }
+
+    return '<div class="nearby-card">' +
+      '<div class="nearby-card-top">' +
+        '<h3 class="nearby-card-name">' + name + '</h3>' +
+        distHtml +
+      '</div>' +
+      '<div class="nearby-card-address">' + address + '</div>' +
+      '<div class="nearby-card-meta">' +
+        '<span class="nearby-card-rating">' + renderStars(rating) + ' <span class="rating-text">' + rating + ' (' + reviewCount.toLocaleString() + ')</span></span>' +
+        priceHtml +
+      '</div>' +
+      (typesHtml ? '<div style="margin-top: 0.6rem;">' + typesHtml + '</div>' : '') +
+    '</div>';
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — RENDER NEARBY PANEL
+  // ============================================================================
+
+  function renderNearbyPanel() {
+    var inner = document.getElementById('nearbyInner');
+
+    if (nearbyLoading) {
+      inner.innerHTML =
+        '<div class="nearby-loading">' +
+          '<div class="loading-spinner"></div>' +
+          '<div class="loading-text">Discovering restaurants near you</div>' +
+          '<div class="loading-sub">Getting your location and searching nearby&hellip;</div>' +
+        '</div>';
+      return;
+    }
+
+    if (nearbyError) {
+      inner.innerHTML =
+        '<div class="nearby-error">' +
+          '<div class="error-icon">&#128205;</div>' +
+          '<h2 class="nearby-error-title">Could not find nearby restaurants</h2>' +
+          '<p class="nearby-error-desc">' + escapeHtml(nearbyError) + '</p>' +
+          '<button class="btn-primary" onclick="triggerNearbyFetch()">Try Again</button>' +
+        '</div>';
+      return;
+    }
+
+    if (!nearbyResults || nearbyResults.places.length === 0) {
+      inner.innerHTML =
+        '<div class="no-results">' +
+          '<div class="no-results-icon">&#128269;</div>' +
+          '<p class="no-results-text">No highly-rated restaurants found within 5 km</p>' +
+        '</div>';
+      return;
+    }
+
+    var places = nearbyResults.places;
+    var html =
+      '<div class="nearby-header">' +
+        '<span class="nearby-subtitle">Highly-rated restaurants near you</span>' +
+        '<span class="nearby-count">' + places.length + ' results</span>' +
+      '</div>' +
+      '<div class="cards-grid">' +
+        places.map(function(p) { return renderNearbyCard(p, nearbyResults.userLat, nearbyResults.userLng); }).join('') +
+      '</div>';
+
+    inner.innerHTML = html;
+  }
+
+  // ============================================================================
+  // NEAR YOU NOW — FETCH TRIGGER
+  // ============================================================================
+
+  async function triggerNearbyFetch() {
+    if (nearbyResults) {
+      console.log('[NearYou] Using cached nearby results');
+      renderNearbyPanel();
+      return;
+    }
+
+    nearbyLoading = true;
+    nearbyError = null;
+    renderNearbyPanel();
+
+    try {
+      var loc = await getCurrentLocation();
+      nearbyResults = await fetchNearbyRestaurants(loc.latitude, loc.longitude);
+      nearbyLoading = false;
+      renderNearbyPanel();
+      console.log('[NearYou] Displayed', nearbyResults.places.length, 'nearby restaurants');
+    } catch (err) {
+      nearbyLoading = false;
+      nearbyError = err.message;
+      renderNearbyPanel();
+      console.error('[NearYou] Failed:', err.message);
+    }
+  }
+
+  // ============================================================================
+  // MODE SWITCHING
+  // ============================================================================
+
+  function switchMode(mode) {
+    if (mode === currentMode) return;
+    currentMode = mode;
+    console.log('[NearYou] Switched to mode:', mode);
+
+    var routeBtn = document.getElementById('modeRoute');
+    var nearbyBtn = document.getElementById('modeNearby');
+    var routeContent = document.getElementById('routeModeContent');
+    var nearbyContent = document.getElementById('nearbyModeContent');
+    var resultsLabel = document.getElementById('resultsLabel');
+
+    if (mode === 'nearby') {
+      routeBtn.classList.remove('active');
+      nearbyBtn.classList.add('active');
+      routeContent.style.display = 'none';
+      nearbyContent.classList.add('active');
+      resultsLabel.textContent = 'Near You Now';
+
+      // Update header for nearby mode
+      document.getElementById('resultsTitle').innerHTML = 'Restaurants <em>Near You</em>';
+      document.getElementById('resultsMeta').innerHTML = 'Discover highly-rated restaurants within walking distance';
+
+      // Lazy load nearby data
+      triggerNearbyFetch();
+    } else {
+      nearbyBtn.classList.remove('active');
+      routeBtn.classList.add('active');
+      nearbyContent.classList.remove('active');
+      routeContent.style.display = 'block';
+      resultsLabel.textContent = 'Route-Aware Recommendations';
+
+      // Restore route header
+      if (currentRecommendations) {
+        renderRouteHeader(currentRecommendations);
+      }
+    }
+  }
+
+  function renderRouteHeader(data) {
+    var meta = data.meta || {};
+    var meals = data.meals || {};
+    var cityNames = { paris: 'Paris', rome: 'Rome', venice: 'Venice' };
+    var cityName = cityNames[meta.cityId] || meta.cityId || 'Your City';
+    document.getElementById('resultsTitle').innerHTML = 'Restaurants in <em>' + escapeHtml(cityName) + '</em>';
+    var totalCount = meta.totalRestaurants || Object.values(meals).reduce(function(sum, m) { return sum + m.restaurants.length; }, 0);
+    var geocoded = meta.geocodedCount || 0;
+    document.getElementById('resultsMeta').innerHTML =
+      '<strong>' + totalCount + '</strong> scored picks matched to your route' +
+      (geocoded > 0 ? ' &middot; <strong>' + geocoded + '</strong> stops geocoded' : '');
+  }
+
+  // Activate nearby from empty state (no itinerary)
+  function activateNearbyFromEmpty() {
+    console.log('[NearYou] Activating nearby mode from empty state');
+    showState('resultsPage');
+
+    // Hide route content, show nearby
+    document.getElementById('routeModeContent').style.display = 'none';
+    document.getElementById('nearbyModeContent').classList.add('active');
+
+    // Update mode buttons
+    document.getElementById('modeRoute').classList.remove('active');
+    document.getElementById('modeNearby').classList.add('active');
+    currentMode = 'nearby';
+
+    // Update header
+    document.getElementById('resultsLabel').textContent = 'Near You Now';
+    document.getElementById('resultsTitle').innerHTML = 'Restaurants <em>Near You</em>';
+    document.getElementById('resultsMeta').innerHTML = 'Discover highly-rated restaurants within walking distance';
+
+    // Trigger fetch
+    triggerNearbyFetch();
+  }
+
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+
+  async function init() {
+    var raw = localStorage.getItem('cultureguide_parsed');
+    if (!raw) {
+      showState('emptyState');
+      return;
+    }
+
+    try {
+      parsedData = JSON.parse(raw);
+    } catch (e) {
+      console.error('[Restaurants] Failed to parse localStorage data:', e.message);
+      showState('emptyState');
+      return;
+    }
+
+    var entries = parsedData.entries || [];
+    if (entries.length === 0) {
+      showState('emptyState');
+      return;
+    }
+
+    // Show loading state
+    showState('loadingState');
+
+    try {
+      var data = await fetchRecommendations(entries, parsedData.startTime, parsedData.dateISO);
+      currentRecommendations = data;
+
+      renderResults(data);
+      showState('resultsPage');
+
+      // Default to route mode when itinerary exists
+      currentMode = 'route';
+
+      console.log('[Restaurants] Loaded:', data.meta.totalRestaurants, 'restaurants across',
+        Object.keys(data.meals).length, 'meals (source:', Object.values(data.meals).map(function(m) { return m.source; }).join(', ') + ')');
+    } catch (err) {
+      console.error('[Restaurants] Failed to load recommendations:', err.message);
+      document.getElementById('errorDesc').textContent = err.message || 'Could not load restaurant recommendations. Please check that the backend server is running on port 3000.';
+      showState('errorState');
+    }
+  }
+
+  function retryLoad() {
+    init();
+  }
+
+  // Initialize on load
+  init();
+</script>
+
+</body>
+</html>
