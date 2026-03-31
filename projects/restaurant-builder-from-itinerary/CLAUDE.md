@@ -103,6 +103,10 @@ These are NOT used in this project:
 - Story-generator
 - No GitHub pushes — user has a personal repo for that
 
+## Edit Approval Rule (MANDATORY)
+
+**The main terminal session (team lead / direct Claude) must NEVER make code changes without user approval.** Always explain what you plan to change and wait for the user to approve before editing any file. Only agents spawned via Agent Teams may edit files without per-change approval.
+
 ## City Detection
 
 Cities are detected automatically from itinerary text by the AI parser. There is NO city selector UI. The backend `cityName` parameter serves as a fallback only.

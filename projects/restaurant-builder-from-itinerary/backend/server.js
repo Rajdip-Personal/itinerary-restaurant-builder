@@ -139,6 +139,76 @@ app.post('/api/ai/analyze-review', async (req, res) => {
   }
 });
 
+/**
+ * Post-process AI-parsed entries: backfill missing `time` fields by scanning the
+ * original itinerary text for time patterns on the same line as each entry name.
+ * This is a deterministic regex pass — does not rely on the AI.
+ */
+function backfillTimesFromText(parsedJson, rawText) {
+  let entries;
+  try {
+    let raw = parsedJson;
+    raw = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+    entries = JSON.parse(raw);
+  } catch {
+    return parsedJson; // Can't parse — return original
+  }
+
+  if (!Array.isArray(entries)) return parsedJson;
+
+  // Split raw text into lines for matching
+  const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Time patterns: "19:00", "7:30 PM", "5 PM", "17:30"
+  const timeRegex = /\b(\d{1,2}:\d{2})\s*(AM|PM)?\b/i;
+  const time24Regex = /\b(\d{1,2}:\d{2})\b/;
+
+  let changed = 0;
+
+  for (const entry of entries) {
+    // Always check raw text — override AI's sequential times with actual itinerary times
+    const nameLower = (entry.name || '').toLowerCase().replace(/^hotel:\s*/i, '');
+    if (nameLower.length < 3) continue;
+
+    const nameWords = nameLower.split(/\s+/).filter(w => w.length > 2);
+
+    for (const line of lines) {
+      const lineLower = line.toLowerCase();
+
+      const nameMatch = lineLower.includes(nameLower) ||
+        (nameWords.length >= 2 && nameWords.every(w => lineLower.includes(w)));
+
+      if (!nameMatch) continue;
+
+      const match = line.match(timeRegex);
+      if (match) {
+        let timeStr = match[1];
+        const period = (match[2] || '').toUpperCase();
+
+        if (period) {
+          let [h, m] = timeStr.split(':').map(Number);
+          if (period === 'PM' && h !== 12) h += 12;
+          if (period === 'AM' && h === 12) h = 0;
+          timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        } else {
+          const [h, m] = timeStr.split(':').map(Number);
+          timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        entry.time = timeStr;
+        changed++;
+        break;
+      }
+    }
+  }
+
+  if (changed > 0) {
+    console.log(`[Backfill] ${changed} times enriched from raw itinerary text`);
+  }
+
+  return JSON.stringify(entries);
+}
+
 // Parse itinerary with AI
 app.post('/api/ai/parse-itinerary', async (req, res) => {
   try {
@@ -170,6 +240,12 @@ Parse the user's itinerary and return a JSON array. Each entry MUST have these f
 - "estimatedDuration": number — minutes (0 for transit/hotel/skip)
 - "isHotel": true (ONLY for hotel entries)
 - "time": string (OPTIONAL) — "HH:MM" in 24h format. Include ONLY if the user's text contains an explicit time for this entry (e.g., "14:30", "5 PM", "at 7:30"). Do NOT invent times — omit this field if no time is stated.
+- "location": string (OPTIONAL) — a specific geocodable place if different from the name. Use this for metro stops, piazzas, viewpoints, or neighborhoods mentioned in the text that are more precise than the attraction name. Omit if the name itself is already a geocodable location.
+  Examples:
+  "Eiffel Tower Sparkle — Trocadéro" → name: "Eiffel Tower", location: "Trocadéro, Paris"
+  "Pantheon Exterior — Piazza della Rotonda" → name: "Pantheon", location: "Piazza della Rotonda, Rome"
+  "Louvre Museum" → name: "Louvre Museum" (no location needed, name is geocodable)
+  "Sunset at Rialto Bridge" → name: "Rialto Bridge" (no location needed)
 
 TYPE CLASSIFICATION:
 - "attraction" — a visitable place: museum, landmark, monument, park, viewpoint, bridge, neighborhood walk, market, piazza
@@ -282,8 +358,11 @@ Return ONLY the JSON array, no other text.`
     console.log(`[AI] Parsed length: ${parsed.length} characters`);
     console.log(`[AI] Raw response:`, parsed);
 
+    // Post-process: extract missing times from raw itinerary text (AI sometimes misses them)
+    const enrichedParsed = backfillTimesFromText(parsed, validatedItinerary);
+
     res.json({
-      parsed,
+      parsed: enrichedParsed,
       usage: response.usage,
     });
 
@@ -432,12 +511,112 @@ app.post('/api/geocoding/lookup', async (req, res) => {
 
 // ==================== RECOMMENDATION PIPELINE ====================
 
+// Utility: parse "HH:MM" or "H:MM AM/PM" to minutes since midnight
+function parseTimeToMinutes(time) {
+  const trimmed = (time || '').trim();
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2], 10);
+    const period = match12[3].toUpperCase();
+    if (period === 'AM' && hours === 12) hours = 0;
+    if (period === 'PM' && hours !== 12) hours += 12;
+    return hours * 60 + minutes;
+  }
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (match24) {
+    return parseInt(match24[1], 10) * 60 + parseInt(match24[2], 10);
+  }
+  return 720; // default noon if unparseable
+}
+
 // Import compiled TS services from dist/ (built with: npm run build)
-const { geocodeAttractions } = require('../dist/services/geocodingService');
+// NOTE: geocodeAttractions is NOT imported — it makes HTTP self-calls that fail auth.
+// Instead, we use pipelineGeocode() below which calls landmarks + Google directly.
 const { generateRoutePath } = require('../dist/services/routePathGenerator');
-const { insertMealBreaks } = require('../dist/services/mealBreakInserter');
+const { insertMealBreaks, insertSmartMealBreaks } = require('../dist/services/mealBreakInserter');
 const { getRecommendations } = require('../dist/services/recommendationEngine');
 const { recalculateForDelay } = require('../dist/services/runningLateService');
+
+// Import landmark databases for Tier 1 geocoding (direct, no HTTP)
+const { PARIS_LANDMARKS, findLandmarkInCity: findParisLandmark } = require('../dist/data/landmarks/paris');
+const { ROME_LANDMARKS } = require('../dist/data/landmarks/rome');
+const { VENICE_LANDMARKS } = require('../dist/data/landmarks/venice');
+
+const ALL_LANDMARKS = { paris: PARIS_LANDMARKS, rome: ROME_LANDMARKS, venice: VENICE_LANDMARKS };
+
+const CITY_NAMES_GEO = { paris: 'Paris, France', rome: 'Rome, Italy', venice: 'Venice, Italy' };
+
+/**
+ * Pipeline-local geocoding: Landmark DB (Tier 1) → Google API direct (Tier 2).
+ * Avoids the HTTP self-call auth issue in the compiled TS service.
+ */
+async function pipelineGeocode(attractions, cityId) {
+  const results = [];
+  const { findLandmarkInCity } = require('../dist/data/landmarks/paris');
+
+  for (const attraction of attractions) {
+    // Use per-attraction cityId for multi-city itineraries, fallback to global
+    const effectiveCityId = attraction.cityId || cityId;
+    const landmarks = ALL_LANDMARKS[effectiveCityId] || [];
+
+    // Skip if already has coordinates
+    if (attraction.coordinates) {
+      results.push({ name: attraction.name, coordinates: attraction.coordinates, source: 'pre_existing' });
+      continue;
+    }
+
+    // Names to try: location first (more specific), then name
+    const namesToTry = [];
+    if (attraction.location) namesToTry.push(attraction.location);
+    namesToTry.push(attraction.name);
+
+    let found = false;
+
+    for (const tryName of namesToTry) {
+      // Tier 1: Landmark DB
+      const landmark = findLandmarkInCity(tryName, effectiveCityId, landmarks);
+      if (landmark) {
+        console.log(`[Geocoding] Tier 1 hit: ${landmark.name} (landmark) for "${tryName}"`);
+        results.push({ name: attraction.name, coordinates: landmark.coordinates, source: 'landmark' });
+        found = true;
+        break;
+      }
+
+      // Tier 2: Google Geocoding API (direct call, no HTTP self-reference)
+      if (GOOGLE_API_KEY) {
+        try {
+          const cityName = CITY_NAMES_GEO[effectiveCityId] || effectiveCityId;
+          const address = `${tryName}, ${cityName}`;
+          console.log(`[Geocoding] Tier 2 Google API for: ${tryName}`);
+          const geoResp = await axios.get(`${GOOGLE_API_BASE}/geocode/json`, {
+            params: { address, key: GOOGLE_API_KEY },
+          });
+          if (geoResp.data.status === 'OK' && geoResp.data.results && geoResp.data.results.length > 0) {
+            const loc = geoResp.data.results[0].geometry.location;
+            console.log(`[Geocoding] Tier 2 hit: ${tryName} (google) → ${loc.lat}, ${loc.lng}`);
+            results.push({
+              name: attraction.name,
+              coordinates: { latitude: loc.lat, longitude: loc.lng },
+              source: 'google',
+            });
+            found = true;
+            break;
+          }
+        } catch (err) {
+          console.log(`[Geocoding] Tier 2 error for ${tryName}: ${err.message}`);
+        }
+      }
+    }
+
+    if (!found) {
+      console.log(`[Geocoding] All tiers missed for: ${attraction.name}`);
+      results.push(null);
+    }
+  }
+
+  return results;
+}
 
 // Generate restaurant recommendations for an itinerary
 app.post('/api/recommendations/generate', async (req, res) => {
@@ -463,16 +642,16 @@ app.post('/api/recommendations/generate', async (req, res) => {
     const itineraryAttractions = attractions.map((a, i) => ({
       id: `attr-${i}`,
       name: a.name,
-      estimatedTime: a.time || startTime || '09:00',
+      estimatedTime: a.calculatedTime || a.time || startTime || '09:00',
       estimatedDuration: a.estimatedDuration || 60,
       isPlaceholder: false,
       cityId: a.cityId || cityId,
       coordinates: a.coordinates || undefined,
     }));
 
-    // 3. Geocode attractions
+    // 3. Geocode attractions (using pipeline-local function, not HTTP self-call)
     console.log(`[Pipeline] Geocoding ${itineraryAttractions.length} attractions`);
-    const geocoded = await geocodeAttractions(itineraryAttractions, cityId);
+    const geocoded = await pipelineGeocode(itineraryAttractions, cityId);
     let geocodedCount = 0;
 
     // Merge geocoded coordinates back into attractions
@@ -489,7 +668,7 @@ app.post('/api/recommendations/generate', async (req, res) => {
     let hotelCoordinates = undefined;
     if (hotelEntry) {
       const hotelName = hotelEntry.name.replace(/^Hotel:\s*/i, '');
-      const hotelGeo = await geocodeAttractions(
+      const hotelGeo = await pipelineGeocode(
         [{ id: 'hotel', name: hotelName, estimatedTime: '00:00', estimatedDuration: 0, isPlaceholder: false, cityId }],
         hotelEntry.cityId || cityId,
       );
@@ -509,41 +688,95 @@ app.post('/api/recommendations/generate', async (req, res) => {
       routePoints = await generateRoutePath(locationsWithCoords);
     }
 
-    // 6. Insert meal breaks
-    const mealBreaks = insertMealBreaks(itineraryAttractions, cityId);
-    console.log(`[Pipeline] ${mealBreaks.length} meal breaks identified`);
+    // 6. Detect existing user meals to skip those windows
+    // Skip snack-like entries (gelato, coffee, ice cream) — they aren't real meals
+    // Only count meals with explicit times (not defaulted to 12:00)
+    const SNACK_KEYWORDS = ['gelato', 'snack', 'coffee', 'ice cream', 'pastry', 'croissant', 'espresso', 'aperitivo'];
+    const existingMealTypes = [];
+    const mealEntries = entries.filter(e => e.type === 'meal');
+    for (const meal of mealEntries) {
+      const nameLower = (meal.name || '').toLowerCase();
+      const isSnack = SNACK_KEYWORDS.some(kw => nameLower.includes(kw));
+      if (isSnack) {
+        console.log(`[Pipeline] Treating "${meal.name}" as snack, not a full meal`);
+        continue;
+      }
+      if (!meal.time) {
+        console.log(`[Pipeline] Skipping "${meal.name}" — no explicit time, can't determine meal window`);
+        continue;
+      }
+      const mealTime = parseTimeToMinutes(meal.time);
+      if (mealTime >= 420 && mealTime <= 630) existingMealTypes.push('breakfast');   // 07:00-10:30
+      else if (mealTime >= 720 && mealTime <= 870) existingMealTypes.push('lunch');  // 12:00-14:30
+      else if (mealTime >= 1140 && mealTime <= 1320) existingMealTypes.push('dinner'); // 19:00-22:00
+    }
+    if (existingMealTypes.length > 0) {
+      console.log(`[Pipeline] User already has meals: ${existingMealTypes.join(', ')}`);
+    }
 
-    // 7. Get recommendations for each meal break with cross-meal dedup
+    // DEBUG: Log what the mealBreakInserter will see
+    console.log(`[Pipeline] Attractions for meal placement:`);
+    for (const a of itineraryAttractions) {
+      console.log(`  - ${a.name} | time: ${a.estimatedTime} | duration: ${a.estimatedDuration}min | city: ${a.cityId} | coords: ${a.coordinates ? 'yes' : 'no'}`);
+    }
+
+    // 7. Smart meal break placement — multi-candidate per meal
+    const smartMealBreaks = insertSmartMealBreaks(itineraryAttractions, cityId, {
+      hotelCoordinates,
+      existingMealTypes,
+    });
+    const activeMeals = smartMealBreaks.filter(sm => !sm.skipReason && sm.candidates.length > 0);
+    console.log(`[Pipeline] ${activeMeals.length} meal breaks identified (${smartMealBreaks.length - activeMeals.length} skipped)`);
+
+    // 8. Get recommendations — iterate candidates until restaurants found
     const meals = {};
     const usedRestaurantIds = new Set();
 
-    for (const mealBreak of mealBreaks) {
-      const coords = mealBreak.nearCoordinates || (locationsWithCoords.length > 0 ? locationsWithCoords[0] : null);
-      if (!coords) {
-        console.log(`[Pipeline] Skipping ${mealBreak.mealType} — no coordinates`);
-        continue;
+    for (const smartBreak of activeMeals) {
+      let foundRestaurants = false;
+
+      for (let ci = 0; ci < smartBreak.candidates.length; ci++) {
+        const candidate = smartBreak.candidates[ci];
+        console.log(`[Pipeline] ${smartBreak.mealType} candidate ${ci + 1}/${smartBreak.candidates.length}: ${candidate.reason} (city: ${candidate.cityId || cityId})`);
+
+        const candidateCityId = candidate.cityId || cityId;
+        const result = await getRecommendations({
+          cityId: candidateCityId,
+          coordinates: candidate.coordinates,
+          mealType: smartBreak.mealType,
+          routePoints,
+          hotelCoordinates,
+          previousCuisines: [],
+        });
+
+        // Cross-meal deduplication
+        const deduped = result.restaurants.filter(r => !usedRestaurantIds.has(r.id));
+
+        if (deduped.length > 0) {
+          deduped.forEach(r => usedRestaurantIds.add(r.id));
+          meals[smartBreak.mealType] = {
+            restaurants: deduped,
+            source: result.source,
+            mealType: smartBreak.mealType,
+            candidateUsed: candidate.reason,
+          };
+          console.log(`[Pipeline] ${smartBreak.mealType}: ${deduped.length} restaurants (source: ${result.source}, candidate: ${candidate.reason})`);
+          foundRestaurants = true;
+          break;
+        }
+
+        console.log(`[Pipeline] ${smartBreak.mealType} candidate ${ci + 1} — 0 restaurants, trying next`);
       }
 
-      const result = await getRecommendations({
-        cityId,
-        coordinates: coords,
-        mealType: mealBreak.mealType,
-        routePoints,
-        hotelCoordinates,
-        previousCuisines: [],
-      });
-
-      // Cross-meal deduplication
-      const deduped = result.restaurants.filter(r => !usedRestaurantIds.has(r.id));
-      deduped.forEach(r => usedRestaurantIds.add(r.id));
-
-      meals[mealBreak.mealType] = {
-        restaurants: deduped,
-        source: result.source,
-        mealType: mealBreak.mealType,
-      };
-
-      console.log(`[Pipeline] ${mealBreak.mealType}: ${deduped.length} restaurants (source: ${result.source})`);
+      if (!foundRestaurants) {
+        console.log(`[Pipeline] ${smartBreak.mealType}: all ${smartBreak.candidates.length} candidates exhausted — 0 restaurants`);
+        meals[smartBreak.mealType] = {
+          restaurants: [],
+          source: 'manual',
+          mealType: smartBreak.mealType,
+          candidateUsed: 'none — all exhausted',
+        };
+      }
     }
 
     const totalRestaurants = Object.values(meals).reduce(
@@ -556,7 +789,8 @@ app.post('/api/recommendations/generate', async (req, res) => {
         totalRestaurants,
         geocodedCount,
         routePoints: routePoints.length,
-        mealBreaks: mealBreaks.map(mb => mb.mealType),
+        mealBreaks: activeMeals.map(mb => mb.mealType),
+        skippedMeals: smartMealBreaks.filter(sm => sm.skipReason).map(sm => ({ type: sm.mealType, reason: sm.skipReason })),
         cityId,
       },
     });

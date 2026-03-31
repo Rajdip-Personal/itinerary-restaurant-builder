@@ -12,7 +12,7 @@ import type {
   RoutePoint,
   TokenUsage,
 } from 'types/index';
-import { searchNearbyRestaurants } from 'services/restaurantSearch';
+import { searchNearbyRestaurants, searchAlongRoute } from 'services/restaurantSearch';
 import { rankRestaurants, SCORING_VERSION } from 'utils/recommendationRanker';
 import type { ScoringContext } from 'utils/recommendationRanker';
 import { isTouristTrap, calculateTouristTrapScore } from 'utils/touristTrapDetector';
@@ -73,10 +73,31 @@ export function getManualRecommendations(
 ): RecommendationResult | null {
   console.log(`[Engine] Tier 1: Manual search for ${params.cityId} ${params.mealType}`);
 
-  const restaurants = searchNearbyRestaurants(
-    params.coordinates,
-    params.cityId,
-  );
+  let restaurants: Restaurant[] = [];
+
+  // Prefer route-aware search when route points are available
+  if (params.routePoints && params.routePoints.length >= 2) {
+    console.log(`[Engine] Tier 1: Route-aware search (${params.routePoints.length} points, 500m buffer)`);
+    restaurants = searchAlongRoute(
+      params.routePoints,
+      params.cityId,
+      500, // 500m buffer from route
+      params.mealType,
+    );
+    if (restaurants.length > 0) {
+      console.log(`[Engine] Tier 1: Found ${restaurants.length} restaurants along route`);
+    } else {
+      console.log('[Engine] Tier 1: No restaurants along route, falling back to radius search');
+    }
+  }
+
+  // Fall back to radius search if route search found nothing
+  if (restaurants.length === 0) {
+    restaurants = searchNearbyRestaurants(
+      params.coordinates,
+      params.cityId,
+    );
+  }
 
   if (restaurants.length === 0) {
     console.log('[Engine] Tier 1: No curated restaurants found');

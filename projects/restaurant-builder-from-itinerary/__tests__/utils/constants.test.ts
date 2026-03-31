@@ -157,7 +157,7 @@ describe('Constants', () => {
 
   describe('CITY_RESTAURANT_COUNTS', () => {
     it('should define counts for all supported cities', () => {
-      expect(CITY_RESTAURANT_COUNTS.paris).toBe(43);
+      expect(CITY_RESTAURANT_COUNTS.paris).toBe(51);
       expect(CITY_RESTAURANT_COUNTS.rome).toBe(40);
       expect(CITY_RESTAURANT_COUNTS.venice).toBe(15);
     });

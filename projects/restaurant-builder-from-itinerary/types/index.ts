@@ -202,6 +202,21 @@ export interface MealBreak {
   nearCoordinates?: Coordinates;
 }
 
+export interface MealPlacementCandidate {
+  coordinates: Coordinates;
+  suggestedTime: string;               // "HH:MM"
+  nearAttraction: string;
+  reason: string;                      // e.g., "gap between Galeries Lafayette and Eiffel Tower"
+  cityId?: string;                     // resolved city for this candidate (multi-city support)
+}
+
+export interface SmartMealBreak {
+  mealType: MealType;
+  window: MealTimeWindow;
+  candidates: MealPlacementCandidate[];  // ranked best → worst
+  skipReason?: string;                   // if no candidates, why (e.g., "user already has dinner")
+}
+
 export interface RecommendationResult {
   restaurants: EnhancedRestaurant[];
   source: RecommendationSource;

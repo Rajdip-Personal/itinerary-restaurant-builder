@@ -74,7 +74,7 @@ export const NEARBY_SEARCH = {
 export const SUPPORTED_CITIES = ['paris', 'rome', 'venice'] as const;
 
 export const CITY_RESTAURANT_COUNTS: Record<string, number> = {
-  paris: 43,
+  paris: 51,
   rome: 40,
   venice: 15,
 };

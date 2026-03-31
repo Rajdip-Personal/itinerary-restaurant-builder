@@ -125,6 +125,64 @@ describe('insertMealBreaks', () => {
     const breaks = insertMealBreaks([], 'paris');
     expect(breaks).toHaveLength(0);
   });
+
+  it('inserts dinner near hotel when itinerary ends before dinner window', () => {
+    // Itinerary ends at 17:00 — before dinner window (19:00-22:00)
+    // With hotel coords, dinner should still be suggested near hotel
+    const earlyEndTimeline: TimelineEntry[] = [
+      {
+        attractionId: 'attr-1',
+        attractionName: 'Louvre Museum',
+        arrivalTime: '09:00',
+        departureTime: '12:00',
+        durationMinutes: 180,
+        transitToNextMinutes: 15,
+        distanceToNextMeters: 1200,
+        travelMode: 'walking',
+      },
+      {
+        attractionId: 'attr-2',
+        attractionName: 'Musée d\'Orsay',
+        arrivalTime: '14:00',
+        departureTime: '17:00',
+        durationMinutes: 180,
+      },
+    ];
+
+    const breaks = insertMealBreaks(earlyEndTimeline, 'paris', {
+      hotelCoordinates: PARIS_COORDS.hotel,
+    });
+
+    const dinner = breaks.find((b) => b.mealType === 'dinner');
+    expect(dinner).toBeDefined();
+    expect(dinner!.nearAttraction).toBe('Hotel');
+    expect(dinner!.suggestedTime).toBe('19:00');
+    expect(dinner!.window).toEqual(MEAL_TIME_WINDOWS.dinner);
+  });
+
+  it('does not insert dinner when itinerary ends early and no hotel coords', () => {
+    // Same early-end timeline but without hotel — no dinner possible
+    const earlyEndTimeline: TimelineEntry[] = [
+      {
+        attractionId: 'attr-1',
+        attractionName: 'Louvre Museum',
+        arrivalTime: '09:00',
+        departureTime: '12:00',
+        durationMinutes: 180,
+      },
+      {
+        attractionId: 'attr-2',
+        attractionName: 'Musée d\'Orsay',
+        arrivalTime: '14:00',
+        departureTime: '17:00',
+        durationMinutes: 180,
+      },
+    ];
+
+    const breaks = insertMealBreaks(earlyEndTimeline, 'paris');
+    const dinner = breaks.find((b) => b.mealType === 'dinner');
+    expect(dinner).toBeUndefined();
+  });
 });
 
 function timeToMinutes(time: string): number {

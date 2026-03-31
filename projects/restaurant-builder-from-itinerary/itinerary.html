@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CultureGuide — Parse Your Itinerary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #1a1a2e;
+    --charcoal-light: #2d2d44;
+    --terracotta: #c4704b;
+    --terracotta-dark: #a85a3a;
+    --ochre: #d4a574;
+    --ochre-light: #e8c9a0;
+    --cream: #f5f0eb;
+    --cream-dark: #ebe3da;
+    --sage: #8a9a7b;
+    --sage-light: #a8b89a;
+    --white: #fefcfa;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Outfit', system-ui, sans-serif;
+    --red: #c0392b;
+    --red-light: #fdf0ef;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* ═══════════ NAV ═══════════ */
+  nav {
+    padding: 1.5rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    background: rgba(245, 240, 235, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--charcoal);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--terracotta); font-style: italic; }
+
+  .nav-back {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.3s ease;
+    min-height: 44px; /* Touch target */
+  }
+  .nav-back:hover { color: var(--terracotta); }
+
+  /* Hamburger menu (mobile only) */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    gap: 5px;
+    transition: all 0.3s ease;
+  }
+
+  .hamburger-line {
+    width: 24px;
+    height: 2px;
+    background: var(--charcoal);
+    transition: all 0.3s ease;
+  }
+
+  .hamburger.open .hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger.open .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.open .hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Mobile nav panel */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    top: 70px; /* Below nav */
+    left: 0;
+    right: 0;
+    background: rgba(245, 240, 235, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    z-index: 99;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .mobile-nav.open {
+    max-height: 300px;
+  }
+
+  .mobile-nav-links {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    min-height: 44px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    text-decoration: none;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    transition: all 0.2s ease;
+  }
+
+  .mobile-nav-link:hover {
+    background: var(--cream-dark);
+    color: var(--terracotta);
+  }
+
+  /* ═══════════ LAYOUT ═══════════ */
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    min-height: calc(100vh - 70px);
+  }
+
+  /* ═══════════ INPUT PANEL ═══════════ */
+  .input-panel {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+  }
+
+  .panel-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 0.8rem;
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 300;
+    line-height: 1.15;
+    margin-bottom: 0.8rem;
+  }
+  .panel-title em { font-style: italic; color: var(--terracotta); }
+
+  .panel-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  /* Textarea */
+  .input-group { margin-bottom: 1.5rem; }
+
+  .input-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--charcoal-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .itinerary-textarea {
+    width: 100%;
+    min-height: 240px;
+    padding: 1.2rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 300;
+    line-height: 1.7;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .itinerary-textarea:focus {
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(196, 112, 75, 0.08);
+  }
+
+  .itinerary-textarea::placeholder {
+    color: rgba(26, 26, 46, 0.3);
+    font-style: italic;
+  }
+
+  /* Start time input */
+  .time-row {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 2rem;
+  }
+
+  .time-input, .date-input {
+    padding: 0.7rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    outline: none;
+    width: 130px;
+    transition: border-color 0.3s ease;
+    min-height: 44px; /* Touch target */
+  }
+  .time-input:focus, .date-input:focus { border-color: var(--terracotta); }
+
+  .date-input { width: 160px; }
+
+  .date-picker { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .quick-dates {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .quick-date {
+    padding: 0.35rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--charcoal-light);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px; /* Touch target */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quick-date:hover {
+    border-color: var(--terracotta);
+    color: var(--terracotta);
+  }
+
+  .quick-date.active {
+    background: var(--charcoal);
+    color: var(--cream);
+    border-color: var(--charcoal);
+  }
+
+  /* Parse button */
+  .btn-parse {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+    min-height: 44px; /* Touch target */
+  }
+
+  .btn-parse:hover:not(:disabled) {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  .btn-parse:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Loading state */
+  .btn-parse.loading .btn-text { display: none; }
+  .btn-parse.loading .btn-loading { display: inline-flex; }
+  .btn-loading {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(245, 240, 235, 0.3);
+    border-top-color: var(--cream);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Error message */
+  .error-msg {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    background: var(--red-light);
+    border-left: 3px solid var(--red);
+    font-size: 0.85rem;
+    color: var(--red);
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Char count */
+  .char-count {
+    text-align: right;
+    font-size: 0.7rem;
+    color: rgba(26, 26, 46, 0.3);
+    margin-top: 0.3rem;
+  }
+  .char-count.warn { color: var(--red); }
+
+  /* ═══════════ RESULTS PANEL ═══════════ */
+  .results-panel {
+    min-height: 400px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+    text-align: center;
+    border: 1px dashed rgba(26, 26, 46, 0.1);
+    padding: 3rem;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-desc {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(26, 26, 46, 0.4);
+    max-width: 280px;
+  }
+
+  /* Timeline results */
+  .timeline { display: none; }
+  .timeline.visible { display: block; }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.08);
+  }
+
+  .timeline-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+  }
+
+  .timeline-meta {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    text-align: right;
+  }
+
+  .timeline-meta strong {
+    color: var(--terracotta);
+  }
+
+  /* City group */
+  .city-group {
+    margin-bottom: 2rem;
+  }
+
+  .city-group-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .city-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(138, 154, 123, 0.2);
+  }
+
+  /* Timeline entry */
+  .timeline-entry {
+    display: grid;
+    grid-template-columns: 60px 4px 1fr;
+    gap: 1.2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: entryIn 0.3s ease forwards;
+  }
+
+  .timeline-entry:nth-child(1) { animation-delay: 0.05s; }
+  .timeline-entry:nth-child(2) { animation-delay: 0.1s; }
+  .timeline-entry:nth-child(3) { animation-delay: 0.15s; }
+  .timeline-entry:nth-child(4) { animation-delay: 0.2s; }
+  .timeline-entry:nth-child(5) { animation-delay: 0.25s; }
+  .timeline-entry:nth-child(6) { animation-delay: 0.3s; }
+  .timeline-entry:nth-child(7) { animation-delay: 0.35s; }
+  .timeline-entry:nth-child(8) { animation-delay: 0.4s; }
+  .timeline-entry:nth-child(9) { animation-delay: 0.45s; }
+  .timeline-entry:nth-child(10) { animation-delay: 0.5s; }
+
+  @keyframes entryIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry-time {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--charcoal-light);
+    text-align: right;
+    padding-top: 0.9rem;
+  }
+
+  .entry-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  .entry-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 1rem;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .entry-connector {
+    width: 1.5px;
+    flex: 1;
+    background: rgba(26, 26, 46, 0.1);
+    margin-top: 4px;
+  }
+
+  /* Type colors */
+  .type-attraction .entry-dot { background: var(--terracotta); }
+  .type-meal .entry-dot { background: var(--sage); }
+  .type-hotel .entry-dot { background: var(--ochre); }
+  .type-transit .entry-dot { background: var(--charcoal-light); }
+  .type-skip .entry-dot { background: rgba(26, 26, 46, 0.2); }
+
+  .entry-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    padding: 1rem 1.2rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .entry-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(26, 26, 46, 0.06);
+  }
+
+  .entry-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+  }
+
+  .entry-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+
+  .entry-type-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1px;
+  }
+
+  .type-attraction .entry-type-badge { background: rgba(196, 112, 75, 0.1); color: var(--terracotta); }
+  .type-meal .entry-type-badge { background: rgba(138, 154, 123, 0.15); color: var(--sage); }
+  .type-hotel .entry-type-badge { background: rgba(212, 165, 116, 0.15); color: var(--ochre); }
+  .type-transit .entry-type-badge { background: rgba(26, 26, 46, 0.06); color: var(--charcoal-light); }
+  .type-skip .entry-type-badge { background: rgba(26, 26, 46, 0.04); color: rgba(26, 26, 46, 0.4); }
+
+  .entry-details {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+  }
+
+  .entry-duration {
+    color: var(--ochre);
+    font-weight: 500;
+  }
+
+  /* Token usage footer */
+  .token-usage {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(26, 26, 46, 0.02);
+    border: 1px solid rgba(26, 26, 46, 0.04);
+    font-size: 0.7rem;
+    color: rgba(26, 26, 46, 0.4);
+    display: none;
+  }
+  .token-usage.visible { display: block; }
+
+  /* View Restaurants button */
+  .btn-restaurants {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 1rem;
+    min-height: 44px; /* Touch target */
+  }
+  .btn-restaurants.visible { display: inline-flex; }
+  .btn-restaurants:hover {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  /* ═══════════ RESPONSIVE ═══════════ */
+  @media (max-width: 900px) {
+    .page {
+      grid-template-columns: 1fr;
+      padding: 2rem 1.5rem;
+    }
+    .input-panel {
+      position: static;
+    }
+    nav { padding: 1.2rem 1.5rem; }
+  }
+
+  @media (max-width: 768px) {
+    /* Tablet adjustments */
+    .page {
+      padding: 2rem 1.2rem;
+    }
+    .panel-title {
+      font-size: 2rem;
+    }
+    .timeline-title {
+      font-size: 1.6rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    /* Mobile layout */
+    .page { padding: 1.5rem 1rem; }
+    .time-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .time-input, .date-input {
+      width: 100%;
+    }
+
+    /* Show hamburger, hide desktop back link */
+    .hamburger {
+      display: flex;
+    }
+    .nav-back {
+      display: none;
+    }
+    .mobile-nav {
+      display: block;
+    }
+
+    /* Adjust nav spacing */
+    nav {
+      padding: 1rem;
+    }
+    .nav-logo {
+      font-size: 1.4rem;
+    }
+
+    /* Typography adjustments */
+    .panel-title {
+      font-size: 1.8rem;
+    }
+    .timeline-title {
+      font-size: 1.4rem;
+    }
+
+    /* Timeline entry adjustments for mobile */
+    .timeline-entry {
+      grid-template-columns: 50px 4px 1fr;
+      gap: 0.8rem;
+    }
+    .entry-time {
+      font-size: 0.7rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
+  <a href="index.html" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to home
+  </a>
+  <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu" aria-expanded="false">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+</nav>
+
+<!-- Mobile nav panel -->
+<div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-links">
+    <a href="index.html" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6l6-4 6 4v7a1 1 0 01-1 1H3a1 1 0 01-1-1V6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </a>
+    <a href="restaurants.html" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M12 3v4c0 2-1.5 3-4 3M4 2v5c0 1 .5 2 2 2h0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Restaurants
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN CONTENT ═══════════ -->
+<div class="page">
+
+  <!-- LEFT: Input Panel -->
+  <div class="input-panel">
+    <p class="panel-label">Step 1</p>
+    <h1 class="panel-title">Paste your <em>itinerary</em></h1>
+    <p class="panel-desc">
+      Any format works &mdash; copy from a travel blog, ChatGPT plan, or just type a rough schedule.
+      Our AI detects the cities, classifies each stop, and builds your timeline.
+    </p>
+
+    <div class="input-group">
+      <label class="input-label" for="itinerary">Your itinerary</label>
+      <textarea
+        id="itinerary"
+        class="itinerary-textarea"
+        placeholder="9:00 AM - Louvre Museum (2-3 hours)&#10;Lunch somewhere good&#10;2:30 PM - Notre Dame Cathedral&#10;Walk along Seine&#10;Evening - Eiffel Tower&#10;&#10;Or paste a multi-city plan:&#10;Morning: St. Mark's Basilica, Venice&#10;Afternoon train to Rome&#10;Evening: Trevi Fountain"
+      ></textarea>
+      <div class="char-count" id="charCount">0 / 3000</div>
+    </div>
+
+    <div class="time-row">
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" for="tripDate">Date</label>
+        <div class="date-picker">
+          <div class="quick-dates" id="quickDates">
+            <button class="quick-date active" data-offset="0">Today</button>
+            <button class="quick-date" data-offset="1">Tomorrow</button>
+            <button class="quick-date" data-offset="2">Day After</button>
+          </div>
+          <input type="date" id="tripDate" class="date-input">
+        </div>
+      </div>
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" for="startTime">Start time</label>
+        <input type="time" id="startTime" class="time-input" value="09:00">
+      </div>
+    </div>
+
+    <button id="parseBtn" class="btn-parse" onclick="parseItinerary()">
+      <span class="btn-text">Parse with AI</span>
+      <span class="btn-loading"><span class="spinner"></span> Parsing...</span>
+    </button>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <a href="restaurants.html" class="btn-restaurants" id="viewRestaurantsBtn">
+      View Restaurant Picks
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- RIGHT: Results Panel -->
+  <div class="results-panel">
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">&#128466;</div>
+      <h3 class="empty-title">Your timeline will appear here</h3>
+      <p class="empty-desc">Paste an itinerary on the left and hit parse to see your structured day plan</p>
+    </div>
+
+    <!-- Timeline (hidden until parse) -->
+    <div class="timeline" id="timeline"></div>
+
+    <!-- Token usage -->
+    <div class="token-usage" id="tokenUsage"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════ JAVASCRIPT ═══════════ -->
+<script>
+  // Config — using the existing CultureGuideWeb backend
+  const BACKEND_URL = 'http://localhost:3000';
+  const API_KEY = 'cg_a05c1e742ef279b4f9813b0bdf7a24e31acb71f43d0beb25e9a1ee646f9c8337';
+
+  // ─── Date picker setup ───
+  const tripDateInput = document.getElementById('tripDate');
+  const quickDates = document.getElementById('quickDates');
+
+  function setDateOffset(offset) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    tripDateInput.value = d.toISOString().split('T')[0];
+  }
+
+  // Default to today
+  setDateOffset(0);
+
+  // Quick date buttons
+  quickDates.addEventListener('click', (e) => {
+    const btn = e.target.closest('.quick-date');
+    if (!btn) return;
+    quickDates.querySelectorAll('.quick-date').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setDateOffset(parseInt(btn.dataset.offset));
+  });
+
+  // If user picks a date manually, deselect quick buttons
+  tripDateInput.addEventListener('change', () => {
+    quickDates.querySelectorAll('.quick-date').forEach(b => b.classList.remove('active'));
+  });
+
+  function getSelectedDate() {
+    const val = tripDateInput.value;
+    if (!val) return 'Today';
+    const d = new Date(val + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  // DOM refs
+  const textarea = document.getElementById('itinerary');
+  const charCount = document.getElementById('charCount');
+  const parseBtn = document.getElementById('parseBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const emptyState = document.getElementById('emptyState');
+  const timelineEl = document.getElementById('timeline');
+  const tokenUsage = document.getElementById('tokenUsage');
+
+  // Character counter
+  textarea.addEventListener('input', () => {
+    const len = textarea.value.length;
+    charCount.textContent = `${len} / 3000`;
+    charCount.classList.toggle('warn', len > 3000);
+  });
+
+  // ─── Main parse function ───
+  async function parseItinerary() {
+    const text = textarea.value.trim();
+    if (!text) {
+      showError('Please paste an itinerary first.');
+      return;
+    }
+    if (text.length > 3000) {
+      showError('Itinerary is too long (max 3000 characters). Try shortening it.');
+      return;
+    }
+
+    // Reset UI
+    hideError();
+    setLoading(true);
+    emptyState.style.display = 'none';
+    timelineEl.classList.remove('visible');
+    tokenUsage.classList.remove('visible');
+
+    try {
+      // Call the backend — cityName is "auto" since AI detects from text
+      const response = await fetch(`${BACKEND_URL}/api/ai/parse-itinerary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY,
+        },
+        body: JSON.stringify({
+          itineraryText: text,
+          cityName: 'europe',  // fallback — AI detects actual cities
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || err.message || `Server error (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      // Parse the AI response (it's a JSON string inside `parsed`)
+      let entries;
+      try {
+        let raw = data.parsed;
+        // Strip markdown code fences if present
+        raw = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+        entries = JSON.parse(raw);
+      } catch (e) {
+        throw new Error('AI returned invalid JSON. Try rephrasing your itinerary.');
+      }
+
+      if (!Array.isArray(entries) || entries.length === 0) {
+        throw new Error('No entries detected. Make sure your itinerary has places or activities.');
+      }
+
+      // Compute times on each entry before rendering/saving
+      const enrichedEntries = computeEntryTimes(entries);
+
+      // Build the timeline
+      renderTimeline(enrichedEntries);
+
+      // Save enriched data to localStorage for restaurant page
+      localStorage.setItem('cultureguide_parsed', JSON.stringify({
+        entries: enrichedEntries,
+        startTime: document.getElementById('startTime').value || '09:00',
+        parsedAt: Date.now(),
+        date: getSelectedDate(),
+        dateISO: tripDateInput.value  // "YYYY-MM-DD" format for backend
+      }));
+
+      // Show the "View Restaurants" button
+      document.getElementById('viewRestaurantsBtn').classList.add('visible');
+
+      // Show token usage
+      if (data.usage) {
+        tokenUsage.innerHTML = `AI tokens used: ${data.usage.total_tokens} (prompt: ${data.usage.prompt_tokens}, completion: ${data.usage.completion_tokens})`;
+        tokenUsage.classList.add('visible');
+      }
+
+    } catch (err) {
+      showError(err.message);
+      emptyState.style.display = 'flex';
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ─── Extract times from raw itinerary text for entries the AI missed ───
+  // Scans the textarea for lines matching each entry name, extracts "HH:MM" or "H:MM AM/PM"
+  function backfillTimesFromRawText(entries) {
+    var el = document.getElementById('itinerary');
+    var rawText = el ? el.value : '';
+    if (!rawText) return entries;
+
+    var lines = rawText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+    var timeRe = /\b(\d{1,2}:\d{2})\s*(AM|PM)?/i;
+
+    entries.forEach(function(entry) {
+      var name = (entry.name || '').toLowerCase().replace(/^hotel:\s*/i, '');
+      if (name.length < 3) return;
+
+      var words = name.split(/\s+/).filter(function(w) { return w.length > 2; });
+
+      for (var li = 0; li < lines.length; li++) {
+        var lineLower = lines[li].toLowerCase();
+        var matched = lineLower.indexOf(name) !== -1 ||
+          (words.length >= 2 && words.every(function(w) { return lineLower.indexOf(w) !== -1; }));
+
+        if (!matched) continue;
+
+        var m = lines[li].match(timeRe);
+        if (m) {
+          var timeStr = m[1];
+          var period = (m[2] || '').toUpperCase();
+          var parts = timeStr.split(':').map(Number);
+          var h = parts[0], min = parts[1];
+          if (period === 'PM' && h !== 12) h += 12;
+          if (period === 'AM' && h === 12) h = 0;
+          entry.time = String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+          console.log('[Parse] Backfilled time for "' + entry.name + '": ' + entry.time);
+          break;
+        }
+      }
+    });
+
+    return entries;
+  }
+
+  // ─── Compute calculated times on each entry ───
+  // Priority: 1) explicit time from AI or backfill, 2) sequential from user start time
+  // Handles: late arrivals, multi-city, transit gaps, missing durations
+  function computeEntryTimes(entries) {
+    // First: backfill any missing times from the raw itinerary text
+    backfillTimesFromRawText(entries);
+
+    const startTimeVal = document.getElementById('startTime').value || '09:00';
+    const [startH, startM] = startTimeVal.split(':').map(Number);
+    let currentMinutes = startH * 60 + startM;
+
+    // Default durations by type when AI returns 0 or missing
+    const DEFAULT_DURATIONS = {
+      attraction: 60,
+      meal: 45,
+      transit: 90,
+      hotel: 0,
+      skip: 0,
+    };
+
+    // Buffer between sequential entries (walking/transition time)
+    const TRANSIT_BUFFER = 10;
+
+    return entries.map((entry, i) => {
+      const enriched = { ...entry };
+
+      // Use explicit time from AI or backfill if present
+      const explicitTime = entry.time || entry.estimatedTime || entry.startTime;
+      if (explicitTime) {
+        const parsed = parseTimeString(explicitTime);
+        if (parsed !== null) {
+          // Explicit time overrides sequential calculation
+          currentMinutes = parsed;
+        }
+      }
+
+      // Set calculated time in 24h "HH:MM" format
+      const h = Math.floor(currentMinutes / 60) % 24;
+      const m = currentMinutes % 60;
+      enriched.calculatedTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+      // Determine effective duration
+      let duration = entry.estimatedDuration;
+      if (!duration || duration <= 0) {
+        duration = DEFAULT_DURATIONS[entry.type] || 60;
+      }
+      enriched.effectiveDuration = duration;
+
+      // Advance clock: duration + transit buffer (skip buffer for last entry and skip/hotel types)
+      const isLast = i === entries.length - 1;
+      if (duration > 0) {
+        currentMinutes += duration + (isLast ? 0 : TRANSIT_BUFFER);
+      } else if (entry.type === 'transit') {
+        currentMinutes += DEFAULT_DURATIONS.transit;
+      }
+
+      return enriched;
+    });
+  }
+
+  // Parse various time string formats to minutes since midnight
+  function parseTimeString(timeStr) {
+    if (!timeStr) return null;
+    const str = timeStr.toString().trim().toUpperCase();
+    // "HH:MM" 24h
+    const match24 = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (match24) return parseInt(match24[1]) * 60 + parseInt(match24[2]);
+    // "H:MM AM/PM"
+    const match12 = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+    if (match12) {
+      let h = parseInt(match12[1]);
+      const m = parseInt(match12[2]);
+      if (match12[3] === 'PM' && h !== 12) h += 12;
+      if (match12[3] === 'AM' && h === 12) h = 0;
+      return h * 60 + m;
+    }
+    return null;
+  }
+
+  // ─── Render timeline from parsed entries ───
+  function renderTimeline(entries) {
+    const startTime = document.getElementById('startTime').value || '09:00';
+    const [startH, startM] = startTime.split(':').map(Number);
+    let currentMinutes = startH * 60 + startM;
+
+    // Detect unique cities
+    const cities = [...new Set(entries.map(e => e.cityId).filter(Boolean))];
+    const cityNames = { paris: 'Paris', venice: 'Venice', rome: 'Rome' };
+
+    // Count by type
+    const counts = {};
+    entries.forEach(e => {
+      counts[e.type] = (counts[e.type] || 0) + 1;
+    });
+
+    // Build header
+    let html = `
+      <div class="timeline-header">
+        <div>
+          <h2 class="timeline-title">Your Day</h2>
+          <div style="font-size: 0.85rem; font-weight: 300; color: var(--charcoal-light); margin-top: 0.2rem;">
+            ${getSelectedDate()}
+          </div>
+        </div>
+        <div class="timeline-meta">
+          <strong>${entries.length}</strong> stops across
+          <strong>${cities.map(c => cityNames[c] || c).join(', ')}</strong><br>
+          ${Object.entries(counts).map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(' &middot; ')}
+        </div>
+      </div>
+    `;
+
+    // Group entries by city (preserve order)
+    let currentCity = null;
+
+    entries.forEach((entry, i) => {
+      // City group header
+      if (entry.cityId && entry.cityId !== currentCity && cities.length > 1) {
+        currentCity = entry.cityId;
+        html += `
+          <div class="city-group-label">
+            ${cityNames[currentCity] || currentCity}
+          </div>
+        `;
+      }
+
+      // Use pre-computed time from computeEntryTimes (respects explicit itinerary times)
+      const timeStr = entry.calculatedTime ? formatTime24to12(entry.calculatedTime) : minutesToTime(currentMinutes);
+
+      const duration = entry.effectiveDuration || entry.estimatedDuration || 0;
+      const isLast = i === entries.length - 1;
+
+      html += `
+        <div class="timeline-entry type-${entry.type}">
+          <div class="entry-time">${entry.type === 'skip' ? '' : timeStr}</div>
+          <div class="entry-line">
+            <div class="entry-dot"></div>
+            ${!isLast ? '<div class="entry-connector"></div>' : ''}
+          </div>
+          <div class="entry-card">
+            <div class="entry-card-header">
+              <span class="entry-name">${escapeHtml(entry.name)}</span>
+              <span class="entry-type-badge">${entry.type}</span>
+            </div>
+            <div class="entry-details">
+              ${duration > 0 ? `<span class="entry-duration">${formatDuration(duration)}</span>` : ''}
+              ${entry.cityId ? ` &middot; ${cityNames[entry.cityId] || entry.cityId}` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Advance fallback clock (only used if entry has no calculatedTime)
+      if (duration > 0) {
+        currentMinutes += duration + 10;
+      } else if (entry.type === 'transit') {
+        currentMinutes += 90;
+      }
+    });
+
+    timelineEl.innerHTML = html;
+    timelineEl.classList.add('visible');
+  }
+
+  // ─── Helpers ───
+  function formatTime24to12(time24) {
+    const [h, m] = time24.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function minutesToTime(totalMinutes) {
+    const h = Math.floor(totalMinutes / 60) % 24;
+    const m = totalMinutes % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function formatDuration(minutes) {
+    if (minutes < 60) return `${minutes} min`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function setLoading(loading) {
+    parseBtn.classList.toggle('loading', loading);
+    parseBtn.disabled = loading;
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+  }
+
+  function hideError() {
+    errorMsg.classList.remove('visible');
+  }
+
+  // Allow Ctrl+Enter to parse
+  textarea.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      parseItinerary();
+    }
+  });
+
+  // ─── Hamburger menu toggle ───
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileNav = document.getElementById('mobileNav');
+
+  if (hamburgerBtn && mobileNav) {
+    hamburgerBtn.addEventListener('click', () => {
+      const isOpen = hamburgerBtn.classList.toggle('open');
+      mobileNav.classList.toggle('open');
+      hamburgerBtn.setAttribute('aria-expanded', isOpen);
+    });
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!hamburgerBtn.contains(e.target) && !mobileNav.contains(e.target)) {
+        hamburgerBtn.classList.remove('open');
+        mobileNav.classList.remove('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Close mobile nav when a link is clicked
+    const mobileNavLinks = mobileNav.querySelectorAll('.mobile-nav-link');
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        hamburgerBtn.classList.remove('open');
+        mobileNav.classList.remove('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
