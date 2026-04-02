@@ -9,8 +9,12 @@ let totalTokensUsed = 0;
 /**
  * Track a token usage entry, accumulating toward the budget limit.
  */
-export function trackTokenUsage(usage: TokenUsage): void {
-  totalTokensUsed += usage.totalTokens;
+export function trackTokenUsage(usage: TokenUsage | Record<string, number>): void {
+  // Handle both camelCase (our type) and snake_case (OpenAI raw response)
+  const tokens = (usage as TokenUsage).totalTokens
+    ?? (usage as Record<string, number>).total_tokens
+    ?? 0;
+  totalTokensUsed += tokens;
   console.log(
     `[TokenTracker] +${usage.totalTokens} tokens (total: ${totalTokensUsed}/${TOKEN_BUDGET.limit})`,
   );

@@ -106,7 +106,8 @@ describe('insertMealBreaks', () => {
     expect(lunch!.nearAttraction).toBeTruthy();
   });
 
-  it('does not insert meals for a very short timeline', () => {
+  // Updated: all 3 meals are always suggested even for short timelines
+  it('inserts all 3 meals even for a very short timeline', () => {
     const shortTimeline: TimelineEntry[] = [
       {
         attractionId: 'attr-short',
@@ -118,12 +119,74 @@ describe('insertMealBreaks', () => {
     ];
 
     const breaks = insertMealBreaks(shortTimeline, 'paris');
-    expect(breaks.filter((b) => b.mealType === 'lunch')).toHaveLength(0);
+    expect(breaks.find((b) => b.mealType === 'breakfast')).toBeDefined();
+    expect(breaks.find((b) => b.mealType === 'lunch')).toBeDefined();
+    expect(breaks.find((b) => b.mealType === 'dinner')).toBeDefined();
   });
 
   it('returns empty array for empty timeline', () => {
     const breaks = insertMealBreaks([], 'paris');
     expect(breaks).toHaveLength(0);
+  });
+
+  it('inserts dinner near hotel when itinerary ends before dinner window', () => {
+    // Itinerary ends at 17:00 — before dinner window (19:00-22:00)
+    // With hotel coords, dinner should still be suggested near hotel
+    const earlyEndTimeline: TimelineEntry[] = [
+      {
+        attractionId: 'attr-1',
+        attractionName: 'Louvre Museum',
+        arrivalTime: '09:00',
+        departureTime: '12:00',
+        durationMinutes: 180,
+        transitToNextMinutes: 15,
+        distanceToNextMeters: 1200,
+        travelMode: 'walking',
+      },
+      {
+        attractionId: 'attr-2',
+        attractionName: 'Musée d\'Orsay',
+        arrivalTime: '14:00',
+        departureTime: '17:00',
+        durationMinutes: 180,
+      },
+    ];
+
+    const breaks = insertMealBreaks(earlyEndTimeline, 'paris', {
+      hotelCoordinates: PARIS_COORDS.hotel,
+    });
+
+    const dinner = breaks.find((b) => b.mealType === 'dinner');
+    expect(dinner).toBeDefined();
+    expect(dinner!.nearAttraction).toBe('Hotel');
+    expect(dinner!.suggestedTime).toBe('19:00');
+    expect(dinner!.window).toEqual(MEAL_TIME_WINDOWS.dinner);
+  });
+
+  // Updated: dinner is always suggested even without hotel — uses last attraction as fallback
+  it('inserts dinner near last attraction when itinerary ends early and no hotel coords', () => {
+    const earlyEndTimeline: TimelineEntry[] = [
+      {
+        attractionId: 'attr-1',
+        attractionName: 'Louvre Museum',
+        arrivalTime: '09:00',
+        departureTime: '12:00',
+        durationMinutes: 180,
+      },
+      {
+        attractionId: 'attr-2',
+        attractionName: 'Musée d\'Orsay',
+        arrivalTime: '14:00',
+        departureTime: '17:00',
+        durationMinutes: 180,
+      },
+    ];
+
+    const breaks = insertMealBreaks(earlyEndTimeline, 'paris');
+    const dinner = breaks.find((b) => b.mealType === 'dinner');
+    expect(dinner).toBeDefined();
+    expect(dinner!.suggestedTime).toBe('19:00');
+    expect(dinner!.nearAttraction).toBe('Musée d\'Orsay');
   });
 });
 

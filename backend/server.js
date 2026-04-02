@@ -1,4 +1,24 @@
 require('dotenv').config();
+
+// Register TS path-alias resolver so compiled dist/ files can resolve
+// bare imports like "utils/distance" → "../dist/utils/distance"
+const Module = require('module');
+const path = require('path');
+const distDir = path.resolve(__dirname, '..', 'dist');
+const origResolve = Module._resolveFilename;
+Module._resolveFilename = function (request, parent, ...rest) {
+  if (parent && parent.filename && parent.filename.startsWith(distDir)) {
+    const aliases = ['utils/', 'types/', 'services/', 'data/', 'hooks/', 'components/'];
+    for (const prefix of aliases) {
+      if (request.startsWith(prefix)) {
+        const mapped = path.join(distDir, request);
+        return origResolve.call(this, mapped, parent, ...rest);
+      }
+    }
+  }
+  return origResolve.call(this, request, parent, ...rest);
+};
+
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
@@ -35,6 +55,12 @@ const API_KEY = process.env.API_KEY;
 function authenticateApiKey(req, res, next) {
   // Skip auth for health check
   if (req.path === '/health') {
+    return next();
+  }
+
+  // Skip auth for internal server-to-self calls (recommendation engine Tier 3)
+  const isInternalCall = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+  if (isInternalCall && req.headers['x-internal'] === 'recommendation-engine') {
     return next();
   }
 
@@ -139,6 +165,77 @@ app.post('/api/ai/analyze-review', async (req, res) => {
   }
 });
 
+// AI-powered restaurant recommendations for Tier 3 fallback
+app.post('/api/ai/recommend-restaurants', async (req, res) => {
+  try {
+    const { latitude, longitude, cityId, mealType } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'latitude and longitude are required' });
+    }
+
+    const cityLabel = { paris: 'Paris', rome: 'Rome', venice: 'Venice' }[cityId] || cityId;
+
+    // Reverse geocode to get neighborhood name — GPT understands neighborhoods, not raw coords
+    let neighborhood = '';
+    if (GOOGLE_API_KEY) {
+      try {
+        const rgResp = await axios.get(`${GOOGLE_API_BASE}/geocode/json`, {
+          params: { latlng: `${latitude},${longitude}`, key: GOOGLE_API_KEY, result_type: 'neighborhood|sublocality|locality' },
+        });
+        if (rgResp.data.status === 'OK' && rgResp.data.results.length > 0) {
+          neighborhood = rgResp.data.results[0].formatted_address;
+        }
+      } catch (err) {
+        console.log(`[AI] Reverse geocode failed: ${err.message}`);
+      }
+    }
+    const locationDesc = neighborhood || `coordinates ${latitude}, ${longitude}`;
+    console.log(`[AI] Recommending ${mealType} restaurants near ${locationDesc} in ${cityLabel}`);
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a local restaurant expert for ${cityLabel}. Return ONLY a JSON array of 4-6 real restaurants. No markdown, no explanation, no code fences — just the raw JSON array.
+Each object must have: name (string), latitude (number), longitude (number), rating (number 1-5), reviewCount (number), type (string like "restaurant" or "trattoria"), cuisineTypes (string array), priceLevel (number 1-4).
+CRITICAL: All restaurants MUST be within a 10-minute walk (about 800 meters) of the specified location. Do not suggest restaurants from other neighborhoods.`,
+        },
+        {
+          role: 'user',
+          content: `Recommend 4-6 real ${mealType} restaurants near ${locationDesc} in ${cityLabel}. Only include restaurants that actually exist and are within walking distance of this specific area.`,
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    });
+
+    const raw = response.choices[0]?.message?.content || '[]';
+    let restaurants = [];
+    try {
+      const cleaned = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+      restaurants = JSON.parse(cleaned);
+      if (!Array.isArray(restaurants)) restaurants = [];
+    } catch {
+      console.log('[AI] Failed to parse restaurant JSON, returning empty');
+      restaurants = [];
+    }
+
+    res.json({
+      restaurants,
+      usage: response.usage,
+    });
+
+  } catch (error) {
+    console.error('[AI] Recommend error:', error.message);
+    res.json({
+      restaurants: [],
+      usage: null,
+    });
+  }
+});
+
 /**
  * Post-process AI-parsed entries: backfill missing `time` fields by scanning the
  * original itinerary text for time patterns on the same line as each entry name.
@@ -239,7 +336,9 @@ Parse the user's itinerary and return a JSON array. Each entry MUST have these f
 - "cityId": one of "paris", "venice", "rome" — the city this entry is in
 - "estimatedDuration": number — minutes (0 for transit/hotel/skip)
 - "isHotel": true (ONLY for hotel entries)
-- "time": string (OPTIONAL) — "HH:MM" in 24h format. Include ONLY if the user's text contains an explicit time for this entry (e.g., "14:30", "5 PM", "at 7:30"). Do NOT invent times — omit this field if no time is stated.
+- "time": string (OPTIONAL) — "HH:MM" in 24h format. Include if the user's text contains an explicit time (e.g., "14:30", "5 PM", "at 7:30") OR a vague time-of-day word. Convert vague words to concrete times:
+  "Morning" → "09:00", "Late morning" → "10:30", "Midday"/"Noon" → "12:00", "Afternoon" → "14:00", "Late afternoon" → "16:00", "Evening" → "19:00", "Night"/"After dark"/"Late evening" → "21:00", "Sunset" → "20:00"
+  Omit this field ONLY if there is truly no time indication at all.
 - "location": string (OPTIONAL) — a specific geocodable place if different from the name. Use this for metro stops, piazzas, viewpoints, or neighborhoods mentioned in the text that are more precise than the attraction name. Omit if the name itself is already a geocodable location.
   Examples:
   "Eiffel Tower Sparkle — Trocadéro" → name: "Eiffel Tower", location: "Trocadéro, Paris"
@@ -276,7 +375,7 @@ NAME CLEANING:
 DURATION RULES:
 - "(2-3 hours)" → use middle value: 150 minutes
 - "30 min" → 30 minutes
-- No duration mentioned → 60 minutes for attractions, 0 for transit/hotel/skip
+- No duration mentioned → estimate based on your world knowledge of the attraction (e.g., Louvre Museum ~180 min, Trevi Fountain ~20 min, neighborhood walk ~60 min, small church ~15 min, major cathedral ~45 min, viewpoint/bridge ~20 min). Use your best judgment for each specific place. 0 for transit/hotel/skip
 - Meals: 45 minutes if no duration specified
 
 DO NOT:
@@ -551,7 +650,7 @@ const CITY_NAMES_GEO = { paris: 'Paris, France', rome: 'Rome, Italy', venice: 'V
  * Pipeline-local geocoding: Landmark DB (Tier 1) → Google API direct (Tier 2).
  * Avoids the HTTP self-call auth issue in the compiled TS service.
  */
-async function pipelineGeocode(attractions, cityId) {
+async function pipelineGeocode(attractions, cityId, { skipLandmark = false } = {}) {
   const results = [];
   const { findLandmarkInCity } = require('../dist/data/landmarks/paris');
 
@@ -574,8 +673,8 @@ async function pipelineGeocode(attractions, cityId) {
     let found = false;
 
     for (const tryName of namesToTry) {
-      // Tier 1: Landmark DB
-      const landmark = findLandmarkInCity(tryName, effectiveCityId, landmarks);
+      // Tier 1: Landmark DB (skip for hotels — they need precise coordinates)
+      const landmark = !skipLandmark && findLandmarkInCity(tryName, effectiveCityId, landmarks);
       if (landmark) {
         console.log(`[Geocoding] Tier 1 hit: ${landmark.name} (landmark) for "${tryName}"`);
         results.push({ name: attraction.name, coordinates: landmark.coordinates, source: 'landmark' });
@@ -671,6 +770,7 @@ app.post('/api/recommendations/generate', async (req, res) => {
       const hotelGeo = await pipelineGeocode(
         [{ id: 'hotel', name: hotelName, estimatedTime: '00:00', estimatedDuration: 0, isPlaceholder: false, cityId }],
         hotelEntry.cityId || cityId,
+        { skipLandmark: true },
       );
       if (hotelGeo[0] && hotelGeo[0].coordinates) {
         hotelCoordinates = hotelGeo[0].coordinates;

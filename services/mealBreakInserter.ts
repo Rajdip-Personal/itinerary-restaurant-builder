@@ -131,22 +131,26 @@ export function insertSmartMealBreaks(
       continue;
     }
 
-    // Does the itinerary span this meal window?
-    if (itineraryEnd < window.startMin) continue;
-    if (itineraryStart >= window.endMin) continue;
-
     let candidates: MealPlacementCandidate[];
 
-    if (window.type === 'breakfast') {
-      candidates = generateBreakfastCandidates(timeline, window, hotelCoords);
-    } else if (window.type === 'lunch') {
-      candidates = generateLunchCandidates(timeline, window, hotelCoords);
+    // Check if the itinerary spans this meal window
+    const itinerarySpansWindow = itineraryEnd >= window.startMin && itineraryStart < window.endMin;
+
+    if (itinerarySpansWindow) {
+      // Normal path: itinerary overlaps the meal window — use smart placement
+      if (window.type === 'breakfast') {
+        candidates = generateBreakfastCandidates(timeline, window, hotelCoords);
+      } else if (window.type === 'lunch') {
+        candidates = generateLunchCandidates(timeline, window, hotelCoords);
+      } else {
+        candidates = generateDinnerCandidates(timeline, window, hotelCoords);
+      }
     } else {
-      candidates = generateDinnerCandidates(timeline, window, hotelCoords);
+      // Itinerary doesn't span this window — generate fallback candidates
+      candidates = generateOutOfRangeCandidates(timeline, window, hotelCoords);
     }
 
-    // Fallback: if no coordinate-based candidates but timeline spans this window,
-    // generate a time-only candidate (e.g., TimelineEntry[] without coordinates)
+    // Final fallback: if still no candidates, use nearest attraction with time-only placement
     if (candidates.length === 0) {
       const fallbackEntry = findBestEntryForMeal(timeline, window);
       if (fallbackEntry) {
@@ -195,8 +199,8 @@ function generateBreakfastCandidates(
   const candidates: MealPlacementCandidate[] = [];
   const first = timeline[0];
 
-  // Only suggest breakfast if itinerary starts during or after breakfast window
-  if (first.start <= window.startMin) return [];
+  // Skip if first attraction starts before breakfast window (very early start, already past breakfast)
+  if (first.start < window.startMin) return [];
 
   const suggestedTime = minutesToTimeString(
     Math.max(window.startMin, first.start - 60),
@@ -413,6 +417,97 @@ function generateDinnerCandidates(
         cityId: lastEntry.cityId,
       });
     }
+  }
+
+  return candidates;
+}
+
+/**
+ * Generate candidates when itinerary doesn't overlap the meal window.
+ * Always produces at least one candidate so every meal is covered.
+ *
+ * - Breakfast (itinerary starts after breakfast): near hotel or first attraction
+ * - Lunch (itinerary ends before lunch or starts after): near closest attraction
+ * - Dinner (itinerary ends before dinner): near hotel or last attraction
+ */
+function generateOutOfRangeCandidates(
+  timeline: NormalizedEntry[],
+  window: MealWindow,
+  hotelCoords?: Coordinates,
+): MealPlacementCandidate[] {
+  const candidates: MealPlacementCandidate[] = [];
+  const first = timeline[0];
+  const last = timeline[timeline.length - 1];
+  const suggestedTime = minutesToTimeString(window.startMin);
+
+  if (window.type === 'breakfast') {
+    // Itinerary starts after breakfast window ends — suggest before first attraction
+    if (hotelCoords) {
+      candidates.push({
+        coordinates: hotelCoords,
+        suggestedTime,
+        nearAttraction: 'Hotel',
+        reason: 'near hotel before departure',
+        cityId: first.cityId,
+      });
+    }
+    if (first.coordinates) {
+      candidates.push({
+        coordinates: first.coordinates,
+        suggestedTime,
+        nearAttraction: first.name,
+        reason: `near first attraction ${first.name}`,
+        cityId: first.cityId,
+      });
+    }
+  } else if (window.type === 'dinner') {
+    // Itinerary ends before dinner window — suggest after last attraction
+    if (hotelCoords) {
+      candidates.push({
+        coordinates: hotelCoords,
+        suggestedTime,
+        nearAttraction: 'Hotel',
+        reason: 'near hotel after itinerary ends',
+        cityId: last.cityId,
+      });
+    }
+    if (last.coordinates) {
+      candidates.push({
+        coordinates: last.coordinates,
+        suggestedTime,
+        nearAttraction: last.name,
+        reason: `near last attraction ${last.name}`,
+        cityId: last.cityId,
+      });
+    }
+  } else {
+    // Lunch — itinerary doesn't overlap lunch window
+    // Use nearest attraction to lunch time
+    const closest = findBestEntryForMeal(timeline, window);
+    if (closest) {
+      if (hotelCoords) {
+        candidates.push({
+          coordinates: hotelCoords,
+          suggestedTime,
+          nearAttraction: 'Hotel',
+          reason: 'near hotel during lunch window',
+          cityId: closest.cityId,
+        });
+      }
+      if (closest.coordinates) {
+        candidates.push({
+          coordinates: closest.coordinates,
+          suggestedTime,
+          nearAttraction: closest.name,
+          reason: `near ${closest.name} (closest to lunch time)`,
+          cityId: closest.cityId,
+        });
+      }
+    }
+  }
+
+  if (candidates.length > 0) {
+    console.log(`[MealBreak] ${window.type}: itinerary out of range, ${candidates.length} fallback candidates`);
   }
 
   return candidates;

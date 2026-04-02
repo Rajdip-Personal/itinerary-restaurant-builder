@@ -154,11 +154,14 @@ export async function generateAIRecommendations(
   console.log(`[Engine] Tier 3: AI generation for ${params.cityId} ${params.mealType}`);
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/ai/analyze-review`, {
+    const response = await fetch(`${BACKEND_URL}/api/ai/recommend-restaurants`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Internal': 'recommendation-engine' },
       body: JSON.stringify({
-        reviewText: `Recommend restaurants near ${params.coordinates.latitude},${params.coordinates.longitude} in ${params.cityId} for ${params.mealType}`,
+        latitude: params.coordinates.latitude,
+        longitude: params.coordinates.longitude,
+        cityId: params.cityId,
+        mealType: params.mealType,
       }),
     });
 
@@ -167,18 +170,97 @@ export async function generateAIRecommendations(
       return null;
     }
 
+    interface RawAIRestaurant {
+      name: string;
+      latitude: number;
+      longitude: number;
+      rating: number;
+      reviewCount: number;
+      type: string;
+      cuisineTypes: string[];
+      priceLevel: number;
+    }
+
     const data = (await response.json()) as {
-      analysis: { restaurants?: Restaurant[] };
-      usage?: TokenUsage;
+      restaurants: RawAIRestaurant[];
+      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
     };
 
     if (data.usage) {
-      trackTokenUsage(data.usage);
+      trackTokenUsage({
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens,
+        estimatedCost: 0,
+      });
     }
 
-    const aiRestaurants = data.analysis?.restaurants ?? [];
+    const aiRestaurants: Restaurant[] = (data.restaurants ?? []).map((r, i) => ({
+      id: `ai-${params.cityId}-${params.mealType}-${i}`,
+      name: r.name,
+      address: '',
+      cityId: params.cityId,
+      coordinates: { latitude: r.latitude, longitude: r.longitude },
+      rating: r.rating ?? 0,
+      reviewCount: r.reviewCount ?? 0,
+      priceLevel: r.priceLevel ?? 2,
+      cuisineTypes: r.cuisineTypes ?? [],
+      isOpenNow: true,
+      famousFor: [],
+      safeDishes: { vegetarian: [], vegan: [] },
+      type: (r.type as Restaurant['type']) ?? 'restaurant',
+    }));
     if (aiRestaurants.length === 0) {
       console.log('[Engine] Tier 3: No restaurants from AI');
+      return null;
+    }
+
+    // Geocode each AI restaurant via Google Places to replace hallucinated coordinates
+    const CITY_NAMES: Record<string, string> = {
+      paris: 'Paris, France',
+      rome: 'Rome, Italy',
+      venice: 'Venice, Italy',
+    };
+
+    const geocodeResults = await Promise.all(
+      aiRestaurants.map(async (r) => {
+        try {
+          const cityName = CITY_NAMES[params.cityId] || params.cityId;
+          const resp = await fetch(`${BACKEND_URL}/api/geocoding/lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Internal': 'recommendation-engine' },
+            body: JSON.stringify({ address: `${r.name}, ${cityName}` }),
+          });
+          if (!resp.ok) return null;
+          const data = (await resp.json()) as {
+            status: string;
+            results: Array<{
+              geometry: { location: { lat: number; lng: number } };
+              formatted_address?: string;
+            }>;
+          };
+          if (data.status === 'OK' && data.results && data.results.length > 0) {
+            const result = data.results[0];
+            const loc = result.geometry.location;
+            return {
+              ...r,
+              coordinates: { latitude: loc.lat, longitude: loc.lng },
+              address: result.formatted_address || r.address,
+            };
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    // Filter out restaurants that couldn't be geocoded
+    const geocodedRestaurants = geocodeResults.filter((r): r is Restaurant => r !== null);
+    console.log(`[Engine] Tier 3: Geocoded ${geocodedRestaurants.length}/${aiRestaurants.length} AI restaurants`);
+
+    if (geocodedRestaurants.length === 0) {
+      console.log('[Engine] Tier 3: No restaurants could be geocoded');
       return null;
     }
 
@@ -190,7 +272,7 @@ export async function generateAIRecommendations(
       previousCuisines: params.previousCuisines,
     };
 
-    const ranked = rankRestaurants(aiRestaurants, context);
+    const ranked = rankRestaurants(geocodedRestaurants, context);
 
     const result: RecommendationResult = {
       restaurants: ranked,

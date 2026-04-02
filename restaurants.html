@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CultureGuide — Restaurant Recommendations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,6 +75,12 @@
   .nav-logo span { color: var(--terracotta); font-style: italic; }
 
   .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-back a {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--charcoal-light);
@@ -84,13 +90,122 @@
     gap: 0.4rem;
     transition: color 0.3s ease;
   }
-  .nav-back:hover { color: var(--terracotta); }
+  .nav-back a:hover { color: var(--terracotta); }
+
+  /* Hamburger menu - hidden by default, visible on mobile */
+  .hamburger-btn {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hamburger-line {
+    width: 20px;
+    height: 2px;
+    background: var(--charcoal);
+    transition: all 0.3s ease;
+  }
+
+  .hamburger-btn.active .hamburger-line:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .hamburger-btn.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger-btn.active .hamburger-line:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .nav-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--cream);
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    box-shadow: 0 4px 12px rgba(26, 26, 46, 0.08);
+    z-index: 99;
+  }
+
+  .nav-dropdown.active {
+    display: block;
+  }
+
+  .nav-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.04);
+    transition: background 0.2s ease;
+    min-height: 44px;
+  }
+
+  .nav-dropdown-item:hover {
+    background: rgba(26, 26, 46, 0.02);
+    color: var(--terracotta);
+  }
+
+  .nav-dropdown-item:last-child {
+    border-bottom: none;
+  }
 
   /* ═══════════ PAGE LAYOUT ═══════════ */
   .page {
     max-width: 960px;
     margin: 0 auto;
     padding: 2.5rem 3rem 4rem;
+  }
+
+  /* ═══════════ TRIP BREADCRUMB ═══════════ */
+  .trip-breadcrumb {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.5rem;
+    background: rgba(138, 154, 123, 0.08);
+    border-left: 2px solid var(--sage);
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--sage);
+  }
+
+  .trip-breadcrumb.visible {
+    display: flex;
+  }
+
+  .trip-breadcrumb a {
+    color: var(--sage);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: color 0.2s ease;
+  }
+
+  .trip-breadcrumb a:hover {
+    color: var(--terracotta);
+  }
+
+  .trip-breadcrumb-separator {
+    color: rgba(138, 154, 123, 0.4);
+    font-weight: 300;
   }
 
   /* ═══════════ EMPTY STATE ═══════════ */
@@ -545,9 +660,13 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    padding: 0.25rem 0.6rem;
+    padding: 8px 12px;
     border-radius: 1px;
     white-space: nowrap;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .badge-type {
@@ -1064,20 +1183,91 @@
     .card-details { grid-template-columns: 1fr; }
   }
 
+  /* Tablet breakpoint */
+  @media (max-width: 768px) {
+    .page { padding: 1.8rem 1.2rem; }
+    nav { padding: 1.2rem 1.2rem; }
+    .restaurant-card { padding: 1.8rem; }
+    .nearby-card { padding: 1.5rem; }
+    .card-name { font-size: 1.4rem; }
+    .results-title { font-size: 2.2rem; }
+  }
+
   @media (max-width: 640px) {
     .page { padding: 1.5rem 1rem; }
-    .restaurant-card { padding: 1.5rem; }
+    .restaurant-card {
+      padding: 1.5rem;
+      /* Ensure no overflow on smallest screens (320px) */
+      min-width: 0;
+      overflow-x: hidden;
+    }
     .nearby-card { padding: 1.3rem; }
-    .card-name { font-size: 1.3rem; }
+    .card-name {
+      font-size: 1.3rem;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
     .nearby-card-name { font-size: 1.2rem; }
     .results-title { font-size: 2rem; }
-    .meal-tab { padding: 0.6rem 1rem; font-size: 0.7rem; }
+    .meal-tab {
+      padding: 0.6rem 1rem;
+      font-size: 0.7rem;
+      flex-shrink: 0; /* Prevent tabs from shrinking */
+    }
     .mode-btn { padding: 0.5rem 1rem; font-size: 0.7rem; }
     .card-top { flex-direction: column; gap: 0.5rem; }
     .card-badges { margin-left: 0; }
     .delay-options { gap: 0.3rem; }
     .nearby-card-top { flex-direction: column; gap: 0.3rem; }
     .nearby-card-distance { margin-left: 0; }
+
+    /* Hamburger menu - visible on mobile */
+    .hamburger-btn {
+      display: flex;
+    }
+
+    .nav-back {
+      display: none; /* Hide back link on mobile, use hamburger instead */
+    }
+
+    /* Meal tabs - horizontally scrollable on mobile */
+    .meal-tabs {
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(26, 26, 46, 0.2) transparent;
+    }
+
+    .meal-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .meal-tabs::-webkit-scrollbar-thumb {
+      background: rgba(26, 26, 46, 0.2);
+      border-radius: 2px;
+    }
+
+    /* Score breakdown - stack vertically on mobile */
+    .score-bar-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.3rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .score-bar-label {
+      width: 100%;
+    }
+
+    .score-bar-track {
+      width: 100%;
+    }
+
+    .score-bar-value {
+      width: 100%;
+      text-align: left;
+    }
   }
 </style>
 </head>
@@ -1086,11 +1276,38 @@
 <!-- ═══════════ NAV ═══════════ -->
 <nav>
   <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
-  <a href="itinerary.html" class="nav-back">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to itinerary
-  </a>
+  <div class="nav-back">
+    <a href="itinerary.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to itinerary
+    </a>
+    <a href="trips.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      My Trips
+    </a>
+  </div>
+  <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu" aria-expanded="false">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
 </nav>
+
+<!-- Mobile dropdown nav -->
+<div class="nav-dropdown" id="navDropdown">
+  <a href="index.html" class="nav-dropdown-item">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6l6-4 6 4v7a1 1 0 01-1 1H3a1 1 0 01-1-1V6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </a>
+  <a href="trips.html" class="nav-dropdown-item">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    My Trips
+  </a>
+  <a href="itinerary.html" class="nav-dropdown-item">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Itinerary
+  </a>
+</div>
 
 <!-- ═══════════ EMPTY STATE ═══════════ -->
 <div class="page" id="emptyState" style="display: none;">
@@ -1139,6 +1356,18 @@
 
 <!-- ═══════════ RESULTS ═══════════ -->
 <div class="page" id="resultsPage" style="display: none;">
+  <!-- Trip breadcrumb (shown when viewing from trips.html) -->
+  <div class="trip-breadcrumb" id="tripBreadcrumb">
+    <a href="trips.html">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="tripBreadcrumbName">Trip Name</span>
+    </a>
+    <span class="trip-breadcrumb-separator">&gt;</span>
+    <span id="tripBreadcrumbDay">Day 1</span>
+  </div>
+
   <div class="results-header">
     <p class="results-label" id="resultsLabel">Route-Aware Recommendations</p>
     <h1 class="results-title" id="resultsTitle">Restaurants in <em>Paris</em></h1>
@@ -1206,6 +1435,40 @@
     div.textContent = str;
     return div.innerHTML;
   }
+
+  // Hamburger menu toggle
+  function toggleHamburgerMenu() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navDropdown = document.getElementById('navDropdown');
+
+    if (!hamburgerBtn || !navDropdown) return;
+
+    const isActive = hamburgerBtn.classList.toggle('active');
+    navDropdown.classList.toggle('active');
+    hamburgerBtn.setAttribute('aria-expanded', isActive.toString());
+  }
+
+  // Initialize hamburger menu on load
+  document.addEventListener('DOMContentLoaded', function() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    if (hamburgerBtn) {
+      hamburgerBtn.addEventListener('click', toggleHamburgerMenu);
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const hamburgerBtn = document.getElementById('hamburgerBtn');
+      const navDropdown = document.getElementById('navDropdown');
+
+      if (!hamburgerBtn || !navDropdown) return;
+
+      if (!hamburgerBtn.contains(e.target) && !navDropdown.contains(e.target)) {
+        hamburgerBtn.classList.remove('active');
+        navDropdown.classList.remove('active');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
 
   function renderStars(rating) {
     const full = Math.floor(rating);
@@ -2080,6 +2343,20 @@
       console.error('[Restaurants] Failed to parse localStorage data:', e.message);
       showState('emptyState');
       return;
+    }
+
+    // Check for trip context (set by trips.html)
+    if (parsedData.tripId && parsedData.tripName) {
+      var breadcrumb = document.getElementById('tripBreadcrumb');
+      var nameEl = document.getElementById('tripBreadcrumbName');
+      var dayEl = document.getElementById('tripBreadcrumbDay');
+
+      if (breadcrumb && nameEl && dayEl) {
+        nameEl.textContent = parsedData.tripName;
+        dayEl.textContent = 'Day ' + (parsedData.dayNumber || 1);
+        breadcrumb.classList.add('visible');
+        console.log('[Restaurants] Trip context detected:', parsedData.tripName, 'Day', parsedData.dayNumber);
+      }
     }
 
     var entries = parsedData.entries || [];

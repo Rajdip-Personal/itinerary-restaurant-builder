@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CultureGuide — Parse Your Itinerary</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,6 +75,12 @@
   .nav-logo span { color: var(--terracotta); font-style: italic; }
 
   .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-back a {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--charcoal-light);
@@ -83,8 +89,92 @@
     align-items: center;
     gap: 0.4rem;
     transition: color 0.3s ease;
+    min-height: 44px; /* Touch target */
   }
-  .nav-back:hover { color: var(--terracotta); }
+  .nav-back a:hover { color: var(--terracotta); }
+
+  /* Hamburger menu (mobile only) */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    gap: 5px;
+    transition: all 0.3s ease;
+  }
+
+  .hamburger-line {
+    width: 24px;
+    height: 2px;
+    background: var(--charcoal);
+    transition: all 0.3s ease;
+  }
+
+  .hamburger.open .hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger.open .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.open .hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Mobile nav panel */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    top: 70px; /* Below nav */
+    left: 0;
+    right: 0;
+    background: rgba(245, 240, 235, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    z-index: 99;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .mobile-nav.open {
+    max-height: 300px;
+  }
+
+  .mobile-nav-links {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    min-height: 44px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    text-decoration: none;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    transition: all 0.2s ease;
+  }
+
+  .mobile-nav-link:hover {
+    background: var(--cream-dark);
+    color: var(--terracotta);
+  }
 
   /* ═══════════ LAYOUT ═══════════ */
   .page {
@@ -175,6 +265,7 @@
     gap: 1rem;
     align-items: end;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
   }
 
   .time-input, .date-input {
@@ -188,8 +279,25 @@
     outline: none;
     width: 130px;
     transition: border-color 0.3s ease;
+    min-height: 44px; /* Touch target */
   }
   .time-input:focus, .date-input:focus { border-color: var(--terracotta); }
+
+  .hotel-input {
+    padding: 0.7rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.1);
+    outline: none;
+    width: 220px;
+    transition: border-color 0.3s ease;
+    min-height: 44px;
+  }
+  .hotel-input:focus { border-color: var(--terracotta); }
+  .hotel-input::placeholder { color: rgba(26, 26, 46, 0.3); font-style: italic; }
 
   .date-input { width: 160px; }
 
@@ -211,6 +319,10 @@
     border: 1px solid rgba(26, 26, 46, 0.1);
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 44px; /* Touch target */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .quick-date:hover {
@@ -242,6 +354,7 @@
     transition: all 0.3s ease;
     width: 100%;
     justify-content: center;
+    min-height: 44px; /* Touch target */
   }
 
   .btn-parse:hover:not(:disabled) {
@@ -538,12 +651,256 @@
     transition: all 0.3s ease;
     width: 100%;
     margin-top: 1rem;
+    min-height: 44px; /* Touch target */
   }
   .btn-restaurants.visible { display: inline-flex; }
   .btn-restaurants:hover {
     background: var(--terracotta-dark);
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  /* Save to Trip button */
+  .btn-save-trip {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: var(--terracotta);
+    color: var(--cream);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 1rem;
+    min-height: 44px;
+  }
+  .btn-save-trip.visible { display: inline-flex; }
+  .btn-save-trip:hover {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  /* Parse Next Day button */
+  .btn-parse-next {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: var(--sage);
+    color: var(--cream);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 1rem;
+    min-height: 44px;
+  }
+  .btn-parse-next.visible { display: inline-flex; }
+  .btn-parse-next:hover {
+    background: var(--sage-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(138, 154, 123, 0.25);
+  }
+
+  /* Trip modal overlay */
+  .trip-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.5);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+  .trip-modal-overlay.visible { display: flex; }
+
+  /* Trip modal card */
+  .trip-modal {
+    background: var(--cream);
+    max-width: 500px;
+    width: 100%;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(26, 26, 46, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .trip-modal-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 0.5rem;
+  }
+
+  .trip-modal-desc {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+    margin-bottom: 1.5rem;
+  }
+
+  .trip-modal-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .trip-modal-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 0.5rem;
+  }
+
+  .trip-modal-input,
+  .trip-modal-select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    border: 1px solid rgba(26, 26, 46, 0.15);
+    background: var(--white);
+    color: var(--charcoal);
+    transition: all 0.2s ease;
+  }
+
+  .trip-modal-input:focus,
+  .trip-modal-select:focus {
+    outline: none;
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(196, 112, 75, 0.1);
+  }
+
+  .trip-modal-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 2rem;
+  }
+
+  .trip-modal-btn {
+    flex: 1;
+    padding: 0.9rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 44px;
+  }
+
+  .trip-modal-btn-primary {
+    background: var(--charcoal);
+    color: var(--cream);
+  }
+
+  .trip-modal-btn-primary:hover {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  .trip-modal-btn-secondary {
+    background: transparent;
+    color: var(--charcoal);
+    border: 1px solid rgba(26, 26, 46, 0.15);
+  }
+
+  .trip-modal-btn-secondary:hover {
+    background: rgba(26, 26, 46, 0.03);
+    border-color: var(--charcoal);
+  }
+
+  /* Confirmation message */
+  .confirmation-msg {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    background: rgba(138, 154, 123, 0.1);
+    border-left: 3px solid var(--sage);
+    font-size: 0.85rem;
+    color: var(--sage);
+    display: none;
+  }
+  .confirmation-msg.visible { display: block; }
+
+  /* ═══════════ TEMPLATE CARDS ═══════════ */
+  .template-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .template-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 0.8rem;
+  }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .template-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.08);
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .template-card:hover {
+    border-color: var(--terracotta);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(196, 112, 75, 0.1);
+  }
+
+  .template-card-city {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--sage);
+  }
+
+  .template-card-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    line-height: 1.2;
+  }
+
+  .template-card-meta {
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
   }
 
   /* ═══════════ RESPONSIVE ═══════════ */
@@ -558,10 +915,369 @@
     nav { padding: 1.2rem 1.5rem; }
   }
 
+  @media (max-width: 768px) {
+    /* Tablet adjustments */
+    .page {
+      padding: 2rem 1.2rem;
+    }
+    .panel-title {
+      font-size: 2rem;
+    }
+    .timeline-title {
+      font-size: 1.6rem;
+    }
+  }
+
   @media (max-width: 640px) {
+    /* Mobile layout */
     .page { padding: 1.5rem 1rem; }
-    .time-row { flex-direction: column; }
-    .time-input { width: 100%; }
+    .template-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .template-card { padding: 0.6rem 0.8rem; }
+    .template-card-name { font-size: 0.9rem; }
+    .time-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .time-input, .date-input, .hotel-input {
+      width: 100%;
+    }
+
+    /* Show hamburger, hide desktop back link */
+    .hamburger {
+      display: flex;
+    }
+    .nav-back {
+      display: none;
+    }
+    .mobile-nav {
+      display: block;
+    }
+
+    /* Adjust nav spacing */
+    nav {
+      padding: 1rem;
+    }
+    .nav-logo {
+      font-size: 1.4rem;
+    }
+
+    /* Typography adjustments */
+    .panel-title {
+      font-size: 1.8rem;
+    }
+    .timeline-title {
+      font-size: 1.4rem;
+    }
+
+    /* Timeline entry adjustments for mobile */
+    .timeline-entry {
+      grid-template-columns: 50px 4px 1fr;
+      gap: 0.8rem;
+    }
+    .entry-time {
+      font-size: 0.7rem;
+    }
+  }
+
+  /* ─── Editable Timeline Styles ─── */
+  .edit-mode-indicator {
+    background: var(--ochre-light);
+    border-left: 3px solid var(--ochre);
+    padding: 0.8rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .editable-timeline-entry {
+    display: grid;
+    grid-template-columns: 24px 60px 4px 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    align-items: start;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: entryIn 0.3s ease forwards;
+  }
+
+  .editable-timeline-entry:nth-child(1) { animation-delay: 0.05s; }
+  .editable-timeline-entry:nth-child(2) { animation-delay: 0.1s; }
+  .editable-timeline-entry:nth-child(3) { animation-delay: 0.15s; }
+  .editable-timeline-entry:nth-child(4) { animation-delay: 0.2s; }
+  .editable-timeline-entry:nth-child(5) { animation-delay: 0.25s; }
+  .editable-timeline-entry:nth-child(6) { animation-delay: 0.3s; }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--charcoal-light);
+    opacity: 0.4;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding-top: 1rem;
+    transition: opacity 0.2s ease;
+    user-select: none;
+  }
+
+  .drag-handle:hover {
+    opacity: 1;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .editable-timeline-entry.dragging {
+    opacity: 0.5;
+  }
+
+  .editable-timeline-entry.drag-over {
+    border-top: 2px solid var(--terracotta);
+  }
+
+  .editable-entry-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    padding: 1rem 1.2rem;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .editable-entry-card:hover {
+    box-shadow: 0 4px 16px rgba(26, 26, 46, 0.06);
+  }
+
+  .editable-entry-row {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .editable-name-input {
+    flex: 1 1 200px;
+    min-width: 200px;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.08);
+    padding: 0.5rem 0.8rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    min-height: 44px;
+  }
+
+  .editable-name-input:focus {
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(196, 112, 75, 0.08);
+  }
+
+  .editable-time-input {
+    width: 80px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.08);
+    padding: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+    min-height: 44px;
+  }
+
+  .editable-time-input:focus {
+    border-color: var(--terracotta);
+  }
+
+  .editable-duration-input {
+    width: 70px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.08);
+    padding: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+    text-align: right;
+    min-height: 44px;
+  }
+
+  .editable-duration-input:focus {
+    border-color: var(--terracotta);
+  }
+
+  .duration-label {
+    font-size: 0.75rem;
+    color: var(--charcoal-light);
+    font-weight: 500;
+  }
+
+  .type-badge-clickable {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .type-badge-clickable:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+
+  .type-badge-clickable:active {
+    transform: scale(0.98);
+  }
+
+  .type-badge-clickable.type-attraction {
+    background: var(--ochre-light);
+    color: var(--charcoal);
+  }
+
+  .type-badge-clickable.type-meal {
+    background: var(--terracotta);
+    color: var(--white);
+  }
+
+  .type-badge-clickable.type-hotel {
+    background: var(--sage);
+    color: var(--white);
+  }
+
+  .type-badge-clickable.type-transit {
+    background: var(--charcoal-light);
+    color: var(--white);
+  }
+
+  .type-badge-clickable.type-skip {
+    background: rgba(26, 26, 46, 0.1);
+    color: var(--charcoal-light);
+  }
+
+  .delete-entry-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .delete-entry-btn:hover {
+    opacity: 1;
+  }
+
+  .timeline-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-add-stop, .btn-save-changes {
+    padding: 0.9rem 1.8rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.1s ease;
+    min-height: 44px;
+  }
+
+  .btn-add-stop {
+    background: var(--ochre);
+    color: var(--charcoal);
+  }
+
+  .btn-add-stop:hover {
+    background: var(--ochre-light);
+    transform: translateY(-2px);
+  }
+
+  .btn-save-changes {
+    background: var(--charcoal);
+    color: var(--white);
+  }
+
+  .btn-save-changes:hover {
+    background: var(--charcoal-light);
+    transform: translateY(-2px);
+  }
+
+  .btn-save-changes:active, .btn-add-stop:active {
+    transform: translateY(0);
+  }
+
+  .save-confirmation {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--sage-light);
+    color: var(--charcoal);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .save-confirmation.visible {
+    opacity: 1;
+  }
+
+  @media (max-width: 640px) {
+    .editable-timeline-entry {
+      grid-template-columns: 20px 1fr;
+      gap: 0.6rem;
+    }
+
+    .editable-timeline-entry > .entry-time,
+    .editable-timeline-entry > .entry-line {
+      display: none;
+    }
+
+    .editable-entry-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .editable-name-input {
+      min-width: 100%;
+    }
+
+    .timeline-actions {
+      flex-direction: column;
+    }
+
+    .btn-add-stop, .btn-save-changes {
+      width: 100%;
+    }
   }
 </style>
 </head>
@@ -570,11 +1286,40 @@
 <!-- ═══════════ NAV ═══════════ -->
 <nav>
   <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
-  <a href="index.html" class="nav-back">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to home
-  </a>
+  <div class="nav-back">
+    <a href="index.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to home
+    </a>
+    <a href="trips.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      My Trips
+    </a>
+  </div>
+  <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu" aria-expanded="false">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
 </nav>
+
+<!-- Mobile nav panel -->
+<div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-links">
+    <a href="index.html" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6l6-4 6 4v7a1 1 0 01-1 1H3a1 1 0 01-1-1V6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </a>
+    <a href="trips.html" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      My Trips
+    </a>
+    <a href="restaurants.html" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M12 3v4c0 2-1.5 3-4 3M4 2v5c0 1 .5 2 2 2h0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Restaurants
+    </a>
+  </div>
+</div>
 
 <!-- ═══════════ MAIN CONTENT ═══════════ -->
 <div class="page">
@@ -587,6 +1332,11 @@
       Any format works &mdash; copy from a travel blog, ChatGPT plan, or just type a rough schedule.
       Our AI detects the cities, classifies each stop, and builds your timeline.
     </p>
+
+    <div class="template-section">
+      <p class="template-label">Or start from a template</p>
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
 
     <div class="input-group">
       <label class="input-label" for="itinerary">Your itinerary</label>
@@ -614,6 +1364,10 @@
         <label class="input-label" for="startTime">Start time</label>
         <input type="time" id="startTime" class="time-input" value="09:00">
       </div>
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" for="hotelName">Your hotel (optional)</label>
+        <input type="text" id="hotelName" class="hotel-input" placeholder="e.g. Hotel Le Marais">
+      </div>
     </div>
 
     <button id="parseBtn" class="btn-parse" onclick="parseItinerary()">
@@ -622,6 +1376,18 @@
     </button>
 
     <div class="error-msg" id="errorMsg"></div>
+
+    <button class="btn-save-trip" id="saveTripBtn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 5L6.5 10.5L4 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Save to Trip
+    </button>
+
+    <div class="confirmation-msg" id="confirmationMsg"></div>
+
+    <button class="btn-parse-next" id="parseNextBtn">
+      Parse Next Day
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8h8m0 0L8 4m4 4l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
 
     <a href="restaurants.html" class="btn-restaurants" id="viewRestaurantsBtn">
       View Restaurant Picks
@@ -647,8 +1413,185 @@
 
 </div>
 
+<!-- ═══════════ TRIP MODAL ═══════════ -->
+<div class="trip-modal-overlay" id="tripModalOverlay">
+  <div class="trip-modal">
+    <h2 class="trip-modal-title">Save Day to Trip</h2>
+    <p class="trip-modal-desc">Choose an existing trip or create a new one.</p>
+
+    <div class="trip-modal-group" id="tripSelectorGroup" style="display: none;">
+      <label class="trip-modal-label" for="tripSelector">Select Trip</label>
+      <select id="tripSelector" class="trip-modal-select">
+        <option value="new">+ Create New Trip</option>
+      </select>
+    </div>
+
+    <div class="trip-modal-group" id="tripNameGroup">
+      <label class="trip-modal-label" for="tripNameInput">Trip Name</label>
+      <input
+        type="text"
+        id="tripNameInput"
+        class="trip-modal-input"
+        placeholder="e.g., Paris Weekend 2026"
+        maxlength="100"
+      >
+    </div>
+
+    <div class="trip-modal-actions">
+      <button class="trip-modal-btn trip-modal-btn-secondary" id="tripModalCancel">Cancel</button>
+      <button class="trip-modal-btn trip-modal-btn-primary" id="tripModalSave">Save Day</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ JAVASCRIPT ═══════════ -->
 <script>
+  // ─── Itinerary Templates ───
+  const TEMPLATES = [
+    {
+      city: 'Paris',
+      name: 'Classic Paris',
+      meta: '1 day \u00b7 8 stops',
+      text: `Hotel: Le Marais Boutique, Rue de Turenne
+
+9:00 AM - Louvre Museum (2.5 hours)
+Lunch break
+1:00 PM - Notre-Dame Cathedral (45 min)
+2:30 PM - Sainte-Chapelle (30 min)
+3:30 PM - Luxembourg Gardens (1 hour)
+5:00 PM - Mus\u00e9e d'Orsay (1.5 hours)
+7:00 PM - Eiffel Tower at sunset (1 hour)
+Dinner near Trocad\u00e9ro`
+    },
+    {
+      city: 'Paris',
+      name: 'Montmartre & Markets',
+      meta: '1 day \u00b7 7 stops',
+      text: `Hotel: H\u00f4tel des Arts, Montmartre
+
+9:30 AM - Sacr\u00e9-C\u0153ur Basilica (45 min)
+10:30 AM - Place du Tertre artists square (30 min)
+11:15 AM - Montmartre vineyard walk (30 min)
+Lunch at Le Consulat
+1:30 PM - Mus\u00e9e de l'Orangerie (1.5 hours)
+3:30 PM - Tuileries Garden stroll (45 min)
+4:30 PM - Galeries Lafayette rooftop (1 hour)
+Dinner in Le Marais`
+    },
+    {
+      city: 'Paris',
+      name: 'Left Bank & Latin Quarter',
+      meta: '1 day \u00b7 7 stops',
+      text: `Hotel: H\u00f4tel Cluny, Latin Quarter
+
+9:00 AM - Panth\u00e9on (45 min)
+10:00 AM - Jardin du Luxembourg (1 hour)
+11:30 AM - Saint-Germain-des-Pr\u00e9s church (20 min)
+Lunch at Caf\u00e9 de Flore
+1:30 PM - Mus\u00e9e Rodin (1.5 hours)
+3:30 PM - Les Invalides & Napoleon's Tomb (1 hour)
+5:00 PM - Seine river walk to \u00cele Saint-Louis (45 min)
+Dinner near Notre-Dame`
+    },
+    {
+      city: 'Rome',
+      name: 'Classic Rome',
+      meta: '1 day \u00b7 8 stops',
+      text: `Hotel: Hotel Raphael, Piazza Navona
+
+8:30 AM - Colosseum (1.5 hours)
+10:30 AM - Roman Forum & Palatine Hill (1.5 hours)
+Lunch near Monti neighborhood
+1:30 PM - Trevi Fountain (20 min)
+2:15 PM - Pantheon (30 min)
+3:15 PM - Piazza Navona (30 min)
+4:00 PM - Spanish Steps (20 min)
+5:00 PM - Villa Borghese gardens walk (1 hour)
+Dinner in Trastevere`
+    },
+    {
+      city: 'Rome',
+      name: 'Rome Art & History',
+      meta: '1 day \u00b7 6 stops',
+      text: `Hotel: Hotel Artemide, Via Nazionale
+
+8:00 AM - Vatican Museums & Sistine Chapel (3 hours)
+11:30 AM - St. Peter's Basilica (1 hour)
+Lunch near Castel Sant'Angelo
+2:00 PM - Castel Sant'Angelo (1 hour)
+3:30 PM - Galleria Borghese (2 hours)
+6:00 PM - Piazza del Popolo sunset (30 min)
+Dinner near Via del Corso`
+    },
+    {
+      city: 'Venice',
+      name: 'Venice Walking Tour',
+      meta: '1 day \u00b7 8 stops',
+      text: `Hotel: Hotel Danieli, Riva degli Schiavoni
+
+9:00 AM - St. Mark's Basilica (1 hour)
+10:15 AM - Doge's Palace (1.5 hours)
+12:00 PM - Bridge of Sighs viewpoint (15 min)
+Lunch near Rialto
+1:30 PM - Rialto Bridge & market (45 min)
+2:30 PM - Ca' d'Oro palace (45 min)
+3:45 PM - Dorsoduro neighborhood walk (1 hour)
+5:00 PM - Accademia Bridge sunset (30 min)
+Dinner in Cannaregio`
+    },
+    {
+      city: 'Venice',
+      name: 'Venice Islands & Canals',
+      meta: '1 day \u00b7 6 stops',
+      text: `Hotel: Ca' Sagredo, Grand Canal
+
+9:00 AM - Water bus to Murano (glass-blowing island, 1.5 hours)
+11:00 AM - Water bus to Burano (colorful houses, 1.5 hours)
+Lunch on Burano
+2:00 PM - Water bus back to Venice
+3:00 PM - Santa Maria della Salute (30 min)
+4:00 PM - Peggy Guggenheim Collection (1.5 hours)
+6:00 PM - Grand Canal gondola ride (45 min)
+Dinner near San Polo`
+    },
+    {
+      city: 'Multi-City',
+      name: 'Venice to Rome',
+      meta: '1 day \u00b7 7 stops',
+      text: `Hotel: Hotel Rialto, Venice
+
+8:30 AM - St. Mark's Square morning walk (45 min)
+9:30 AM - Rialto Bridge & market (30 min)
+Gelato break
+11:30 AM - Water taxi to Venice Santa Lucia station
+12:15 PM - Train to Rome (3.5 hours)
+4:00 PM - Check in Hotel Raphael, Piazza Navona
+5:00 PM - Trevi Fountain at golden hour (30 min)
+6:00 PM - Pantheon exterior at dusk (20 min)
+Dinner near Piazza Navona`
+    },
+  ];
+
+  // Render template cards
+  const templateGrid = document.getElementById('templateGrid');
+  TEMPLATES.forEach((tpl, i) => {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.innerHTML = `
+      <span class="template-card-city">${tpl.city}</span>
+      <span class="template-card-name">${tpl.name}</span>
+      <span class="template-card-meta">${tpl.meta}</span>
+    `;
+    card.addEventListener('click', () => {
+      const ta = document.getElementById('itinerary');
+      ta.value = tpl.text;
+      ta.dispatchEvent(new Event('input')); // trigger char count
+      ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ta.focus();
+    });
+    templateGrid.appendChild(card);
+  });
+
   // Config — using the existing CultureGuideWeb backend
   const BACKEND_URL = 'http://localhost:3000';
   const API_KEY = 'cg_a05c1e742ef279b4f9813b0bdf7a24e31acb71f43d0beb25e9a1ee646f9c8337';
@@ -761,8 +1704,34 @@
       // Compute times on each entry before rendering/saving
       const enrichedEntries = computeEntryTimes(entries);
 
-      // Build the timeline
-      renderTimeline(enrichedEntries);
+      // Inject hotel entry if user provided a hotel name and AI didn't detect one
+      const hotelInput = document.getElementById('hotelName').value.trim();
+      const hasHotelEntry = enrichedEntries.some(e => e.isHotel === true);
+      if (hotelInput && !hasHotelEntry) {
+        // Detect cityId from the first attraction entry
+        const firstAttraction = enrichedEntries.find(e => e.type === 'attraction');
+        const cityId = firstAttraction ? firstAttraction.cityId : 'paris';
+        // Use the last entry's end time so the hotel appears at end of day
+        const lastEntry = enrichedEntries[enrichedEntries.length - 1];
+        const lastTime = lastEntry ? lastEntry.calculatedTime : '21:00';
+        const lastDur = lastEntry ? (lastEntry.effectiveDuration || lastEntry.estimatedDuration || 0) : 0;
+        const lastMinutes = parseTimeString(lastTime) || 1260;
+        const hotelArrival = lastMinutes + lastDur + 10; // 10 min transit
+        const hotelH = Math.floor(hotelArrival / 60) % 24;
+        const hotelM = hotelArrival % 60;
+        const hotelTime = String(hotelH).padStart(2, '0') + ':' + String(hotelM).padStart(2, '0');
+        enrichedEntries.push({
+          name: 'Hotel: ' + hotelInput,
+          type: 'hotel',
+          cityId: cityId,
+          estimatedDuration: 0,
+          isHotel: true,
+          calculatedTime: hotelTime,
+        });
+      }
+
+      // Build the editable timeline
+      renderEditableTimeline(enrichedEntries);
 
       // Save enriched data to localStorage for restaurant page
       localStorage.setItem('cultureguide_parsed', JSON.stringify({
@@ -773,7 +1742,8 @@
         dateISO: tripDateInput.value  // "YYYY-MM-DD" format for backend
       }));
 
-      // Show the "View Restaurants" button
+      // Show the "Save to Trip" and "View Restaurants" buttons
+      document.getElementById('saveTripBtn').classList.add('visible');
       document.getElementById('viewRestaurantsBtn').classList.add('visible');
 
       // Show token usage
@@ -907,6 +1877,15 @@
       if (match12[3] === 'AM' && h === 12) h = 0;
       return h * 60 + m;
     }
+    // Vague time-of-day words (fallback if AI passes them through)
+    var VAGUE_TIMES = {
+      'MORNING': 9 * 60, 'EARLY MORNING': 7 * 60, 'LATE MORNING': 10 * 60 + 30,
+      'MIDDAY': 12 * 60, 'NOON': 12 * 60,
+      'AFTERNOON': 14 * 60, 'EARLY AFTERNOON': 13 * 60, 'LATE AFTERNOON': 16 * 60,
+      'EVENING': 19 * 60, 'EARLY EVENING': 18 * 60, 'LATE EVENING': 21 * 60,
+      'NIGHT': 21 * 60, 'AFTER DARK': 21 * 60, 'SUNSET': 20 * 60,
+    };
+    if (VAGUE_TIMES[str] !== undefined) return VAGUE_TIMES[str];
     return null;
   }
 
@@ -995,6 +1974,418 @@
     timelineEl.classList.add('visible');
   }
 
+  // ─── Editable Timeline ───
+  let editableEntries = [];
+  let userEditedTimes = new Set(); // Track which entry indices have user-edited times
+
+  function renderEditableTimeline(entries) {
+    editableEntries = JSON.parse(JSON.stringify(entries)); // Deep copy
+    userEditedTimes.clear();
+
+    const timelineEl = document.getElementById('timeline');
+    const startTime = document.getElementById('startTime').value || '09:00';
+
+    // Detect unique cities
+    const cities = [...new Set(entries.map(e => e.cityId).filter(Boolean))];
+    const cityNames = { paris: 'Paris', venice: 'Venice', rome: 'Rome' };
+
+    // Count by type
+    const counts = {};
+    entries.forEach(e => {
+      counts[e.type] = (counts[e.type] || 0) + 1;
+    });
+
+    // Build header
+    let html = `
+      <div class="timeline-header">
+        <div>
+          <h2 class="timeline-title">Your Day</h2>
+          <div style="font-size: 0.85rem; font-weight: 300; color: var(--charcoal-light); margin-top: 0.2rem;">
+            ${getSelectedDate()}
+          </div>
+        </div>
+        <div class="timeline-meta">
+          <strong>${entries.length}</strong> stops across
+          <strong>${cities.map(c => cityNames[c] || c).join(', ')}</strong><br>
+          ${Object.entries(counts).map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(' &middot; ')}
+        </div>
+      </div>
+
+      <div class="edit-mode-indicator">
+        ✏️ Editing mode — drag to reorder, click to edit
+      </div>
+    `;
+
+    timelineEl.innerHTML = html;
+
+    // Create container for editable entries
+    const entriesContainer = document.createElement('div');
+    entriesContainer.id = 'editable-entries-container';
+    timelineEl.appendChild(entriesContainer);
+
+    renderEditableEntries();
+
+    // Add action buttons
+    const actionsHtml = `
+      <div class="timeline-actions">
+        <button class="btn-add-stop" id="btnAddStop">+ Add Stop</button>
+        <button class="btn-save-changes" id="btnSaveChanges">Save Changes</button>
+        <span class="save-confirmation" id="saveConfirmation">✓ Changes saved</span>
+      </div>
+    `;
+    timelineEl.insertAdjacentHTML('beforeend', actionsHtml);
+
+    // Attach event listeners
+    document.getElementById('btnAddStop').addEventListener('click', addNewStop);
+    document.getElementById('btnSaveChanges').addEventListener('click', saveChanges);
+
+    timelineEl.classList.add('visible');
+  }
+
+  function renderEditableEntries() {
+    const container = document.getElementById('editable-entries-container');
+    container.innerHTML = '';
+
+    const cityNames = { paris: 'Paris', venice: 'Venice', rome: 'Rome' };
+
+    editableEntries.forEach((entry, index) => {
+      const entryDiv = document.createElement('div');
+      entryDiv.className = `editable-timeline-entry type-${entry.type}`;
+      entryDiv.draggable = true;
+      entryDiv.dataset.index = index;
+
+      const time24 = entry.calculatedTime || '09:00';
+      const duration = entry.effectiveDuration || entry.estimatedDuration || 60;
+
+      entryDiv.innerHTML = `
+        <div class="drag-handle">≡</div>
+        <div class="entry-time" style="font-family: var(--font-body); font-size: 0.75rem; font-weight: 500; color: var(--charcoal-light); padding-top: 1rem;">
+          ${entry.type === 'skip' ? '' : formatTime24to12(time24)}
+        </div>
+        <div class="entry-line">
+          <div class="entry-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${getTypeColor(entry.type)};"></div>
+          ${index < editableEntries.length - 1 ? '<div class="entry-connector" style="width: 1px; height: 40px; background: rgba(26, 26, 46, 0.15); margin-left: 3.5px; margin-top: 4px;"></div>' : ''}
+        </div>
+        <div class="editable-entry-card">
+          <div class="editable-entry-row">
+            <input
+              type="text"
+              class="editable-name-input"
+              value="${escapeHtml(entry.name)}"
+              data-index="${index}"
+              placeholder="Stop name"
+            />
+            <input
+              type="time"
+              class="editable-time-input"
+              value="${time24}"
+              data-index="${index}"
+            />
+            <input
+              type="number"
+              class="editable-duration-input"
+              value="${duration}"
+              min="0"
+              max="999"
+              data-index="${index}"
+            />
+            <span class="duration-label">min</span>
+            <button
+              class="type-badge-clickable type-${entry.type}"
+              data-index="${index}"
+            >${entry.type}</button>
+            <button
+              class="delete-entry-btn"
+              data-index="${index}"
+              title="Delete stop"
+            >×</button>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(entryDiv);
+
+      // Attach event listeners
+      const nameInput = entryDiv.querySelector('.editable-name-input');
+      const timeInput = entryDiv.querySelector('.editable-time-input');
+      const durationInput = entryDiv.querySelector('.editable-duration-input');
+      const typeBadge = entryDiv.querySelector('.type-badge-clickable');
+      const deleteBtn = entryDiv.querySelector('.delete-entry-btn');
+
+      nameInput.addEventListener('input', (e) => handleNameChange(index, e.target.value));
+      timeInput.addEventListener('change', (e) => handleTimeChange(index, e.target.value));
+      durationInput.addEventListener('change', (e) => handleDurationChange(index, parseInt(e.target.value) || 0));
+      typeBadge.addEventListener('click', () => handleTypeChange(index));
+      deleteBtn.addEventListener('click', () => handleDelete(index));
+
+      // Drag and drop
+      entryDiv.addEventListener('dragstart', handleDragStart);
+      entryDiv.addEventListener('dragover', handleDragOver);
+      entryDiv.addEventListener('drop', handleDrop);
+      entryDiv.addEventListener('dragend', handleDragEnd);
+    });
+  }
+
+  function getTypeColor(type) {
+    const colors = {
+      attraction: 'var(--ochre)',
+      meal: 'var(--terracotta)',
+      hotel: 'var(--sage)',
+      transit: 'var(--charcoal-light)',
+      skip: 'rgba(26, 26, 46, 0.2)'
+    };
+    return colors[type] || colors.attraction;
+  }
+
+  function handleNameChange(index, value) {
+    editableEntries[index].name = value;
+  }
+
+  function handleTimeChange(index, value) {
+    editableEntries[index].calculatedTime = value;
+    userEditedTimes.add(index); // Mark this time as user-edited
+    recalculateDownstreamTimes(index + 1);
+    renderEditableEntries();
+  }
+
+  function handleDurationChange(index, value) {
+    editableEntries[index].effectiveDuration = value;
+    editableEntries[index].estimatedDuration = value;
+    recalculateDownstreamTimes(index + 1);
+    renderEditableEntries();
+  }
+
+  function handleTypeChange(index) {
+    const types = ['attraction', 'meal', 'hotel', 'transit', 'skip'];
+    const currentType = editableEntries[index].type;
+    const currentIndex = types.indexOf(currentType);
+    const nextIndex = (currentIndex + 1) % types.length;
+    editableEntries[index].type = types[nextIndex];
+
+    // Adjust default duration based on type if needed
+    if (!editableEntries[index].effectiveDuration || editableEntries[index].effectiveDuration === 0) {
+      const defaultDurations = {
+        attraction: 60,
+        meal: 45,
+        transit: 90,
+        hotel: 0,
+        skip: 0
+      };
+      editableEntries[index].effectiveDuration = defaultDurations[types[nextIndex]];
+      editableEntries[index].estimatedDuration = defaultDurations[types[nextIndex]];
+    }
+
+    renderEditableEntries();
+  }
+
+  function handleDelete(index) {
+    const entry = editableEntries[index];
+    if (entry.name && !confirm(`Delete "${entry.name}"?`)) {
+      return;
+    }
+
+    editableEntries.splice(index, 1);
+
+    // Adjust userEditedTimes set
+    const newUserEditedTimes = new Set();
+    userEditedTimes.forEach(i => {
+      if (i < index) {
+        newUserEditedTimes.add(i);
+      } else if (i > index) {
+        newUserEditedTimes.add(i - 1);
+      }
+    });
+    userEditedTimes = newUserEditedTimes;
+
+    recalculateDownstreamTimes(index);
+    renderEditableEntries();
+  }
+
+  function addNewStop() {
+    // Calculate time for new entry
+    let newTime = '09:00';
+    if (editableEntries.length > 0) {
+      const lastEntry = editableEntries[editableEntries.length - 1];
+      const lastTime = lastEntry.calculatedTime || '09:00';
+      const lastDuration = lastEntry.effectiveDuration || lastEntry.estimatedDuration || 60;
+      newTime = addMinutesToTime(lastTime, lastDuration + 15);
+    }
+
+    const newEntry = {
+      name: '',
+      type: 'attraction',
+      estimatedDuration: 60,
+      effectiveDuration: 60,
+      calculatedTime: newTime,
+      cityId: editableEntries.length > 0 ? editableEntries[editableEntries.length - 1].cityId : 'paris'
+    };
+
+    editableEntries.push(newEntry);
+    renderEditableEntries();
+
+    // Focus the name input of the new entry
+    setTimeout(() => {
+      const newInputs = document.querySelectorAll('.editable-name-input');
+      if (newInputs.length > 0) {
+        newInputs[newInputs.length - 1].focus();
+      }
+    }, 100);
+  }
+
+  function recalculateDownstreamTimes(startIndex) {
+    if (startIndex >= editableEntries.length) return;
+
+    for (let i = startIndex; i < editableEntries.length; i++) {
+      // Skip if this time was explicitly set by the user
+      if (userEditedTimes.has(i)) continue;
+
+      // Calculate based on previous entry
+      const prevEntry = editableEntries[i - 1];
+      if (!prevEntry) continue;
+
+      const prevTime = prevEntry.calculatedTime || '09:00';
+      const prevDuration = prevEntry.effectiveDuration || prevEntry.estimatedDuration || 0;
+      const buffer = 15; // 15 minutes walking buffer
+
+      editableEntries[i].calculatedTime = addMinutesToTime(prevTime, prevDuration + buffer);
+    }
+  }
+
+  function addMinutesToTime(time24, minutesToAdd) {
+    const [h, m] = time24.split(':').map(Number);
+    let totalMinutes = h * 60 + m + minutesToAdd;
+
+    // Handle day overflow
+    totalMinutes = totalMinutes % (24 * 60);
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
+
+    const newH = Math.floor(totalMinutes / 60);
+    const newM = totalMinutes % 60;
+
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  }
+
+  function saveChanges() {
+    // Update localStorage with edited entries
+    const parsedData = {
+      entries: editableEntries,
+      startTime: document.getElementById('startTime').value || '09:00',
+      parsedAt: Date.now(),
+      date: getSelectedDate(),
+      dateISO: document.getElementById('tripDate').value
+    };
+
+    localStorage.setItem('cultureguide_parsed', JSON.stringify(parsedData));
+
+    // If part of a saved trip, update the trip as well
+    const tripsJson = localStorage.getItem('cultureguide_trips');
+    if (tripsJson) {
+      try {
+        const trips = JSON.parse(tripsJson);
+        // Find trip with matching date
+        const matchingTrip = trips.find(t => t.dateISO === parsedData.dateISO);
+        if (matchingTrip) {
+          matchingTrip.entries = editableEntries;
+          matchingTrip.startTime = parsedData.startTime;
+          matchingTrip.updatedAt = Date.now();
+          localStorage.setItem('cultureguide_trips', JSON.stringify(trips));
+        }
+      } catch (e) {
+        console.error('[Save] Error updating trips:', e);
+      }
+    }
+
+    // Show confirmation
+    const confirmation = document.getElementById('saveConfirmation');
+    confirmation.classList.add('visible');
+    setTimeout(() => {
+      confirmation.classList.remove('visible');
+    }, 3000);
+  }
+
+  // Drag and drop handlers
+  let draggedIndex = null;
+
+  function handleDragStart(e) {
+    draggedIndex = parseInt(e.currentTarget.dataset.index);
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+
+    const target = e.currentTarget;
+    target.classList.add('drag-over');
+
+    return false;
+  }
+
+  function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    e.currentTarget.classList.remove('drag-over');
+
+    const dropIndex = parseInt(e.currentTarget.dataset.index);
+
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      // Reorder the array
+      const draggedEntry = editableEntries[draggedIndex];
+      editableEntries.splice(draggedIndex, 1);
+      editableEntries.splice(dropIndex, 0, draggedEntry);
+
+      // Update userEditedTimes indices
+      const newUserEditedTimes = new Set();
+      userEditedTimes.forEach(i => {
+        if (i === draggedIndex) {
+          newUserEditedTimes.add(dropIndex);
+        } else if (draggedIndex < dropIndex && i > draggedIndex && i <= dropIndex) {
+          newUserEditedTimes.add(i - 1);
+        } else if (draggedIndex > dropIndex && i >= dropIndex && i < draggedIndex) {
+          newUserEditedTimes.add(i + 1);
+        } else {
+          newUserEditedTimes.add(i);
+        }
+      });
+      userEditedTimes = newUserEditedTimes;
+
+      // Recalculate times after reorder
+      const startRecalc = Math.min(draggedIndex, dropIndex);
+      recalculateDownstreamTimes(startRecalc);
+
+      renderEditableEntries();
+    }
+
+    return false;
+  }
+
+  function handleDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+
+    // Remove drag-over class from all entries
+    document.querySelectorAll('.editable-timeline-entry').forEach(entry => {
+      entry.classList.remove('drag-over');
+    });
+
+    draggedIndex = null;
+  }
+
+  // Helper to get selected date
+  function getSelectedDate() {
+    const dateInput = document.getElementById('tripDate');
+    if (!dateInput.value) return 'Date not set';
+
+    const date = new Date(dateInput.value + 'T00:00:00');
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  }
+
   // ─── Helpers ───
   function formatTime24to12(time24) {
     const [h, m] = time24.split(':').map(Number);
@@ -1044,6 +2435,254 @@
       parseItinerary();
     }
   });
+
+  // ─── Trip Persistence ───
+  const TRIPS_KEY = 'cultureguide_trips';
+  let currentParsedData = null;
+
+  // Load trips from localStorage
+  function loadTrips() {
+    const tripsJson = localStorage.getItem(TRIPS_KEY);
+    if (!tripsJson) return [];
+    try {
+      return JSON.parse(tripsJson);
+    } catch (e) {
+      console.error('[Trips] Failed to parse trips from localStorage:', e);
+      return [];
+    }
+  }
+
+  // Save trips to localStorage
+  function saveTrips(trips) {
+    try {
+      localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    } catch (e) {
+      console.error('[Trips] Failed to save trips to localStorage:', e);
+    }
+  }
+
+  // Get next day number for a trip
+  function getNextDayNumber(trip) {
+    if (!trip.days || trip.days.length === 0) return 1;
+    return Math.max(...trip.days.map(d => d.dayNumber)) + 1;
+  }
+
+  // Open trip modal
+  function openTripModal() {
+    // Store current parsed data
+    const parsed = localStorage.getItem('cultureguide_parsed');
+    if (!parsed) {
+      showError('No parsed itinerary found. Please parse an itinerary first.');
+      return;
+    }
+    currentParsedData = JSON.parse(parsed);
+
+    const trips = loadTrips();
+    const tripSelector = document.getElementById('tripSelector');
+    const tripSelectorGroup = document.getElementById('tripSelectorGroup');
+    const tripNameGroup = document.getElementById('tripNameGroup');
+    const tripNameInput = document.getElementById('tripNameInput');
+
+    // Reset modal state
+    tripNameInput.value = '';
+
+    if (trips.length > 0) {
+      // Show trip selector
+      tripSelectorGroup.style.display = 'block';
+      tripNameGroup.style.display = 'none';
+
+      // Populate dropdown
+      tripSelector.innerHTML = '<option value="new">+ Create New Trip</option>';
+      trips.forEach(trip => {
+        const option = document.createElement('option');
+        option.value = trip.id;
+        option.textContent = `${trip.name} (${trip.days.length} ${trip.days.length === 1 ? 'day' : 'days'})`;
+        tripSelector.appendChild(option);
+      });
+
+      // Handle selector change
+      tripSelector.onchange = () => {
+        if (tripSelector.value === 'new') {
+          tripNameGroup.style.display = 'block';
+        } else {
+          tripNameGroup.style.display = 'none';
+        }
+      };
+    } else {
+      // No existing trips — show name input directly
+      tripSelectorGroup.style.display = 'none';
+      tripNameGroup.style.display = 'block';
+    }
+
+    // Show modal
+    document.getElementById('tripModalOverlay').classList.add('visible');
+  }
+
+  // Close trip modal
+  function closeTripModal() {
+    document.getElementById('tripModalOverlay').classList.remove('visible');
+    currentParsedData = null;
+  }
+
+  // Save day to trip
+  function saveDayToTrip() {
+    if (!currentParsedData) {
+      showError('No parsed data available.');
+      closeTripModal();
+      return;
+    }
+
+    const trips = loadTrips();
+    const tripSelector = document.getElementById('tripSelector');
+    const tripNameInput = document.getElementById('tripNameInput');
+    const tripSelectorGroup = document.getElementById('tripSelectorGroup');
+
+    let selectedTripId = null;
+    let tripName = '';
+
+    // Determine if creating new trip or using existing
+    if (tripSelectorGroup.style.display !== 'none' && trips.length > 0) {
+      selectedTripId = tripSelector.value;
+      if (selectedTripId === 'new') {
+        tripName = tripNameInput.value.trim();
+        if (!tripName) {
+          alert('Please enter a trip name.');
+          return;
+        }
+      }
+    } else {
+      // No existing trips — must create new
+      tripName = tripNameInput.value.trim();
+      if (!tripName) {
+        alert('Please enter a trip name.');
+        return;
+      }
+    }
+
+    let trip;
+    let dayNumber;
+
+    if (selectedTripId && selectedTripId !== 'new') {
+      // Add to existing trip
+      trip = trips.find(t => t.id === selectedTripId);
+      if (!trip) {
+        showError('Selected trip not found.');
+        closeTripModal();
+        return;
+      }
+      dayNumber = getNextDayNumber(trip);
+    } else {
+      // Create new trip
+      trip = {
+        id: crypto.randomUUID(),
+        name: tripName,
+        days: [],
+        lastModified: Date.now()
+      };
+      dayNumber = 1;
+      trips.push(trip);
+    }
+
+    // Create day object
+    const day = {
+      dayNumber: dayNumber,
+      entries: currentParsedData.entries,
+      date: currentParsedData.date || getSelectedDate(),
+      dateISO: currentParsedData.dateISO || tripDateInput.value,
+      startTime: currentParsedData.startTime || document.getElementById('startTime').value,
+      savedAt: Date.now()
+    };
+
+    // Add day to trip
+    trip.days.push(day);
+    trip.lastModified = Date.now();
+
+    // Save to localStorage
+    saveTrips(trips);
+
+    // Close modal
+    closeTripModal();
+
+    // Show confirmation
+    const confirmationMsg = document.getElementById('confirmationMsg');
+    confirmationMsg.textContent = `Day ${dayNumber} saved to "${trip.name}"`;
+    confirmationMsg.classList.add('visible');
+
+    // Show "Parse Next Day" button
+    document.getElementById('parseNextBtn').classList.add('visible');
+
+    // Hide "Save to Trip" button (already saved)
+    document.getElementById('saveTripBtn').classList.remove('visible');
+
+    console.log(`[Trips] Day ${dayNumber} saved to trip "${trip.name}" (ID: ${trip.id})`);
+  }
+
+  // Parse next day
+  function parseNextDay() {
+    // Clear textarea
+    textarea.value = '';
+    textarea.dispatchEvent(new Event('input')); // update char count
+
+    // Hide results
+    timelineEl.classList.remove('visible');
+    emptyState.style.display = 'flex';
+
+    // Hide buttons and confirmation
+    document.getElementById('saveTripBtn').classList.remove('visible');
+    document.getElementById('viewRestaurantsBtn').classList.remove('visible');
+    document.getElementById('parseNextBtn').classList.remove('visible');
+    document.getElementById('confirmationMsg').classList.remove('visible');
+    tokenUsage.classList.remove('visible');
+
+    // Focus textarea
+    textarea.focus();
+
+    console.log('[Trips] Ready for next day');
+  }
+
+  // Event listeners
+  document.getElementById('saveTripBtn').addEventListener('click', openTripModal);
+  document.getElementById('tripModalCancel').addEventListener('click', closeTripModal);
+  document.getElementById('tripModalSave').addEventListener('click', saveDayToTrip);
+  document.getElementById('parseNextBtn').addEventListener('click', parseNextDay);
+
+  // Close modal when clicking outside
+  document.getElementById('tripModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'tripModalOverlay') {
+      closeTripModal();
+    }
+  });
+
+  // ─── Hamburger menu toggle ───
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileNav = document.getElementById('mobileNav');
+
+  if (hamburgerBtn && mobileNav) {
+    hamburgerBtn.addEventListener('click', () => {
+      const isOpen = hamburgerBtn.classList.toggle('open');
+      mobileNav.classList.toggle('open');
+      hamburgerBtn.setAttribute('aria-expanded', isOpen);
+    });
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!hamburgerBtn.contains(e.target) && !mobileNav.contains(e.target)) {
+        hamburgerBtn.classList.remove('open');
+        mobileNav.classList.remove('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Close mobile nav when a link is clicked
+    const mobileNavLinks = mobileNav.querySelectorAll('.mobile-nav-link');
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        hamburgerBtn.classList.remove('open');
+        mobileNav.classList.remove('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
 </script>
 
 </body>

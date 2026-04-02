@@ -212,20 +212,53 @@ describe('getCachedRecommendations', () => {
 
 // ─── generateAIRecommendations ──────────────────────────────────────────────
 
+// Helper: build a mock geocoding response for a given restaurant
+function mockGeocodingResponse(lat: number, lng: number) {
+  return {
+    ok: true,
+    json: async () => ({
+      status: 'OK',
+      results: [{ geometry: { location: { lat, lng } } }],
+    }),
+  } as any;
+}
+
+// Helper: set up mocks for AI call + geocoding calls for all PARIS_RESTAURANTS
+function mockAIWithGeocoding() {
+  // First call: AI recommend endpoint
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      restaurants: PARIS_RESTAURANTS.map((r) => ({
+        name: r.name,
+        latitude: r.coordinates.latitude,
+        longitude: r.coordinates.longitude,
+        rating: r.rating,
+        reviewCount: r.reviewCount,
+        type: r.type || 'restaurant',
+        cuisineTypes: r.cuisineTypes,
+        priceLevel: r.priceLevel,
+      })),
+      usage: {
+        prompt_tokens: MOCK_TOKEN_USAGE.promptTokens,
+        completion_tokens: MOCK_TOKEN_USAGE.completionTokens,
+        total_tokens: MOCK_TOKEN_USAGE.totalTokens,
+      },
+    }),
+  } as any);
+
+  // Subsequent calls: geocoding for each restaurant (returns real coords)
+  for (const r of PARIS_RESTAURANTS) {
+    mockFetch.mockResolvedValueOnce(
+      mockGeocodingResponse(r.coordinates.latitude, r.coordinates.longitude),
+    );
+  }
+}
+
 describe('generateAIRecommendations', () => {
   it('returns AI-generated recommendations on success', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        analysis: {
-          restaurants: PARIS_RESTAURANTS.map((r) => ({
-            ...r,
-            insights: MOCK_AI_INSIGHTS_RESPONSE,
-          })),
-        },
-        usage: MOCK_TOKEN_USAGE,
-      }),
-    } as any);
+    // Mock AI endpoint + geocoding calls for each restaurant
+    mockAIWithGeocoding();
 
     const result = await generateAIRecommendations({
       cityId: 'paris',
@@ -234,6 +267,68 @@ describe('generateAIRecommendations', () => {
     });
     expect(result).not.toBeNull();
     expect(result!.source).toBe('ai');
+  });
+
+  it('geocodes AI restaurants before ranking', async () => {
+    // Mock AI endpoint + geocoding calls
+    mockAIWithGeocoding();
+
+    await generateAIRecommendations({
+      cityId: 'paris',
+      coordinates: PARIS_COORDS.louvre,
+      mealType: 'lunch',
+    });
+
+    // First call is AI recommend, subsequent calls are geocoding lookups
+    // Total calls = 1 (AI) + N (geocoding per restaurant)
+    expect(mockFetch).toHaveBeenCalledTimes(1 + PARIS_RESTAURANTS.length);
+
+    // Verify geocoding calls used the correct endpoint and address format
+    const secondCall = mockFetch.mock.calls[1];
+    expect(secondCall[0]).toContain('/api/geocoding/lookup');
+    const opts = secondCall[1] as RequestInit;
+    const body = JSON.parse(opts.body as string);
+    expect(body.address).toContain('Paris, France');
+  });
+
+  it('filters out restaurants that fail geocoding', async () => {
+    // Mock AI endpoint
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        restaurants: PARIS_RESTAURANTS.map((r) => ({
+          name: r.name,
+          latitude: r.coordinates.latitude,
+          longitude: r.coordinates.longitude,
+          rating: r.rating,
+          reviewCount: r.reviewCount,
+          type: r.type || 'restaurant',
+          cuisineTypes: r.cuisineTypes,
+          priceLevel: r.priceLevel,
+        })),
+        usage: {
+          prompt_tokens: MOCK_TOKEN_USAGE.promptTokens,
+          completion_tokens: MOCK_TOKEN_USAGE.completionTokens,
+          total_tokens: MOCK_TOKEN_USAGE.totalTokens,
+        },
+      }),
+    } as any);
+
+    // All geocoding calls fail
+    for (const _r of PARIS_RESTAURANTS) {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'ZERO_RESULTS', results: [] }),
+      } as any);
+    }
+
+    const result = await generateAIRecommendations({
+      cityId: 'paris',
+      coordinates: PARIS_COORDS.louvre,
+      mealType: 'lunch',
+    });
+    // All geocoding failed → null result
+    expect(result).toBeNull();
   });
 
   it('returns null on API failure', async () => {
@@ -263,18 +358,8 @@ describe('generateAIRecommendations', () => {
   });
 
   it('caches AI results after generation', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        analysis: {
-          restaurants: PARIS_RESTAURANTS.map((r) => ({
-            ...r,
-            insights: MOCK_AI_INSIGHTS_RESPONSE,
-          })),
-        },
-        usage: MOCK_TOKEN_USAGE,
-      }),
-    } as any);
+    // Mock AI endpoint + geocoding calls
+    mockAIWithGeocoding();
 
     await generateAIRecommendations({
       cityId: 'paris',
@@ -320,18 +405,34 @@ describe('getRecommendations', () => {
   });
 
   it('falls back to AI as Tier 3 when manual and cache miss', async () => {
+    // Mock AI endpoint with proper restaurant format
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        analysis: {
-          restaurants: PARIS_RESTAURANTS.map((r) => ({
-            ...r,
-            insights: MOCK_AI_INSIGHTS_RESPONSE,
-          })),
+        restaurants: PARIS_RESTAURANTS.map((r) => ({
+          name: r.name,
+          latitude: r.coordinates.latitude,
+          longitude: r.coordinates.longitude,
+          rating: r.rating,
+          reviewCount: r.reviewCount,
+          type: r.type || 'restaurant',
+          cuisineTypes: r.cuisineTypes,
+          priceLevel: r.priceLevel,
+        })),
+        usage: {
+          prompt_tokens: MOCK_TOKEN_USAGE.promptTokens,
+          completion_tokens: MOCK_TOKEN_USAGE.completionTokens,
+          total_tokens: MOCK_TOKEN_USAGE.totalTokens,
         },
-        usage: MOCK_TOKEN_USAGE,
       }),
     } as any);
+
+    // Mock geocoding calls for each restaurant
+    for (const r of PARIS_RESTAURANTS) {
+      mockFetch.mockResolvedValueOnce(
+        mockGeocodingResponse(r.coordinates.latitude, r.coordinates.longitude),
+      );
+    }
 
     const result = await getRecommendations({
       cityId: 'london',
