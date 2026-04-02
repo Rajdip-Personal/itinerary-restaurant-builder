@@ -276,7 +276,7 @@ NAME CLEANING:
 DURATION RULES:
 - "(2-3 hours)" → use middle value: 150 minutes
 - "30 min" → 30 minutes
-- No duration mentioned → 60 minutes for attractions, 0 for transit/hotel/skip
+- No duration mentioned → estimate based on your world knowledge of the attraction (e.g., Louvre Museum ~180 min, Trevi Fountain ~20 min, neighborhood walk ~60 min, small church ~15 min, major cathedral ~45 min, viewpoint/bridge ~20 min). Use your best judgment for each specific place. 0 for transit/hotel/skip
 - Meals: 45 minutes if no duration specified
 
 DO NOT:

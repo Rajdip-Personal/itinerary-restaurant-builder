@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CultureGuide — My Trips</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #1a1a2e;
+    --charcoal-light: #2d2d44;
+    --terracotta: #c4704b;
+    --terracotta-dark: #a85a3a;
+    --ochre: #d4a574;
+    --ochre-light: #e8c9a0;
+    --cream: #f5f0eb;
+    --cream-dark: #ebe3da;
+    --sage: #8a9a7b;
+    --sage-light: #a8b89a;
+    --white: #fefcfa;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Outfit', system-ui, sans-serif;
+    --red: #c0392b;
+    --red-light: #fdf0ef;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* ═══════════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════════ */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 1.5rem 3rem;
+    background: rgba(245, 240, 235, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--charcoal);
+    text-decoration: none;
+  }
+
+  .nav-logo span {
+    color: var(--terracotta);
+    font-style: italic;
+  }
+
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-back a {
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--charcoal);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    min-height: 44px;
+  }
+
+  .nav-back a svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .nav-back a:hover {
+    color: var(--terracotta);
+  }
+
+  /* Hamburger Menu Button */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 101;
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+  }
+
+  .hamburger span {
+    width: 28px;
+    height: 2px;
+    background: var(--charcoal);
+    transition: all 0.3s ease;
+    transform-origin: center;
+  }
+
+  .hamburger.active span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .hamburger.active span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.active span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  /* Mobile Nav Panel */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--white);
+    box-shadow: -4px 0 20px rgba(26, 26, 46, 0.1);
+    z-index: 100;
+    padding: 6rem 2rem 2rem;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .mobile-nav.open {
+    transform: translateX(0);
+  }
+
+  .mobile-nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mobile-nav ul li {
+    border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+  }
+
+  .mobile-nav ul li a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.2rem 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--charcoal);
+    text-decoration: none;
+    min-height: 44px;
+  }
+
+  .mobile-nav ul li a svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mobile-nav ul li a:hover {
+    color: var(--terracotta);
+  }
+
+  /* Mobile Nav Overlay */
+  .mobile-nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.4);
+    z-index: 99;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .mobile-nav-overlay.open {
+    opacity: 1;
+  }
+
+  /* ═══════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════ */
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 8rem 3rem 4rem;
+  }
+
+  .page-header {
+    margin-bottom: 3rem;
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--charcoal);
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--charcoal-light);
+    line-height: 1.7;
+  }
+
+  /* ═══════════════════════════════════════════
+     EMPTY STATE
+     ═══════════════════════════════════════════ */
+  .empty-state {
+    text-align: center;
+    padding: 6rem 2rem;
+    display: none;
+  }
+
+  .empty-state.visible {
+    display: block;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+    opacity: 0.3;
+  }
+
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--charcoal-light);
+    margin-bottom: 1rem;
+  }
+
+  .empty-text {
+    font-size: 0.95rem;
+    color: var(--charcoal-light);
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 1rem 2.2rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 44px;
+  }
+
+  .btn-primary:hover {
+    background: var(--terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(196, 112, 75, 0.25);
+  }
+
+  /* ═══════════════════════════════════════════
+     TRIP CARDS
+     ═══════════════════════════════════════════ */
+  .trips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .trip-card {
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 46, 0.06);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .trip-card:hover {
+    box-shadow: 0 8px 30px rgba(26, 26, 46, 0.06);
+  }
+
+  .trip-header {
+    padding: 2rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+
+  .trip-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .trip-name {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal);
+    margin-bottom: 0.8rem;
+  }
+
+  .trip-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--charcoal-light);
+  }
+
+  .trip-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .trip-meta-item svg {
+    width: 16px;
+    height: 16px;
+    color: var(--sage);
+  }
+
+  .trip-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: 1px solid rgba(26, 26, 46, 0.15);
+    color: var(--charcoal);
+    cursor: pointer;
+    padding: 0.75rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .btn-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .btn-icon:hover {
+    border-color: var(--terracotta);
+    color: var(--terracotta);
+    background: var(--red-light);
+  }
+
+  .expand-icon {
+    background: transparent;
+    border: none;
+    color: var(--charcoal-light);
+    cursor: pointer;
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .expand-icon svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+  }
+
+  .trip-card.expanded .expand-icon svg {
+    transform: rotate(180deg);
+  }
+
+  /* ═══════════════════════════════════════════
+     DAYS LIST
+     ═══════════════════════════════════════════ */
+  .days-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    border-top: 1px solid rgba(26, 26, 46, 0.06);
+  }
+
+  .trip-card.expanded .days-list {
+    max-height: 2000px;
+  }
+
+  .day-item {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .day-item:last-child {
+    border-bottom: none;
+  }
+
+  .day-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .day-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 0.4rem;
+  }
+
+  .day-details {
+    font-size: 0.85rem;
+    color: var(--charcoal-light);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .day-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(26, 26, 46, 0.15);
+    color: var(--charcoal);
+    padding: 0.75rem 1.2rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 44px;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--terracotta);
+    color: var(--terracotta);
+    background: rgba(196, 112, 75, 0.04);
+  }
+
+  .btn-secondary svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .btn-delete {
+    border-color: rgba(192, 57, 43, 0.2);
+    color: var(--red);
+  }
+
+  .btn-delete:hover {
+    border-color: var(--red);
+    background: var(--red-light);
+  }
+
+  /* ═══════════════════════════════════════════
+     CONFIRMATION DIALOG
+     ═══════════════════════════════════════════ */
+  .dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .dialog-overlay.visible {
+    display: flex;
+  }
+
+  .dialog {
+    background: var(--white);
+    max-width: 480px;
+    width: 100%;
+    padding: 2.5rem;
+    box-shadow: 0 20px 60px rgba(26, 26, 46, 0.2);
+  }
+
+  .dialog-title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--charcoal);
+    margin-bottom: 1rem;
+  }
+
+  .dialog-text {
+    font-size: 0.95rem;
+    color: var(--charcoal-light);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+  }
+
+  .btn-dialog-cancel {
+    background: transparent;
+    border: 1px solid rgba(26, 26, 46, 0.15);
+    color: var(--charcoal);
+  }
+
+  .btn-dialog-cancel:hover {
+    border-color: var(--charcoal);
+    background: rgba(26, 26, 46, 0.04);
+  }
+
+  .btn-dialog-confirm {
+    background: var(--red);
+    border: 1px solid var(--red);
+    color: var(--white);
+  }
+
+  .btn-dialog-confirm:hover {
+    background: #a02d21;
+    border-color: #a02d21;
+    transform: translateY(-1px);
+  }
+
+  /* ═══════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .container {
+      padding: 7rem 2rem 3rem;
+    }
+
+    .trip-header {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .trip-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .day-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .day-actions {
+      width: 100%;
+    }
+
+    .dialog {
+      padding: 2rem;
+    }
+
+    .dialog-actions {
+      flex-direction: column;
+    }
+
+    .btn-secondary,
+    .btn-primary {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 6rem 1.5rem 2rem;
+    }
+
+    nav {
+      padding: 1.2rem 1.5rem;
+    }
+
+    .nav-back {
+      display: none;
+    }
+
+    .hamburger {
+      display: flex;
+    }
+
+    .mobile-nav {
+      display: block;
+    }
+
+    .mobile-nav-overlay {
+      display: block;
+    }
+
+    .trip-meta {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAVIGATION ═══════════ -->
+<nav>
+  <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+  <div class="nav-back">
+    <a href="itinerary.html">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M10 13L5 8l5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to Itinerary
+    </a>
+    <a href="trips.html">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      My Trips
+    </a>
+  </div>
+</nav>
+
+<!-- Mobile Nav Panel -->
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+<div class="mobile-nav" id="mobileNav">
+  <ul>
+    <li>
+      <a href="index.html">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 8l6-6 6 6m-2 0v6H4V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Home
+      </a>
+    </li>
+    <li>
+      <a href="itinerary.html">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M5 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2zm2 4h2m-2 3h2m-2 3h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Parse Itinerary
+      </a>
+    </li>
+    <li>
+      <a href="trips.html">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        My Trips
+      </a>
+    </li>
+  </ul>
+</div>
+
+<!-- ═══════════ MAIN CONTENT ═══════════ -->
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">My Trips</h1>
+    <p class="page-subtitle">Your saved itineraries and restaurant recommendations</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">📋</div>
+    <h2 class="empty-title">No trips saved yet</h2>
+    <p class="empty-text">
+      Parse an itinerary to create your first trip with route-aware restaurant recommendations.
+    </p>
+    <a href="itinerary.html" class="btn-primary">
+      Parse Your Itinerary
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- Trips List -->
+  <div class="trips-list" id="tripsList"></div>
+</div>
+
+<!-- Confirmation Dialog -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog">
+    <h2 class="dialog-title" id="dialogTitle">Confirm Action</h2>
+    <p class="dialog-text" id="dialogText">Are you sure?</p>
+    <div class="dialog-actions">
+      <button class="btn-secondary btn-dialog-cancel" id="dialogCancel">Cancel</button>
+      <button class="btn-secondary btn-dialog-confirm" id="dialogConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ JAVASCRIPT ═══════════ -->
+<script>
+  // Mobile menu toggle
+  const hamburger = document.getElementById('hamburger');
+  const mobileNav = document.getElementById('mobileNav');
+  const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+
+  function toggleMobileMenu() {
+    hamburger.classList.toggle('active');
+    mobileNav.classList.toggle('open');
+    mobileNavOverlay.classList.toggle('open');
+    document.body.style.overflow = mobileNav.classList.contains('open') ? 'hidden' : '';
+  }
+
+  hamburger.addEventListener('click', toggleMobileMenu);
+  mobileNavOverlay.addEventListener('click', toggleMobileMenu);
+
+  // Close mobile menu when clicking nav links
+  document.querySelectorAll('.mobile-nav a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (mobileNav.classList.contains('open')) {
+        toggleMobileMenu();
+      }
+    });
+  });
+
+  // ═══════════════════════════════════════════
+  // TRIPS MANAGEMENT
+  // ═══════════════════════════════════════════
+
+  const STORAGE_KEY = 'cultureguide_trips';
+  const emptyState = document.getElementById('emptyState');
+  const tripsList = document.getElementById('tripsList');
+  const dialogOverlay = document.getElementById('dialogOverlay');
+  const dialogTitle = document.getElementById('dialogTitle');
+  const dialogText = document.getElementById('dialogText');
+  const dialogCancel = document.getElementById('dialogCancel');
+  const dialogConfirm = document.getElementById('dialogConfirm');
+
+  let confirmCallback = null;
+
+  // Load trips from localStorage
+  function loadTrips() {
+    const tripsJson = localStorage.getItem(STORAGE_KEY);
+    return tripsJson ? JSON.parse(tripsJson) : [];
+  }
+
+  // Save trips to localStorage
+  function saveTrips(trips) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+  }
+
+  // Format date for display
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // Format cities list
+  function formatCities(days) {
+    const cities = [...new Set(days.map(d => d.city || d.cityName).filter(Boolean))];
+    return cities.join(', ') || 'Unknown city';
+  }
+
+  // Render trips list
+  function renderTrips() {
+    const trips = loadTrips();
+
+    if (trips.length === 0) {
+      emptyState.classList.add('visible');
+      tripsList.style.display = 'none';
+      return;
+    }
+
+    emptyState.classList.remove('visible');
+    tripsList.style.display = 'flex';
+
+    tripsList.innerHTML = trips.map((trip, tripIndex) => `
+      <div class="trip-card" data-trip-index="${tripIndex}">
+        <div class="trip-header" onclick="toggleTrip(${tripIndex})">
+          <div class="trip-info">
+            <h2 class="trip-name">${escapeHtml(trip.tripName || 'Untitled Trip')}</h2>
+            <div class="trip-meta">
+              <div class="trip-meta-item">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M4 6h8M4 9h5m-5 3h3M3 3h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ${trip.days.length} day${trip.days.length !== 1 ? 's' : ''}
+              </div>
+              <div class="trip-meta-item">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 14A6 6 0 108 2a6 6 0 000 12z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8c0-2-1-3-4-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ${formatCities(trip.days)}
+              </div>
+              <div class="trip-meta-item">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M11 2H5L2 5v8a1 1 0 001 1h10a1 1 0 001-1V5l-3-3z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 5h12M8 2v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ${formatDate(trip.createdAt)}
+              </div>
+            </div>
+          </div>
+          <div class="trip-actions" onclick="event.stopPropagation()">
+            <button class="btn-icon" onclick="deleteTrip(${tripIndex})" title="Delete trip" aria-label="Delete trip">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1m2 0v9a1 1 0 01-1 1H4a1 1 0 01-1-1V4h10zm-7 3v5m4-5v5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="expand-icon" aria-label="Expand trip">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="days-list">
+          ${trip.days.map((day, dayIndex) => `
+            <div class="day-item">
+              <div class="day-info">
+                <h3 class="day-title">Day ${day.dayNumber || dayIndex + 1}</h3>
+                <div class="day-details">
+                  ${day.date ? `<span>${formatDate(day.date)}</span>` : ''}
+                  <span>${day.entries?.length || 0} stop${day.entries?.length !== 1 ? 's' : ''}</span>
+                  ${day.city || day.cityName ? `<span>${day.city || day.cityName}</span>` : ''}
+                </div>
+              </div>
+              <div class="day-actions">
+                <button class="btn-secondary" onclick="viewDayRestaurants(${tripIndex}, ${dayIndex})">
+                  <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M5 8l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  View Restaurants
+                </button>
+                <button class="btn-secondary btn-delete" onclick="deleteDay(${tripIndex}, ${dayIndex})">
+                  <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1m2 0v9a1 1 0 01-1 1H4a1 1 0 01-1-1V4h10z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Delete Day
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Toggle trip expand/collapse
+  function toggleTrip(tripIndex) {
+    const tripCard = document.querySelector(`.trip-card[data-trip-index="${tripIndex}"]`);
+    if (tripCard) {
+      tripCard.classList.toggle('expanded');
+    }
+  }
+
+  // View restaurants for a specific day
+  function viewDayRestaurants(tripIndex, dayIndex) {
+    const trips = loadTrips();
+    const trip = trips[tripIndex];
+    const day = trip.days[dayIndex];
+
+    if (!day || !day.entries || day.entries.length === 0) {
+      alert('No entries found for this day.');
+      return;
+    }
+
+    // Save to localStorage in the format expected by restaurants.html
+    const parsedData = {
+      entries: day.entries,
+      startTime: day.startTime || '09:00',
+      parsedAt: day.parsedAt || new Date().toISOString(),
+      date: day.date || new Date().toISOString().split('T')[0],
+      tripId: trip.tripId,
+      tripName: trip.tripName,
+      dayNumber: day.dayNumber || dayIndex + 1
+    };
+
+    localStorage.setItem('cultureguide_parsed', JSON.stringify(parsedData));
+
+    // Navigate to restaurants page
+    window.location.href = 'restaurants.html';
+  }
+
+  // Delete a specific day
+  function deleteDay(tripIndex, dayIndex) {
+    showConfirmDialog(
+      'Delete Day?',
+      'This will permanently remove this day from your trip. This action cannot be undone.',
+      () => {
+        const trips = loadTrips();
+        const trip = trips[tripIndex];
+
+        // Remove the day
+        trip.days.splice(dayIndex, 1);
+
+        // If no days left, remove the entire trip
+        if (trip.days.length === 0) {
+          trips.splice(tripIndex, 1);
+        } else {
+          // Update lastModified
+          trip.lastModified = new Date().toISOString();
+        }
+
+        saveTrips(trips);
+        renderTrips();
+      }
+    );
+  }
+
+  // Delete entire trip
+  function deleteTrip(tripIndex) {
+    const trips = loadTrips();
+    const trip = trips[tripIndex];
+
+    showConfirmDialog(
+      'Delete Trip?',
+      `This will permanently delete "${trip.tripName || 'this trip'}" and all its days. This action cannot be undone.`,
+      () => {
+        trips.splice(tripIndex, 1);
+        saveTrips(trips);
+        renderTrips();
+      }
+    );
+  }
+
+  // Show confirmation dialog
+  function showConfirmDialog(title, text, onConfirm) {
+    dialogTitle.textContent = title;
+    dialogText.textContent = text;
+    confirmCallback = onConfirm;
+    dialogOverlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Hide confirmation dialog
+  function hideConfirmDialog() {
+    dialogOverlay.classList.remove('visible');
+    confirmCallback = null;
+    document.body.style.overflow = '';
+  }
+
+  // Dialog event listeners
+  dialogCancel.addEventListener('click', hideConfirmDialog);
+  dialogOverlay.addEventListener('click', (e) => {
+    if (e.target === dialogOverlay) {
+      hideConfirmDialog();
+    }
+  });
+
+  dialogConfirm.addEventListener('click', () => {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    hideConfirmDialog();
+  });
+
+  // Escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Make functions global for onclick handlers
+  window.toggleTrip = toggleTrip;
+  window.viewDayRestaurants = viewDayRestaurants;
+  window.deleteDay = deleteDay;
+  window.deleteTrip = deleteTrip;
+
+  // Initial render
+  renderTrips();
+</script>
+
+</body>
+</html>

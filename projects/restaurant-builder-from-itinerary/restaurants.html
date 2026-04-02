@@ -75,6 +75,12 @@
   .nav-logo span { color: var(--terracotta); font-style: italic; }
 
   .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-back a {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--charcoal-light);
@@ -84,7 +90,7 @@
     gap: 0.4rem;
     transition: color 0.3s ease;
   }
-  .nav-back:hover { color: var(--terracotta); }
+  .nav-back a:hover { color: var(--terracotta); }
 
   /* Hamburger menu - hidden by default, visible on mobile */
   .hamburger-btn {
@@ -164,6 +170,42 @@
     max-width: 960px;
     margin: 0 auto;
     padding: 2.5rem 3rem 4rem;
+  }
+
+  /* ═══════════ TRIP BREADCRUMB ═══════════ */
+  .trip-breadcrumb {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.5rem;
+    background: rgba(138, 154, 123, 0.08);
+    border-left: 2px solid var(--sage);
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--sage);
+  }
+
+  .trip-breadcrumb.visible {
+    display: flex;
+  }
+
+  .trip-breadcrumb a {
+    color: var(--sage);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: color 0.2s ease;
+  }
+
+  .trip-breadcrumb a:hover {
+    color: var(--terracotta);
+  }
+
+  .trip-breadcrumb-separator {
+    color: rgba(138, 154, 123, 0.4);
+    font-weight: 300;
   }
 
   /* ═══════════ EMPTY STATE ═══════════ */
@@ -1234,10 +1276,16 @@
 <!-- ═══════════ NAV ═══════════ -->
 <nav>
   <a href="index.html" class="nav-logo">Culture<span>Guide</span></a>
-  <a href="itinerary.html" class="nav-back">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to itinerary
-  </a>
+  <div class="nav-back">
+    <a href="itinerary.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to itinerary
+    </a>
+    <a href="trips.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      My Trips
+    </a>
+  </div>
   <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu" aria-expanded="false">
     <span class="hamburger-line"></span>
     <span class="hamburger-line"></span>
@@ -1250,6 +1298,10 @@
   <a href="index.html" class="nav-dropdown-item">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6l6-4 6 4v7a1 1 0 01-1 1H3a1 1 0 01-1-1V6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     Home
+  </a>
+  <a href="trips.html" class="nav-dropdown-item">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3V3zm3-2v2m4-2v2m-7 3h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    My Trips
   </a>
   <a href="itinerary.html" class="nav-dropdown-item">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1304,6 +1356,18 @@
 
 <!-- ═══════════ RESULTS ═══════════ -->
 <div class="page" id="resultsPage" style="display: none;">
+  <!-- Trip breadcrumb (shown when viewing from trips.html) -->
+  <div class="trip-breadcrumb" id="tripBreadcrumb">
+    <a href="trips.html">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="tripBreadcrumbName">Trip Name</span>
+    </a>
+    <span class="trip-breadcrumb-separator">&gt;</span>
+    <span id="tripBreadcrumbDay">Day 1</span>
+  </div>
+
   <div class="results-header">
     <p class="results-label" id="resultsLabel">Route-Aware Recommendations</p>
     <h1 class="results-title" id="resultsTitle">Restaurants in <em>Paris</em></h1>
@@ -2279,6 +2343,20 @@
       console.error('[Restaurants] Failed to parse localStorage data:', e.message);
       showState('emptyState');
       return;
+    }
+
+    // Check for trip context (set by trips.html)
+    if (parsedData.tripId && parsedData.tripName) {
+      var breadcrumb = document.getElementById('tripBreadcrumb');
+      var nameEl = document.getElementById('tripBreadcrumbName');
+      var dayEl = document.getElementById('tripBreadcrumbDay');
+
+      if (breadcrumb && nameEl && dayEl) {
+        nameEl.textContent = parsedData.tripName;
+        dayEl.textContent = 'Day ' + (parsedData.dayNumber || 1);
+        breadcrumb.classList.add('visible');
+        console.log('[Restaurants] Trip context detected:', parsedData.tripName, 'Day', parsedData.dayNumber);
+      }
     }
 
     var entries = parsedData.entries || [];
