@@ -1,112 +1,109 @@
-# CLAUDE.md — CultureGuide: Restaurant Builder from Itinerary
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-CultureGuide web app — transforms free-form tourist itineraries into structured daily plans with route-aware restaurant recommendations for European cities (Paris, Venice, Rome).
+CultureGuide — transforms free-form tourist itineraries into structured daily plans with route-aware restaurant recommendations for European cities (Paris, Venice, Rome). Two-tier architecture: TypeScript services (compiled to `dist/`) + Express backend proxy (Node.js).
 
-## Source Protection Rule (MANDATORY)
+## Commands
 
-**Never modify files outside this project directory.** Specifically:
+```bash
+# Tests (581+ tests across node and jsdom environments)
+npx jest                          # Run all tests
+npx jest --testPathPattern=ranker # Run tests matching pattern
+npx jest __tests__/utils/recommendationRanker.test.ts  # Run single test file
 
-- **NEVER modify anything in `/Users/x7c6/museum _guide/CultureGuideWeb/`** or any other external project
-- If you need code, data, or patterns from CultureGuideWeb or any other project, **copy the files into this project first**, then make changes to the copy
-- This applies to ALL agents (coding-agent, backend-services-dev, design-agent, etc.)
-- If an agent needs to read external code for reference, reading is fine — but all writes/edits MUST be within `/Users/x7c6/agentic-ai-workshop/projects/restaurant-builder-from-itinerary/`
+# TypeScript
+npx tsc --noEmit                  # Type-check without emitting
+npm run build                     # Compile TS + resolve path aliases (tsc && tsc-alias)
 
-**Similarly, never modify agent definitions in the agentic-ai-workshop `.claude/` directory.** If an agent definition needs customization for this project, copy it into this project's folder first, then modify the copy.
+# Backend server (from backend/ directory)
+cd backend && npm start           # Start Express server on port 3000
+cd backend && npm run dev         # Start with nodemon (auto-restart)
 
-## Project Location
+# Backend requires .env with OPENAI_API_KEY and GOOGLE_PLACES_API_KEY
+```
 
-`/Users/x7c6/agentic-ai-workshop/projects/restaurant-builder-from-itinerary/`
+## Architecture
 
-## Tech Stack
+### Two-Tier Runtime
 
-- **Frontend**: Plain HTML/CSS/JS (single-file pages) — will migrate to React/Next.js later
-- **Backend**: Node.js/Express proxy server (port 3000)
-- **AI**: OpenAI GPT-3.5-turbo via backend proxy
-- **Routing**: OSRM (Open Source Routing Machine)
-- **Geocoding**: Manual landmarks + Google Places API (tiered fallback)
-- **Data**: Curated restaurant data for Paris (43), Rome (40), Venice (15)
+1. **TypeScript services** (`services/`, `utils/`, `data/`) — compiled to `dist/` via `tsc && tsc-alias`. Path aliases (`utils/*`, `services/*`, etc.) are resolved at compile time by `tsc-alias` and at runtime in `backend/server.js` via a `Module._resolveFilename` hook.
+
+2. **Express backend** (`backend/server.js`) — single-file Node.js server that proxies to OpenAI, Google Places, and OSRM. Serves as the API gateway for all external calls. Auth via `X-API-Key` header; self-calls from the recommendation engine use `X-Internal: recommendation-engine` to bypass auth.
+
+### Path Aliases
+
+Defined in `tsconfig.json` `paths` and mirrored in `jest.config.js` `moduleNameMapper`:
+- `types/*`, `utils/*`, `services/*`, `hooks/*`, `components/*`, `data/*`, `__tests__/*`
+
+When adding new top-level directories, update all three: `tsconfig.json`, `jest.config.js`, and the `aliases` array in `backend/server.js` line ~11.
+
+### 3-Tier Recommendation Engine (`services/recommendationEngine.ts`)
+
+Fallback chain that never crashes:
+1. **Manual curation** (Tier 1) — curated `data/restaurants/{city}.ts` → scored by `utils/recommendationRanker.ts` → filtered by tourist trap detector → quality gate
+2. **Cache** (Tier 2) — in-memory cache with 7-day TTL, keyed by `{cityId}:{mealType}:{lat}:{lon}:v{SCORING_VERSION}`
+3. **AI generation** (Tier 3) — `POST /api/ai/recommend-restaurants` → GPT returns restaurants → geocoded via Google Places → scored by ranker
+4. **Stale cache** → low-quality manual → empty result (always returns something)
+
+AI restaurants are geocoded via Google Places before ranking because GPT returns hallucinated coordinates. The 800m distance cutoff in the ranker is directional along the route, not a simple radius.
+
+### Scoring Engine (`utils/recommendationRanker.ts`)
+
+Composite score 0-110: Quality (25) + Authenticity (20) + Convenience (43) + Timing (15) + Curation (5) + Accessibility (2). Restaurants >800m from target are hard-excluded (return null). `SCORING_VERSION` is exported and must always be imported, never hardcoded.
+
+### Geocoding Pipeline (`services/geocodingService.ts`)
+
+4-tier: landmark DB → cache → Google Places → AI (disabled). Hotel geocoding skips Tier 1 (landmark DB) via `skipLandmark: true` to avoid false matches.
+
+### Frontend Pages
+
+Static HTML pages with inline CSS/JS (no bundler):
+- `index.html` — landing page
+- `itinerary.html` — itinerary input and parsing
+- `restaurants.html` — restaurant recommendations display
+- `trips.html` — saved trips
+
+### Backend API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/ai/parse-itinerary` | Parse itinerary text via GPT |
+| POST | `/api/ai/analyze-review` | Analyze restaurant reviews via GPT |
+| POST | `/api/ai/recommend-restaurants` | Generate restaurant recommendations via GPT (neighborhood-aware) |
+| POST | `/api/recommendations/generate` | Full recommendation pipeline (used by frontend) |
+| POST | `/api/places/search` | Google Places nearby search |
+| GET | `/api/places/details/:placeId` | Google Places details |
+| POST | `/api/geocoding/lookup` | Google Geocoding API |
+
+## Test Configuration
+
+Jest uses two projects: `node` (for `.test.ts`) and `jsdom` (for `.test.tsx`). Fixtures live in `__tests__/fixtures/`. Test files mirror the source structure: `__tests__/services/`, `__tests__/utils/`, `__tests__/integration/`, `__tests__/components/`, `__tests__/hooks/`.
+
+## Code Conventions
+
+- All console.log must use `[BracketedPrefix]` format (e.g., `[Engine]`, `[Ranker]`, `[Geocoding]`)
+- No `as any` in source files (tests excluded for mocking)
+- Always import `SCORING_VERSION` from `utils/recommendationRanker.ts`, never hardcode (current: 7)
+- Max composite score: 110 points — never inflate
+- Mock all external APIs in tests (Google Places, OpenAI, OSRM)
+- No `new Date()` in tests — use fixed timestamps
+- Import test data from `__tests__/fixtures/`, never inline
+- Update `ARCHITECTURE.md` after code changes that add/modify features, services, types, or endpoints
 
 ## Design System
 
-- **Fonts**: Cormorant Garamond (display) + Outfit (body) — Google Fonts
+- **Fonts**: Cormorant Garamond (display) + Outfit (body)
 - **Colors**: `--charcoal: #1a1a2e`, `--terracotta: #c4704b`, `--ochre: #d4a574`, `--cream: #f5f0eb`, `--sage: #8a9a7b`
 - **Aesthetic**: Editorial luxury travel magazine — warm Mediterranean tones, grain overlay, generous whitespace
-- All new pages MUST use the same CSS variables and design patterns as existing pages
+- All new pages must use the same CSS variables and design patterns
 
-## Backend API
+## Source Protection Rule
 
-- **URL**: `http://localhost:3000`
-- **Auth**: `X-API-Key` header required
-- **Endpoints**:
-  - `POST /api/ai/parse-itinerary` — `{ itineraryText, cityName }` → `{ parsed, usage }`
-  - `POST /api/ai/analyze-review` — `{ reviewText }` → `{ analysis, usage }`
-  - `POST /api/places/search` — `{ latitude, longitude, radius, type, keyword }`
-  - `GET /api/places/details/:placeId`
-  - `POST /api/geocoding/lookup` — `{ address }`
+Never modify files outside this project directory. Never modify agent definitions in the agentic-ai-workshop `.claude/` directory. Read external code for reference only — all writes must be within this project.
 
-## TDD Workflow (MANDATORY)
+## Edit Approval Rule
 
-All development follows strict Test-Driven Development:
-
-1. **New feature**: Write failing tests FIRST, then implement until tests pass
-2. **Bug fix**: Write a test that reproduces the bug FIRST, then fix it
-3. **Refactor**: All existing tests must pass BEFORE and AFTER
-4. **Task completion**: Task is NOT complete until `npx jest` shows all green
-5. Run `npx jest` before and after every change
-
-## Code Quality Rules (Non-Negotiable)
-
-| Rule | Detail |
-|------|--------|
-| No `as any` | Never use `as any` in source files (tests excluded for mocking) |
-| Console.log format | All logs must use `[BracketedPrefix]` format (e.g., `[Ranker]`, `[Geocoding]`) |
-| SCORING_VERSION | Always import from `utils/recommendationRanker.ts`, never hardcode. Current value: 7 |
-| Max score | Never inflate beyond 110 points |
-| No real APIs in tests | Mock Google Places, OpenAI, OSRM in all test files |
-| No `new Date()` in tests | Use fixed time values for deterministic results |
-| Never delete tests | Update with comments explaining changes |
-| Fixtures | Import from `__tests__/fixtures/`, never inline test data |
-| ARCHITECTURE.md | Update after every code change that adds/modifies features, services, types, endpoints |
-
-## Performance Budgets
-
-| Operation | Target |
-|-----------|--------|
-| Itinerary parsing | < 10s |
-| Manual recommendation load | < 500ms |
-| Cached recommendation load | < 1s |
-| AI recommendation generation | 30-60s |
-| Running Late re-rank | < 2s (zero API cost) |
-| OSRM route fetch | < 5s |
-
-## Token Budget
-
-- Per-trip limit: 2,000,000 tokens (30-day rolling window)
-- Warning at 75% (1,500,000 tokens)
-- Cost: ~$0.48 per full day (3 meals)
-
-## Error & Resilience
-
-- Centralized `errorLogger.ts` with 5 severity levels (fatal, error, warning, info, debug)
-- Retry: 1 retry with 2s delay for AI failures
-- Fallback chain: manual curation → cache → AI → stale cache → empty (never crash)
-- Network: assume online on detection failure (avoid false offline blocking)
-
-## Excluded Integrations
-
-These are NOT used in this project:
-- Jira (no jira-agent)
-- Confluence (no confluence agents)
-- Sprint-agent
-- Story-generator
-- No GitHub pushes — user has a personal repo for that
-
-## Edit Approval Rule (MANDATORY)
-
-**The main terminal session (team lead / direct Claude) must NEVER make code changes without user approval.** Always explain what you plan to change and wait for the user to approve before editing any file. Only agents spawned via Agent Teams may edit files without per-change approval.
-
-## City Detection
-
-Cities are detected automatically from itinerary text by the AI parser. There is NO city selector UI. The backend `cityName` parameter serves as a fallback only.
+The main terminal session must never make code changes without user approval. Explain planned changes and wait for approval. Agents spawned via Agent Teams may edit without per-change approval.
