@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cultureguide-backend
+    runtime: node
+    buildCommand: npm install && npm run build && cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: API_KEY
+        sync: false

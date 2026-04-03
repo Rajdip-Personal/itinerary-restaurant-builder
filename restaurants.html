@@ -1416,7 +1416,9 @@
   // CONFIG
   // ============================================================================
 
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://cultureguide-backend.onrender.com';
   const API_KEY = 'cg_a05c1e742ef279b4f9813b0bdf7a24e31acb71f43d0beb25e9a1ee646f9c8337';
 
   // State
