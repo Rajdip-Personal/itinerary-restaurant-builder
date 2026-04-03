@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "buildCommand": "mkdir -p public && cp *.html public/",
+  "outputDirectory": "public",
   "framework": null
 }
